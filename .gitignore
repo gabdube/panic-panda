@@ -1,0 +1,6 @@
+*.pyc
+build
+Settings.cap
+.idea
+.vscode
+assets/*
