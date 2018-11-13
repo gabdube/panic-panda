@@ -4,9 +4,10 @@ from . import Shader, Mesh, GameObject
 class Scene(object):
 
     def __init__(self):
-        self.__shaders = ComponentArray(Shader)
-        self.__meshes = ComponentArray(Mesh)
-        self.__objects = ComponentArray(GameObject)
+        self.id = None
+        self.shaders = ComponentArray(Shader)
+        self.meshes = ComponentArray(Mesh)
+        self.objects = ComponentArray(GameObject)
 
     @classmethod
     def empty(cls):
@@ -14,17 +15,6 @@ class Scene(object):
         scene.__init__()
         return scene
 
-    @property
-    def shaders(self):
-        return self.__shaders
-
-    @property
-    def meshes(self):
-        return self.__meshes
-
-    @property
-    def objects(self):
-        return self.__objects
 
 
 class ComponentArray(list):
