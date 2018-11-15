@@ -1,4 +1,5 @@
 from vulkan import vk, helpers as hvk
+from .data_shader import DataShader
 
 
 class DataScene(object):
@@ -11,16 +12,23 @@ class DataScene(object):
         self.render_commands = None
         self.render_cache = {}
 
+        self.shaders = None
+
+        self._setup_shaders()
         self._setup_render_commands()
         self._setup_render_cache()
 
     def free(self):
         engine, api, device = self.ctx
 
+        for shader in self.shaders:
+            shader.free()
+
         hvk.destroy_command_pool(api, device, self.command_pool)
 
         del self.engine
         del self.scene
+        del self.shaders
 
     @property
     def ctx(self):
@@ -41,8 +49,20 @@ class DataScene(object):
 
         hvk.begin_command_buffer(api, render_command, rc["begin_info"])
         hvk.begin_render_pass(api, render_command, render_pass_begin, vk.SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS)
+
+
+
         hvk.end_render_pass(api, render_command)
         hvk.end_command_buffer(api, render_command)
+
+    def _setup_shaders(self):
+        e = self.engine
+
+        shaders = []
+        for shader in self.scene.shaders:
+            shaders.append(DataShader(e, shader))
+
+        self.shaders = shaders
 
     def _setup_render_commands(self):
         engine, api, device = self.ctx
@@ -70,7 +90,7 @@ class DataScene(object):
             framebuffer = 0,
             render_area = hvk.rect_2d(0, 0, 0, 0),
             clear_values = (
-                hvk.clear_value(color=(0.3, 0.3, 0.3, 1.0)),
+                hvk.clear_value(color=(0.2, 0.2, 0.2, 1.0)),
                 hvk.clear_value(depth=1.0, stencil=0)
             )
         )

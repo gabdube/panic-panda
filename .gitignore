@@ -3,4 +3,4 @@ build
 Settings.cap
 .idea
 .vscode
-assets/*
+assets/shaders/*.spv

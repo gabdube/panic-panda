@@ -11,8 +11,8 @@ class PanicPanda(object):
 
     def run(self):
         engine = self.engine
-        engine.load(self.main)
-        engine.activate(self.main)
+        engine.load(self.main.scene)
+        engine.activate(self.main.scene)
 
         while engine.running:
             engine.events()
