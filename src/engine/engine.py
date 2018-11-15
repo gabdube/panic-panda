@@ -1,8 +1,12 @@
 from enum import IntFlag
 from collections import OrderedDict
-from system import Window
+from system import Window, events as evt
 from vulkan import vk, helpers as hvk
 from . import Queue, ImageAndView
+from .memory_manager import MemoryManager
+from .render_target import RenderTarget
+from .renderer import Renderer
+from .data_components import DataScene
 
 
 DEBUG = True
@@ -19,6 +23,7 @@ class Engine(object):
         self.info = {}
 
         self.graph = []
+        self.current_scene_index = None
 
         self._setup_instance()
         self._setup_debugger()
@@ -26,14 +31,23 @@ class Engine(object):
         self._setup_device()
         self._setup_device_info()
         self._setup_swapchain()
-        self._setup_swapchain_images()
+
+        self.memory_manager = MemoryManager(self)
+        self.render_target = RenderTarget(self)
+
+        self.renderer = Renderer(self)
 
     def free(self):
         api, i, d = self.api, self.instance, self.device
 
+        hvk.device_wait_idle(api, d)
 
-        for (_, view) in self.swapchain_images:
-            hvk.destroy_image_view(api, d, view)
+        for scene in self.graph:
+            scene.free()
+
+        self.renderer.free()
+        self.render_target.free()
+        self.memory_manager.free()
 
         hvk.destroy_swapchain(api, d, self.swapchain)
         hvk.destroy_device(api, d)
@@ -44,20 +58,31 @@ class Engine(object):
 
         self.window.destroy()
 
-
     def load(self, scene):
-        assert scene.id is None, f"Scene is already loaded"
+        assert scene.id is None, "Scene is already loaded"
+        scene_data = DataScene(self, scene)
         scene.id = len(self.graph)
-        self.graph.append(scene)
+        self.graph.append(scene_data)
 
     def activate(self, scene):
-        assert scene.id is not None, f"Scene was not loaded in engine"
+        assert scene.id is not None, "Scene was not loaded in engine"
 
         self.window.show()
         self.running = True
+        self.current_scene_index = scene.id
+
+    def events(self):
+        w = self.window
+        w.translate_system_events()
+        for event in w.events:
+            pass
+
+        if w.must_exit:
+            self.running = False
 
     def render(self):
-        self.running  = False
+        scene_data = self.graph[self.current_scene_index]
+        self.renderer.render(scene_data)
 
     def _setup_instance(self):
         layers = []
@@ -185,20 +210,3 @@ class Engine(object):
 
         self.info["swapchain_extent"] = OrderedDict(width=extent.width, height=extent.height)
         self.info["swapchain_format"] = swapchain_image_format
-
-    def _setup_swapchain_images(self):
-        api, device, swapchain = self.api, self.device, self.swapchain
-
-        # Fetch swapchain images
-        swapchain_images = hvk.swapchain_images(api, device, swapchain)
-        swapchain_fmt = self.info["swapchain_format"]
-
-        # Create the swapchain images view
-        self.swapchain_images = []
-        for image in swapchain_images:
-            view = hvk.create_image_view(api, device, hvk.image_view_create_info(
-                image = image,
-                format = swapchain_fmt
-            ))
-
-            self.swapchain_images.append(ImageAndView(image=image, view=view))

@@ -12,9 +12,10 @@ class PanicPanda(object):
     def run(self):
         engine = self.engine
         engine.load(self.main)
-        engine.activate(self.main.id)
+        engine.activate(self.main)
 
         while engine.running:
+            engine.events()
             engine.render()
             sleep(1/60)
 
