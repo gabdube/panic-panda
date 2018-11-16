@@ -26,6 +26,7 @@ class ComponentArray(list):
         if not isinstance(i, self.component_type):
             raise TypeError(f"Item type must be {self.component_type.__qualname__}, got {type(i)}")
 
+        i.id = len(self)
         super().append(i)
 
     def __repr__(self):

@@ -1,5 +1,5 @@
 from engine import Shader
-from engine import Mesh, DataArray, DataArrayFormat as DFmt
+from engine import Mesh, TypedArray, TypedArrayFormat as DFmt
 from engine import GameObject
 from engine import Scene
 
@@ -22,9 +22,9 @@ class MainScene(object):
         scene.shaders.append(shader)
 
         plane_m = Mesh.from_array(
-            indices = DataArray(fmt=DFmt.UInt16, data=()),
+            indices = TypedArray(fmt=DFmt.UInt16, data=(0, 1, 2,  0, 3, 2)),
             attributes = {
-                "positions": DataArray(fmt=DFmt.Float32, data=())
+                "positions": TypedArray(fmt=DFmt.Float32, data=(-0.7, 0.7, 0.0,  0.7, 0.7, 0.0,  0.7, -0.7, 0.0,  -0.7, -0.7, 0.0))
             }
         )
         scene.meshes.append(plane_m)

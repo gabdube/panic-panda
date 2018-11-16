@@ -26,14 +26,11 @@ class MemoryManager(object):
         api, device = ctx.api, ctx.device
         return ctx, api, device
 
-    def alloc(self, resource, resource_type, **options):
-        if not "types" in options:
-            raise ValueError(f"No memory types specified to allocate ressource {resource}")
-
+    def alloc(self, resource, resource_type, types):
         _, api, device = self.ctx
 
         requirements = self.get_resource_requirements(resource, resource_type)
-        memory_type_index = self._get_memory_type_index(options["types"])
+        memory_type_index = self._get_memory_type_index(types)
 
         device_memory = hvk.allocate_memory(api, device, hvk.memory_allocate_info(
             allocation_size = requirements.size,
@@ -52,13 +49,10 @@ class MemoryManager(object):
 
         return weakref.proxy(alloc)
 
-    def shared_alloc(self, size, **options):
-        if not "types" in options:
-            raise ValueError(f"No memory types specified to allocate ressource {resource}")
-
+    def shared_alloc(self, size, types):
         _, api, device = self.ctx
 
-        memory_type_index = self._get_memory_type_index(options["types"])
+        memory_type_index = self._get_memory_type_index(types)
 
         device_memory = hvk.allocate_memory(api, device, hvk.memory_allocate_info(
             allocation_size = size,
