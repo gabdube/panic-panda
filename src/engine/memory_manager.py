@@ -100,7 +100,7 @@ class MemoryManager(object):
         for type_index, memory_type in enumerate(memory_types):
             memory_type_properties = hvk.MemoryPropertyFlag(memory_type.property_flags)
             for memory_type_flag in memory_type_flags:
-                if memory_type_flag in memory_type_properties:
+                if hvk.MemoryPropertyFlag(memory_type_flag) in memory_type_properties:
                     return type_index
 
         raise ValueError(f"No memory type matches the requested flags: {memory_type_flags}")

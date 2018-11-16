@@ -1,6 +1,6 @@
 from .. import vk
 from .utils import array, array_pointer, check_ctypes_members, sequence_to_array
-from ctypes import c_int32, c_uint32, c_uint64, byref
+from ctypes import c_int32, c_uint32, c_uint64, byref, cast, POINTER
 
 
 MAX_ACQUIRE_TIMEOUT = c_uint64(-1).value
@@ -28,7 +28,7 @@ def create_xcb_surface(api, instance, window):
         type = vk.STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
         next = None,
         flags = 0,
-        connection = window.connection,
+        connection = cast(window.connection, POINTER(vk.xcb_connection_t)),
         window = window.handle
     )
 

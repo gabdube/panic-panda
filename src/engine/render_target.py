@@ -74,7 +74,7 @@ class RenderTarget(object):
         ))
 
         alloc = ctx.memory_manager.alloc(depth_stencil_image, vk.STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            types = (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT,)
+            types = (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT, )
         )
 
         depth_stencil_view = hvk.create_image_view(api, device, hvk.image_view_create_info(

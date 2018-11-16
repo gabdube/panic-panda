@@ -4,3 +4,4 @@ Settings.cap
 .idea
 .vscode
 assets/shaders/*.spv
+python/

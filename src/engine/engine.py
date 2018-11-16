@@ -87,6 +87,7 @@ class Engine(object):
     def _setup_instance(self):
         layers = []
         extensions = ["VK_KHR_surface", hvk.SYSTEM_SURFACE_EXTENSION]
+
         if DEBUG:
             extensions.append("VK_EXT_debug_utils")
             layers.append("VK_LAYER_LUNARG_standard_validation")
@@ -115,7 +116,12 @@ class Engine(object):
 
         # Queues setup (A single graphic queue)
         queue_families = hvk.list_queue_families(api, physical_device)
-        render_queue_family = next(qf for qf in queue_families if vk.QUEUE_GRAPHICS_BIT in IntFlag(qf.properties.queue_flags))
+
+        render_queue_family = None
+        for qf in queue_families:
+            if qf.properties.queue_flags & vk.QUEUE_GRAPHICS_BIT != 0:
+                render_queue_family = qf
+        
         render_queue_create_info = hvk.queue_create_info(
             queue_family_index = render_queue_family.index,
             queue_count = 1
@@ -136,7 +142,7 @@ class Engine(object):
         depth_formats = (vk.FORMAT_D32_SFLOAT_S8_UINT, vk.FORMAT_D24_UNORM_S8_UINT, vk.FORMAT_D16_UNORM_S8_UINT)
         for fmt in depth_formats:
             prop = hvk.physical_device_format_properties(api, physical_device, fmt)
-            if vk.FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT in IntFlag(prop.optimal_tiling_features):
+            if vk.FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT & prop.optimal_tiling_features != 0:
                 info["depth_format"] = fmt
                 break
 
