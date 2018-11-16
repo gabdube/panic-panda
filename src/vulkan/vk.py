@@ -137,7 +137,7 @@ ObjectTableNVX = c_uint64
 IndirectCommandsLayoutNVX = c_uint64
 DebugUtilsMessengerEXT = c_uint64
 ValidationCacheEXT = c_uint64
-AccelerationStructureNVX = c_uint64
+AccelerationStructureNV = c_uint64
 
 
 # Flags types
@@ -238,10 +238,11 @@ PipelineCoverageToColorStateCreateFlagsNV = Flags
 PipelineCoverageModulationStateCreateFlagsNV = Flags
 ValidationCacheCreateFlagsEXT = Flags
 DescriptorBindingFlagsEXT = Flags
-GeometryFlagsNVX = Flags
-GeometryInstanceFlagsNVX = Flags
-BuildAccelerationStructureFlagsNVX = Flags
+GeometryFlagsNV = Flags
+GeometryInstanceFlagsNV = Flags
+BuildAccelerationStructureFlagsNV = Flags
 Win32SurfaceCreateFlagsKHR = Flags
+XcbSurfaceCreateFlagsKHR = Flags
 
 
 # Enums
@@ -417,7 +418,6 @@ STRUCTURE_TYPE_DISPLAY_PRESENT_INFO_KHR = 1000003000
 STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR = 1000004000
 STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR = 1000005000
 STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR = 1000006000
-STRUCTURE_TYPE_MIR_SURFACE_CREATE_INFO_KHR = 1000007000
 STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR = 1000008000
 STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR = 1000009000
 STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT = 1000011000
@@ -536,7 +536,7 @@ STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT = 1000158000
 STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT = 1000158001
 STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT = 1000158002
 STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT = 1000158003
-STRUCTURE_TYPE_IMAGE_EXCPLICIT_DRM_FORMAT_MODIFIER_CREATE_INFO_EXT = 1000158004
+STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT = 1000158004
 STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT = 1000158005
 STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT = 1000160000
 STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT = 1000160001
@@ -549,17 +549,17 @@ STRUCTURE_TYPE_PIPELINE_VIEWPORT_SHADING_RATE_IMAGE_STATE_CREATE_INFO_NV = 10001
 STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV = 1000164001
 STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV = 1000164002
 STRUCTURE_TYPE_PIPELINE_VIEWPORT_COARSE_SAMPLE_ORDER_STATE_CREATE_INFO_NV = 1000164005
-STRUCTURE_TYPE_RAYTRACING_PIPELINE_CREATE_INFO_NVX = 1000165000
-STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NVX = 1000165001
-STRUCTURE_TYPE_GEOMETRY_INSTANCE_NVX = 1000165002
-STRUCTURE_TYPE_GEOMETRY_NVX = 1000165003
-STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NVX = 1000165004
-STRUCTURE_TYPE_GEOMETRY_AABB_NVX = 1000165005
-STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NVX = 1000165006
-STRUCTURE_TYPE_DESCRIPTOR_ACCELERATION_STRUCTURE_INFO_NVX = 1000165007
-STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NVX = 1000165008
-STRUCTURE_TYPE_PHYSICAL_DEVICE_RAYTRACING_PROPERTIES_NVX = 1000165009
-STRUCTURE_TYPE_HIT_SHADER_MODULE_CREATE_INFO_NVX = 1000165010
+STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV = 1000165000
+STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV = 1000165001
+STRUCTURE_TYPE_GEOMETRY_NV = 1000165003
+STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV = 1000165004
+STRUCTURE_TYPE_GEOMETRY_AABB_NV = 1000165005
+STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV = 1000165006
+STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV = 1000165007
+STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV = 1000165008
+STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV = 1000165009
+STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV = 1000165011
+STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV = 1000165012
 STRUCTURE_TYPE_PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV = 1000166000
 STRUCTURE_TYPE_PIPELINE_REPRESENTATIVE_FRAGMENT_TEST_STATE_CREATE_INFO_NV = 1000166001
 STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT = 1000174000
@@ -570,6 +570,7 @@ STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT = 1000178002
 STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR = 1000180000
 STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT = 1000184000
 STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD = 1000185000
+STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD = 1000189000
 STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT = 1000190000
 STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT = 1000190001
 STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT = 1000190002
@@ -964,7 +965,7 @@ QUERY_TYPE_OCCLUSION = 0
 QUERY_TYPE_PIPELINE_STATISTICS = 1
 QUERY_TYPE_TIMESTAMP = 2
 QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT = 1000028004
-QUERY_TYPE_COMPACTED_SIZE_NVX = 1000165000
+QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV = 1000165000
 QUERY_TYPE_BEGIN_RANGE = QUERY_TYPE_OCCLUSION
 QUERY_TYPE_END_RANGE = QUERY_TYPE_TIMESTAMP
 QUERY_TYPE_RANGE_SIZE = (QUERY_TYPE_TIMESTAMP - QUERY_TYPE_OCCLUSION + 1)
@@ -1256,7 +1257,7 @@ DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC = 8
 DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC = 9
 DESCRIPTOR_TYPE_INPUT_ATTACHMENT = 10
 DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT = 1000138000
-DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NVX = 1000165000
+DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV = 1000165000
 DESCRIPTOR_TYPE_BEGIN_RANGE = DESCRIPTOR_TYPE_SAMPLER
 DESCRIPTOR_TYPE_END_RANGE = DESCRIPTOR_TYPE_INPUT_ATTACHMENT
 DESCRIPTOR_TYPE_RANGE_SIZE = (DESCRIPTOR_TYPE_INPUT_ATTACHMENT - DESCRIPTOR_TYPE_SAMPLER + 1)
@@ -1279,7 +1280,7 @@ ATTACHMENT_STORE_OP_RANGE_SIZE = (ATTACHMENT_STORE_OP_DONT_CARE - ATTACHMENT_STO
 PipelineBindPoint = c_uint32
 PIPELINE_BIND_POINT_GRAPHICS = 0
 PIPELINE_BIND_POINT_COMPUTE = 1
-PIPELINE_BIND_POINT_RAYTRACING_NVX = 1000165000
+PIPELINE_BIND_POINT_RAY_TRACING_NV = 1000165000
 PIPELINE_BIND_POINT_BEGIN_RANGE = PIPELINE_BIND_POINT_GRAPHICS
 PIPELINE_BIND_POINT_END_RANGE = PIPELINE_BIND_POINT_COMPUTE
 PIPELINE_BIND_POINT_RANGE_SIZE = (PIPELINE_BIND_POINT_COMPUTE - PIPELINE_BIND_POINT_GRAPHICS + 1)
@@ -1294,6 +1295,7 @@ COMMAND_BUFFER_LEVEL_RANGE_SIZE = (COMMAND_BUFFER_LEVEL_SECONDARY - COMMAND_BUFF
 IndexType = c_uint32
 INDEX_TYPE_UINT16 = 0
 INDEX_TYPE_UINT32 = 1
+INDEX_TYPE_NONE_NV = 1000165000
 INDEX_TYPE_BEGIN_RANGE = INDEX_TYPE_UINT16
 INDEX_TYPE_END_RANGE = INDEX_TYPE_UINT32
 INDEX_TYPE_RANGE_SIZE = (INDEX_TYPE_UINT32 - INDEX_TYPE_UINT16 + 1)
@@ -1343,7 +1345,7 @@ OBJECT_TYPE_OBJECT_TABLE_NVX = 1000086000
 OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX = 1000086001
 OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT = 1000128000
 OBJECT_TYPE_VALIDATION_CACHE_EXT = 1000160000
-OBJECT_TYPE_ACCELERATION_STRUCTURE_NVX = 1000165000
+OBJECT_TYPE_ACCELERATION_STRUCTURE_NV = 1000165000
 OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR = OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE
 OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_KHR = OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION
 OBJECT_TYPE_BEGIN_RANGE = OBJECT_TYPE_UNKNOWN
@@ -1480,7 +1482,8 @@ PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT = 0x01000000
 PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT = 0x00040000
 PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX = 0x00020000
 PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV = 0x00400000
-PIPELINE_STAGE_RAYTRACING_BIT_NVX = 0x00200000
+PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV = 0x00200000
+PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV = 0x02000000
 PIPELINE_STAGE_TASK_SHADER_BIT_NV = 0x00080000
 PIPELINE_STAGE_MESH_SHADER_BIT_NV = 0x00100000
 
@@ -1549,7 +1552,7 @@ BUFFER_USAGE_INDIRECT_BUFFER_BIT = 0x00000100
 BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT = 0x00000800
 BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT = 0x00001000
 BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT = 0x00000200
-BUFFER_USAGE_RAYTRACING_BIT_NVX = 0x00000400
+BUFFER_USAGE_RAY_TRACING_BIT_NV = 0x00000400
 
 PipelineCreateFlagBits = c_uint32
 PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT = 0x00000001
@@ -1557,7 +1560,7 @@ PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT = 0x00000002
 PIPELINE_CREATE_DERIVATIVE_BIT = 0x00000004
 PIPELINE_CREATE_VIEW_INDEX_FROM_DEVICE_INDEX_BIT = 0x00000008
 PIPELINE_CREATE_DISPATCH_BASE = 0x00000010
-PIPELINE_CREATE_DEFER_COMPILE_BIT_NVX = 0x00000020
+PIPELINE_CREATE_DEFER_COMPILE_BIT_NV = 0x00000020
 PIPELINE_CREATE_VIEW_INDEX_FROM_DEVICE_INDEX_BIT_KHR = PIPELINE_CREATE_VIEW_INDEX_FROM_DEVICE_INDEX_BIT
 PIPELINE_CREATE_DISPATCH_BASE_KHR = PIPELINE_CREATE_DISPATCH_BASE
 
@@ -1570,12 +1573,12 @@ SHADER_STAGE_FRAGMENT_BIT = 0x00000010
 SHADER_STAGE_COMPUTE_BIT = 0x00000020
 SHADER_STAGE_ALL_GRAPHICS = 0x0000001F
 SHADER_STAGE_ALL = 0x7FFFFFFF
-SHADER_STAGE_RAYGEN_BIT_NVX = 0x00000100
-SHADER_STAGE_ANY_HIT_BIT_NVX = 0x00000200
-SHADER_STAGE_CLOSEST_HIT_BIT_NVX = 0x00000400
-SHADER_STAGE_MISS_BIT_NVX = 0x00000800
-SHADER_STAGE_INTERSECTION_BIT_NVX = 0x00001000
-SHADER_STAGE_CALLABLE_BIT_NVX = 0x00002000
+SHADER_STAGE_RAYGEN_BIT_NV = 0x00000100
+SHADER_STAGE_ANY_HIT_BIT_NV = 0x00000200
+SHADER_STAGE_CLOSEST_HIT_BIT_NV = 0x00000400
+SHADER_STAGE_MISS_BIT_NV = 0x00000800
+SHADER_STAGE_INTERSECTION_BIT_NV = 0x00001000
+SHADER_STAGE_CALLABLE_BIT_NV = 0x00002000
 SHADER_STAGE_TASK_BIT_NV = 0x00000040
 SHADER_STAGE_MESH_BIT_NV = 0x00000080
 
@@ -1632,8 +1635,8 @@ ACCESS_COMMAND_PROCESS_READ_BIT_NVX = 0x00020000
 ACCESS_COMMAND_PROCESS_WRITE_BIT_NVX = 0x00040000
 ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT = 0x00080000
 ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV = 0x00800000
-ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NVX = 0x00200000
-ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NVX = 0x00400000
+ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV = 0x00200000
+ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV = 0x00400000
 
 DependencyFlagBits = c_uint32
 DEPENDENCY_BY_REGION_BIT = 0x00000001
@@ -1665,6 +1668,8 @@ StencilFaceFlagBits = c_uint32
 STENCIL_FACE_FRONT_BIT = 0x00000001
 STENCIL_FACE_BACK_BIT = 0x00000002
 STENCIL_FRONT_AND_BACK = 0x00000003
+
+RenderPassCreateFlagBits = c_uint32
 
 PointClippingBehavior = c_uint32
 POINT_CLIPPING_BEHAVIOR_ALL_CLIP_PLANES = 0
@@ -1936,7 +1941,7 @@ DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT = 32
 DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT = 33
 DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT = 1000156000
 DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT = 1000085000
-DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NVX_EXT = 1000165000
+DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT = 1000165000
 DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT = DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT
 DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT = DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT
 DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR_EXT = DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT
@@ -2146,43 +2151,59 @@ COARSE_SAMPLE_ORDER_TYPE_BEGIN_RANGE_NV = COARSE_SAMPLE_ORDER_TYPE_DEFAULT_NV
 COARSE_SAMPLE_ORDER_TYPE_END_RANGE_NV = COARSE_SAMPLE_ORDER_TYPE_SAMPLE_MAJOR_NV
 COARSE_SAMPLE_ORDER_TYPE_RANGE_SIZE_NV = (COARSE_SAMPLE_ORDER_TYPE_SAMPLE_MAJOR_NV - COARSE_SAMPLE_ORDER_TYPE_DEFAULT_NV + 1)
 
-GeometryTypeNVX = c_uint32
-GEOMETRY_TYPE_TRIANGLES_NVX = 0
-GEOMETRY_TYPE_AABBS_NVX = 1
-GEOMETRY_TYPE_BEGIN_RANGE_NVX = GEOMETRY_TYPE_TRIANGLES_NVX
-GEOMETRY_TYPE_END_RANGE_NVX = GEOMETRY_TYPE_AABBS_NVX
-GEOMETRY_TYPE_RANGE_SIZE_NVX = (GEOMETRY_TYPE_AABBS_NVX - GEOMETRY_TYPE_TRIANGLES_NVX + 1)
+RayTracingShaderGroupTypeNV = c_uint32
+RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV = 0
+RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV = 1
+RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV = 2
+RAY_TRACING_SHADER_GROUP_TYPE_BEGIN_RANGE_NV = RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV
+RAY_TRACING_SHADER_GROUP_TYPE_END_RANGE_NV = RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV
+RAY_TRACING_SHADER_GROUP_TYPE_RANGE_SIZE_NV = (RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV - RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV + 1)
 
-AccelerationStructureTypeNVX = c_uint32
-ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NVX = 0
-ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NVX = 1
-ACCELERATION_STRUCTURE_TYPE_BEGIN_RANGE_NVX = ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NVX
-ACCELERATION_STRUCTURE_TYPE_END_RANGE_NVX = ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NVX
-ACCELERATION_STRUCTURE_TYPE_RANGE_SIZE_NVX = (ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NVX - ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NVX + 1)
+GeometryTypeNV = c_uint32
+GEOMETRY_TYPE_TRIANGLES_NV = 0
+GEOMETRY_TYPE_AABBS_NV = 1
+GEOMETRY_TYPE_BEGIN_RANGE_NV = GEOMETRY_TYPE_TRIANGLES_NV
+GEOMETRY_TYPE_END_RANGE_NV = GEOMETRY_TYPE_AABBS_NV
+GEOMETRY_TYPE_RANGE_SIZE_NV = (GEOMETRY_TYPE_AABBS_NV - GEOMETRY_TYPE_TRIANGLES_NV + 1)
 
-CopyAccelerationStructureModeNVX = c_uint32
-COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NVX = 0
-COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NVX = 1
-COPY_ACCELERATION_STRUCTURE_MODE_BEGIN_RANGE_NVX = COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NVX
-COPY_ACCELERATION_STRUCTURE_MODE_END_RANGE_NVX = COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NVX
-COPY_ACCELERATION_STRUCTURE_MODE_RANGE_SIZE_NVX = (COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NVX - COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NVX + 1)
+AccelerationStructureTypeNV = c_uint32
+ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV = 0
+ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV = 1
+ACCELERATION_STRUCTURE_TYPE_BEGIN_RANGE_NV = ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV
+ACCELERATION_STRUCTURE_TYPE_END_RANGE_NV = ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV
+ACCELERATION_STRUCTURE_TYPE_RANGE_SIZE_NV = (ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV - ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV + 1)
 
-GeometryFlagBitsNVX = c_uint32
-GEOMETRY_OPAQUE_BIT_NVX = 0x00000001
-GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NVX = 0x00000002
+CopyAccelerationStructureModeNV = c_uint32
+COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV = 0
+COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV = 1
+COPY_ACCELERATION_STRUCTURE_MODE_BEGIN_RANGE_NV = COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV
+COPY_ACCELERATION_STRUCTURE_MODE_END_RANGE_NV = COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV
+COPY_ACCELERATION_STRUCTURE_MODE_RANGE_SIZE_NV = (COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV - COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV + 1)
 
-GeometryInstanceFlagBitsNVX = c_uint32
-GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NVX = 0x00000001
-GEOMETRY_INSTANCE_TRIANGLE_CULL_FLIP_WINDING_BIT_NVX = 0x00000002
-GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NVX = 0x00000004
-GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NVX = 0x00000008
+AccelerationStructureMemoryRequirementsTypeNV = c_uint32
+ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV = 0
+ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV = 1
+ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV = 2
+ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BEGIN_RANGE_NV = ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV
+ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_END_RANGE_NV = ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV
+ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_RANGE_SIZE_NV = (ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV - ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV + 1)
 
-BuildAccelerationStructureFlagBitsNVX = c_uint32
-BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NVX = 0x00000001
-BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NVX = 0x00000002
-BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NVX = 0x00000004
-BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NVX = 0x00000008
-BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NVX = 0x00000010
+GeometryFlagBitsNV = c_uint32
+GEOMETRY_OPAQUE_BIT_NV = 0x00000001
+GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV = 0x00000002
+
+GeometryInstanceFlagBitsNV = c_uint32
+GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV = 0x00000001
+GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV = 0x00000002
+GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV = 0x00000004
+GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV = 0x00000008
+
+BuildAccelerationStructureFlagBitsNV = c_uint32
+BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV = 0x00000001
+BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV = 0x00000002
+BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV = 0x00000004
+BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV = 0x00000008
+BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV = 0x00000010
 
 QueueGlobalPriorityEXT = c_uint32
 QUEUE_GLOBAL_PRIORITY_LOW_EXT = 128
@@ -2201,6 +2222,14 @@ TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT = 3
 TIME_DOMAIN_BEGIN_RANGE_EXT = TIME_DOMAIN_DEVICE_EXT
 TIME_DOMAIN_END_RANGE_EXT = TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT
 TIME_DOMAIN_RANGE_SIZE_EXT = (TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT - TIME_DOMAIN_DEVICE_EXT + 1)
+
+MemoryOverallocationBehaviorAMD = c_uint32
+MEMORY_OVERALLOCATION_BEHAVIOR_DEFAULT_AMD = 0
+MEMORY_OVERALLOCATION_BEHAVIOR_ALLOWED_AMD = 1
+MEMORY_OVERALLOCATION_BEHAVIOR_DISALLOWED_AMD = 2
+MEMORY_OVERALLOCATION_BEHAVIOR_BEGIN_RANGE_AMD = MEMORY_OVERALLOCATION_BEHAVIOR_DEFAULT_AMD
+MEMORY_OVERALLOCATION_BEHAVIOR_END_RANGE_AMD = MEMORY_OVERALLOCATION_BEHAVIOR_DISALLOWED_AMD
+MEMORY_OVERALLOCATION_BEHAVIOR_RANGE_SIZE_AMD = (MEMORY_OVERALLOCATION_BEHAVIOR_DISALLOWED_AMD - MEMORY_OVERALLOCATION_BEHAVIOR_DEFAULT_AMD + 1)
 
 
 
@@ -5001,20 +5030,31 @@ PipelineViewportCoarseSampleOrderStateCreateInfoNV = define_struct('PipelineView
     ('custom_sample_orders', POINTER(CoarseSampleOrderCustomNV)),
 )
 
-RaytracingPipelineCreateInfoNVX = define_struct('RaytracingPipelineCreateInfoNVX', 
+RayTracingShaderGroupCreateInfoNV = define_struct('RayTracingShaderGroupCreateInfoNV', 
+    ('type', StructureType),
+    ('next', c_void_p),
+    ('type', RayTracingShaderGroupTypeNV),
+    ('general_shader', c_uint32),
+    ('closest_hit_shader', c_uint32),
+    ('any_hit_shader', c_uint32),
+    ('intersection_shader', c_uint32),
+)
+
+RayTracingPipelineCreateInfoNV = define_struct('RayTracingPipelineCreateInfoNV', 
     ('type', StructureType),
     ('next', c_void_p),
     ('flags', PipelineCreateFlags),
     ('stage_count', c_uint32),
     ('stages', POINTER(PipelineShaderStageCreateInfo)),
-    ('group_numbers', POINTER(c_uint32)),
+    ('group_count', c_uint32),
+    ('groups', POINTER(RayTracingShaderGroupCreateInfoNV)),
     ('max_recursion_depth', c_uint32),
     ('layout', PipelineLayout),
     ('base_pipeline_handle', Pipeline),
     ('base_pipeline_index', c_int32),
 )
 
-GeometryTrianglesNVX = define_struct('GeometryTrianglesNVX', 
+GeometryTrianglesNV = define_struct('GeometryTrianglesNV', 
     ('type', StructureType),
     ('next', c_void_p),
     ('vertex_data', Buffer),
@@ -5030,7 +5070,7 @@ GeometryTrianglesNVX = define_struct('GeometryTrianglesNVX',
     ('transform_offset', DeviceSize),
 )
 
-GeometryAABBNVX = define_struct('GeometryAABBNVX', 
+GeometryAABBNV = define_struct('GeometryAABBNV', 
     ('type', StructureType),
     ('next', c_void_p),
     ('aabb_data', Buffer),
@@ -5039,59 +5079,71 @@ GeometryAABBNVX = define_struct('GeometryAABBNVX',
     ('offset', DeviceSize),
 )
 
-GeometryDataNVX = define_struct('GeometryDataNVX', 
-    ('triangles', GeometryTrianglesNVX),
-    ('aabbs', GeometryAABBNVX),
+GeometryDataNV = define_struct('GeometryDataNV', 
+    ('triangles', GeometryTrianglesNV),
+    ('aabbs', GeometryAABBNV),
 )
 
-GeometryNVX = define_struct('GeometryNVX', 
+GeometryNV = define_struct('GeometryNV', 
     ('type', StructureType),
     ('next', c_void_p),
-    ('geometry_type', GeometryTypeNVX),
-    ('geometry', GeometryDataNVX),
-    ('flags', GeometryFlagsNVX),
+    ('geometry_type', GeometryTypeNV),
+    ('geometry', GeometryDataNV),
+    ('flags', GeometryFlagsNV),
 )
 
-AccelerationStructureCreateInfoNVX = define_struct('AccelerationStructureCreateInfoNVX', 
+AccelerationStructureInfoNV = define_struct('AccelerationStructureInfoNV', 
     ('type', StructureType),
     ('next', c_void_p),
-    ('type', AccelerationStructureTypeNVX),
-    ('flags', BuildAccelerationStructureFlagsNVX),
-    ('compacted_size', DeviceSize),
+    ('type', AccelerationStructureTypeNV),
+    ('flags', BuildAccelerationStructureFlagsNV),
     ('instance_count', c_uint32),
     ('geometry_count', c_uint32),
-    ('geometries', POINTER(GeometryNVX)),
+    ('geometries', POINTER(GeometryNV)),
 )
 
-BindAccelerationStructureMemoryInfoNVX = define_struct('BindAccelerationStructureMemoryInfoNVX', 
+AccelerationStructureCreateInfoNV = define_struct('AccelerationStructureCreateInfoNV', 
     ('type', StructureType),
     ('next', c_void_p),
-    ('acceleration_structure', AccelerationStructureNVX),
+    ('compacted_size', DeviceSize),
+    ('info', AccelerationStructureInfoNV),
+)
+
+BindAccelerationStructureMemoryInfoNV = define_struct('BindAccelerationStructureMemoryInfoNV', 
+    ('type', StructureType),
+    ('next', c_void_p),
+    ('acceleration_structure', AccelerationStructureNV),
     ('memory', DeviceMemory),
     ('memory_offset', DeviceSize),
     ('device_index_count', c_uint32),
     ('device_indices', POINTER(c_uint32)),
 )
 
-DescriptorAccelerationStructureInfoNVX = define_struct('DescriptorAccelerationStructureInfoNVX', 
+WriteDescriptorSetAccelerationStructureNV = define_struct('WriteDescriptorSetAccelerationStructureNV', 
     ('type', StructureType),
     ('next', c_void_p),
     ('acceleration_structure_count', c_uint32),
-    ('acceleration_structures', POINTER(AccelerationStructureNVX)),
+    ('acceleration_structures', POINTER(AccelerationStructureNV)),
 )
 
-AccelerationStructureMemoryRequirementsInfoNVX = define_struct('AccelerationStructureMemoryRequirementsInfoNVX', 
+AccelerationStructureMemoryRequirementsInfoNV = define_struct('AccelerationStructureMemoryRequirementsInfoNV', 
     ('type', StructureType),
     ('next', c_void_p),
-    ('acceleration_structure', AccelerationStructureNVX),
+    ('type', AccelerationStructureMemoryRequirementsTypeNV),
+    ('acceleration_structure', AccelerationStructureNV),
 )
 
-PhysicalDeviceRaytracingPropertiesNVX = define_struct('PhysicalDeviceRaytracingPropertiesNVX', 
+PhysicalDeviceRayTracingPropertiesNV = define_struct('PhysicalDeviceRayTracingPropertiesNV', 
     ('type', StructureType),
     ('next', c_void_p),
-    ('shader_header_size', c_uint32),
+    ('shader_group_handle_size', c_uint32),
     ('max_recursion_depth', c_uint32),
-    ('max_geometry_count', c_uint32),
+    ('max_shader_group_stride', c_uint32),
+    ('shader_group_base_alignment', c_uint32),
+    ('max_geometry_count', c_uint64),
+    ('max_instance_count', c_uint64),
+    ('max_triangle_count', c_uint64),
+    ('max_descriptor_set_acceleration_structures', c_uint32),
 )
 
 PhysicalDeviceRepresentativeFragmentTestFeaturesNV = define_struct('PhysicalDeviceRepresentativeFragmentTestFeaturesNV', 
@@ -5154,6 +5206,12 @@ PhysicalDeviceShaderCorePropertiesAMD = define_struct('PhysicalDeviceShaderCoreP
     ('min_vgpr_allocation', c_uint32),
     ('max_vgpr_allocation', c_uint32),
     ('vgpr_allocation_granularity', c_uint32),
+)
+
+DeviceMemoryOverallocationCreateInfoAMD = define_struct('DeviceMemoryOverallocationCreateInfoAMD', 
+    ('type', StructureType),
+    ('next', c_void_p),
+    ('overallocation_behavior', MemoryOverallocationBehaviorAMD),
 )
 
 PhysicalDeviceVertexAttributeDivisorPropertiesEXT = define_struct('PhysicalDeviceVertexAttributeDivisorPropertiesEXT', 
@@ -5397,6 +5455,14 @@ Win32KeyedMutexAcquireReleaseInfoNV = define_struct('Win32KeyedMutexAcquireRelea
     ('release_count', c_uint32),
     ('release_syncs', POINTER(DeviceMemory)),
     ('release_keys', POINTER(c_uint64)),
+)
+
+XcbSurfaceCreateInfoKHR = define_struct('XcbSurfaceCreateInfoKHR', 
+    ('type', StructureType),
+    ('next', c_void_p),
+    ('flags', XcbSurfaceCreateFlagsKHR),
+    ('connection', POINTER(xcb_connection_t)),
+    ('window', xcb_window_t),
 )
 
 
@@ -5698,19 +5764,18 @@ FnGetValidationCacheDataEXT = FUNCTYPE(Result, Device, ValidationCacheEXT, POINT
 FnCmdBindShadingRateImageNV = FUNCTYPE(None, CommandBuffer, ImageView, ImageLayout)
 FnCmdSetViewportShadingRatePaletteNV = FUNCTYPE(None, CommandBuffer, c_uint32, c_uint32, POINTER(ShadingRatePaletteNV))
 FnCmdSetCoarseSampleOrderNV = FUNCTYPE(None, CommandBuffer, CoarseSampleOrderTypeNV, c_uint32, POINTER(CoarseSampleOrderCustomNV))
-FnCreateAccelerationStructureNVX = FUNCTYPE(Result, Device, POINTER(AccelerationStructureCreateInfoNVX), POINTER(AllocationCallbacks), POINTER(AccelerationStructureNVX))
-FnDestroyAccelerationStructureNVX = FUNCTYPE(None, Device, AccelerationStructureNVX, POINTER(AllocationCallbacks))
-FnGetAccelerationStructureMemoryRequirementsNVX = FUNCTYPE(None, Device, POINTER(AccelerationStructureMemoryRequirementsInfoNVX), POINTER(MemoryRequirements2KHR))
-FnGetAccelerationStructureScratchMemoryRequirementsNVX = FUNCTYPE(None, Device, POINTER(AccelerationStructureMemoryRequirementsInfoNVX), POINTER(MemoryRequirements2KHR))
-FnBindAccelerationStructureMemoryNVX = FUNCTYPE(Result, Device, c_uint32, POINTER(BindAccelerationStructureMemoryInfoNVX))
-FnCmdBuildAccelerationStructureNVX = FUNCTYPE(None, CommandBuffer, AccelerationStructureTypeNVX, c_uint32, Buffer, DeviceSize, c_uint32, POINTER(GeometryNVX), BuildAccelerationStructureFlagsNVX, Bool32, AccelerationStructureNVX, AccelerationStructureNVX, Buffer, DeviceSize)
-FnCmdCopyAccelerationStructureNVX = FUNCTYPE(None, CommandBuffer, AccelerationStructureNVX, AccelerationStructureNVX, CopyAccelerationStructureModeNVX)
-FnCmdTraceRaysNVX = FUNCTYPE(None, CommandBuffer, Buffer, DeviceSize, Buffer, DeviceSize, DeviceSize, Buffer, DeviceSize, DeviceSize, c_uint32, c_uint32)
-FnCreateRaytracingPipelinesNVX = FUNCTYPE(Result, Device, PipelineCache, c_uint32, POINTER(RaytracingPipelineCreateInfoNVX), POINTER(AllocationCallbacks), POINTER(Pipeline))
-FnGetRaytracingShaderHandlesNVX = FUNCTYPE(Result, Device, Pipeline, c_uint32, c_uint32, c_size_t, c_void_p)
-FnGetAccelerationStructureHandleNVX = FUNCTYPE(Result, Device, AccelerationStructureNVX, c_size_t, c_void_p)
-FnCmdWriteAccelerationStructurePropertiesNVX = FUNCTYPE(None, CommandBuffer, AccelerationStructureNVX, QueryType, QueryPool, c_uint32)
-FnCompileDeferredNVX = FUNCTYPE(Result, Device, Pipeline, c_uint32)
+FnCreateAccelerationStructureNV = FUNCTYPE(Result, Device, POINTER(AccelerationStructureCreateInfoNV), POINTER(AllocationCallbacks), POINTER(AccelerationStructureNV))
+FnDestroyAccelerationStructureNV = FUNCTYPE(None, Device, AccelerationStructureNV, POINTER(AllocationCallbacks))
+FnGetAccelerationStructureMemoryRequirementsNV = FUNCTYPE(None, Device, POINTER(AccelerationStructureMemoryRequirementsInfoNV), POINTER(MemoryRequirements2KHR))
+FnBindAccelerationStructureMemoryNV = FUNCTYPE(Result, Device, c_uint32, POINTER(BindAccelerationStructureMemoryInfoNV))
+FnCmdBuildAccelerationStructureNV = FUNCTYPE(None, CommandBuffer, POINTER(AccelerationStructureInfoNV), Buffer, DeviceSize, Bool32, AccelerationStructureNV, AccelerationStructureNV, Buffer, DeviceSize)
+FnCmdCopyAccelerationStructureNV = FUNCTYPE(None, CommandBuffer, AccelerationStructureNV, AccelerationStructureNV, CopyAccelerationStructureModeNV)
+FnCmdTraceRaysNV = FUNCTYPE(None, CommandBuffer, Buffer, DeviceSize, Buffer, DeviceSize, DeviceSize, Buffer, DeviceSize, DeviceSize, Buffer, DeviceSize, DeviceSize, c_uint32, c_uint32, c_uint32)
+FnCreateRayTracingPipelinesNV = FUNCTYPE(Result, Device, PipelineCache, c_uint32, POINTER(RayTracingPipelineCreateInfoNV), POINTER(AllocationCallbacks), POINTER(Pipeline))
+FnGetRayTracingShaderGroupHandlesNV = FUNCTYPE(Result, Device, Pipeline, c_uint32, c_uint32, c_size_t, c_void_p)
+FnGetAccelerationStructureHandleNV = FUNCTYPE(Result, Device, AccelerationStructureNV, c_size_t, c_void_p)
+FnCmdWriteAccelerationStructuresPropertiesNV = FUNCTYPE(None, CommandBuffer, c_uint32, POINTER(AccelerationStructureNV), QueryType, QueryPool, c_uint32)
+FnCompileDeferredNV = FUNCTYPE(Result, Device, Pipeline, c_uint32)
 FnGetMemoryHostPointerPropertiesEXT = FUNCTYPE(Result, Device, ExternalMemoryHandleTypeFlagBits, c_void_p, POINTER(MemoryHostPointerPropertiesEXT))
 FnCmdWriteBufferMarkerAMD = FUNCTYPE(None, CommandBuffer, PipelineStageFlagBits, Buffer, DeviceSize, c_uint32)
 FnGetPhysicalDeviceCalibrateableTimeDomainsEXT = FUNCTYPE(Result, PhysicalDevice, POINTER(c_uint32), POINTER(TimeDomainEXT))
@@ -5730,6 +5795,8 @@ FnGetSemaphoreWin32HandleKHR = FUNCTYPE(Result, Device, POINTER(SemaphoreGetWin3
 FnImportFenceWin32HandleKHR = FUNCTYPE(Result, Device, POINTER(ImportFenceWin32HandleInfoKHR))
 FnGetFenceWin32HandleKHR = FUNCTYPE(Result, Device, POINTER(FenceGetWin32HandleInfoKHR), POINTER(HANDLE))
 FnGetMemoryWin32HandleNV = FUNCTYPE(Result, Device, DeviceMemory, ExternalMemoryHandleTypeFlagsNV, POINTER(HANDLE))
+FnCreateXcbSurfaceKHR = FUNCTYPE(Result, Instance, POINTER(XcbSurfaceCreateInfoKHR), POINTER(AllocationCallbacks), POINTER(SurfaceKHR))
+FnGetPhysicalDeviceXcbPresentationSupportKHR = FUNCTYPE(Bool32, PhysicalDevice, c_uint32, POINTER(xcb_connection_t), xcb_visualid_t)
 
 
 InstanceFunctions = (
@@ -5802,6 +5869,8 @@ InstanceFunctions = (
   (b"vkGetPhysicalDeviceCalibrateableTimeDomainsEXT", FnGetPhysicalDeviceCalibrateableTimeDomainsEXT),
   (b"vkCreateWin32SurfaceKHR", FnCreateWin32SurfaceKHR),
   (b"vkGetPhysicalDeviceWin32PresentationSupportKHR", FnGetPhysicalDeviceWin32PresentationSupportKHR),
+  (b"vkCreateXcbSurfaceKHR", FnCreateXcbSurfaceKHR),
+  (b"vkGetPhysicalDeviceXcbPresentationSupportKHR", FnGetPhysicalDeviceXcbPresentationSupportKHR),
 )
 
 DeviceFunctions = (
@@ -6030,19 +6099,18 @@ DeviceFunctions = (
   (b"vkCmdBindShadingRateImageNV", FnCmdBindShadingRateImageNV),
   (b"vkCmdSetViewportShadingRatePaletteNV", FnCmdSetViewportShadingRatePaletteNV),
   (b"vkCmdSetCoarseSampleOrderNV", FnCmdSetCoarseSampleOrderNV),
-  (b"vkCreateAccelerationStructureNVX", FnCreateAccelerationStructureNVX),
-  (b"vkDestroyAccelerationStructureNVX", FnDestroyAccelerationStructureNVX),
-  (b"vkGetAccelerationStructureMemoryRequirementsNVX", FnGetAccelerationStructureMemoryRequirementsNVX),
-  (b"vkGetAccelerationStructureScratchMemoryRequirementsNVX", FnGetAccelerationStructureScratchMemoryRequirementsNVX),
-  (b"vkBindAccelerationStructureMemoryNVX", FnBindAccelerationStructureMemoryNVX),
-  (b"vkCmdBuildAccelerationStructureNVX", FnCmdBuildAccelerationStructureNVX),
-  (b"vkCmdCopyAccelerationStructureNVX", FnCmdCopyAccelerationStructureNVX),
-  (b"vkCmdTraceRaysNVX", FnCmdTraceRaysNVX),
-  (b"vkCreateRaytracingPipelinesNVX", FnCreateRaytracingPipelinesNVX),
-  (b"vkGetRaytracingShaderHandlesNVX", FnGetRaytracingShaderHandlesNVX),
-  (b"vkGetAccelerationStructureHandleNVX", FnGetAccelerationStructureHandleNVX),
-  (b"vkCmdWriteAccelerationStructurePropertiesNVX", FnCmdWriteAccelerationStructurePropertiesNVX),
-  (b"vkCompileDeferredNVX", FnCompileDeferredNVX),
+  (b"vkCreateAccelerationStructureNV", FnCreateAccelerationStructureNV),
+  (b"vkDestroyAccelerationStructureNV", FnDestroyAccelerationStructureNV),
+  (b"vkGetAccelerationStructureMemoryRequirementsNV", FnGetAccelerationStructureMemoryRequirementsNV),
+  (b"vkBindAccelerationStructureMemoryNV", FnBindAccelerationStructureMemoryNV),
+  (b"vkCmdBuildAccelerationStructureNV", FnCmdBuildAccelerationStructureNV),
+  (b"vkCmdCopyAccelerationStructureNV", FnCmdCopyAccelerationStructureNV),
+  (b"vkCmdTraceRaysNV", FnCmdTraceRaysNV),
+  (b"vkCreateRayTracingPipelinesNV", FnCreateRayTracingPipelinesNV),
+  (b"vkGetRayTracingShaderGroupHandlesNV", FnGetRayTracingShaderGroupHandlesNV),
+  (b"vkGetAccelerationStructureHandleNV", FnGetAccelerationStructureHandleNV),
+  (b"vkCmdWriteAccelerationStructuresPropertiesNV", FnCmdWriteAccelerationStructuresPropertiesNV),
+  (b"vkCompileDeferredNV", FnCompileDeferredNV),
   (b"vkGetMemoryHostPointerPropertiesEXT", FnGetMemoryHostPointerPropertiesEXT),
   (b"vkCmdWriteBufferMarkerAMD", FnCmdWriteBufferMarkerAMD),
   (b"vkGetCalibratedTimestampsEXT", FnGetCalibratedTimestampsEXT),
