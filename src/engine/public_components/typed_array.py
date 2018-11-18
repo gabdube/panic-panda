@@ -10,8 +10,6 @@ class TypedArray(object):
 
     def __init__(self, fmt, data):
         self.fmt = fmt
-        self.data_length = dl = len(data)
+        self.size = dl = len(data)
+        self.size_bytes = dl * sizeof(fmt)
         self.data = (fmt*dl)(*data)
-
-    def size(self):
-        return len(self.data) * sizeof(self.fmt)

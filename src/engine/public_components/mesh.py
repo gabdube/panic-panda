@@ -4,7 +4,6 @@ from enum import Enum
 class Mesh(object):
 
     def __init__(self):
-        self.id = None
         self.indices = None
         self.attributes = None
 
@@ -17,5 +16,5 @@ class Mesh(object):
         return mesh
 
     def size(self):
-        return self.indices.size() + sum(map(lambda a: a.size(), self.attributes.values()))
+        return self.indices.size_bytes + sum(map(lambda a: a.size_bytes, self.attributes.values()))
 

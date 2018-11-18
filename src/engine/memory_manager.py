@@ -1,6 +1,7 @@
 from vulkan import vk, helpers as hvk
 from enum import IntFlag
 from functools import lru_cache
+from ctypes import memmove, byref, c_void_p
 import weakref
 
 
@@ -69,6 +70,16 @@ class MemoryManager(object):
         hvk.free_memory(api, device, alloc.device_memory)
         self.allocations.remove(alloc)
 
+    def map_alloc(self, alloc, offset=None, size=None):
+        engine, api, device = self.ctx
+        offset = offset or 0
+        size = size or alloc.size
+
+        pointer = hvk.map_memory(api, device, alloc.device_memory, offset, size)
+        unmap = lambda: hvk.unmap_memory(api, device, alloc.device_memory)
+
+        return MappedDeviceMemory(alloc, pointer, unmap)
+
     def get_resource_requirements(self, resource, resource_type):
         _, api, device = self.ctx
 
@@ -120,3 +131,21 @@ class SharedAlloc(object):
     def __init__(self, device_memory, size):
         self.device_memory = device_memory
         self.size = size
+
+class MappedDeviceMemory(object):
+    __slots__ = ("alloc", "pointer", "unmap")
+
+    def __init__(self, alloc, pointer, unmap):
+        self.alloc = alloc
+        self.pointer = pointer
+        self.unmap = unmap
+
+    def write_bytes(self, offset, data):
+        offset_pointer = c_void_p(self.pointer.value + offset)
+        memmove(offset_pointer, byref(data), len(data))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.unmap()

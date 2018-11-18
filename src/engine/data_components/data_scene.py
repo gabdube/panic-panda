@@ -1,5 +1,6 @@
 from vulkan import vk, helpers as hvk
 from .data_shader import DataShader
+from .data_mesh import DataMesh
 
 
 class DataScene(object):
@@ -14,8 +15,8 @@ class DataScene(object):
 
         self.shaders = None
 
-        self.mesh_alloc = None
-        self.mesh_buffer = None
+        self.meshes_alloc = None
+        self.meshes_buffer = None
         self.meshes = None
 
         self._setup_shaders()
@@ -25,6 +26,10 @@ class DataScene(object):
 
     def free(self):
         engine, api, device = self.ctx
+        mem = engine.memory_manager
+        
+        hvk.destroy_buffer(api, device, self.meshes_buffer)
+        mem.free_alloc(self.meshes_alloc)
 
         for shader in self.shaders:
             shader.free()
@@ -74,27 +79,28 @@ class DataScene(object):
         scene = self.scene
         meshes = scene.meshes
 
-        total_mesh_size = 0
+        staging_mesh_offset = 0
         mesh_cache_lookup = []
+        data_meshes = []
 
         for obj in scene.objects:
             mesh = meshes[obj.mesh]
             if mesh is not None and id(mesh) not in mesh_cache_lookup:
-                total_mesh_size += mesh.size()
                 mesh_cache_lookup.append(id(mesh))
+                data_meshes.append(DataMesh(mesh, staging_mesh_offset))
+                staging_mesh_offset += mesh.size()
 
-        staging_alloc, staging_buffer = self._setup_staging(total_mesh_size, meshes)
-        meshes_alloc, meshes_buffer = self._setup_resources(
-            total_mesh_size,
-            vk.BUFFER_USAGE_INDEX_BUFFER_BIT | vk.BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT,)
-        )
+        staging_alloc, staging_buffer = self._setup_staging(staging_mesh_offset, data_meshes)
+        meshes_alloc, meshes_buffer = self._setup_resources(staging_mesh_offset, data_meshes)
 
+        self.meshes_alloc = meshes_alloc
+        self.meshes_buffer = meshes_buffer
+        self.meshes = data_meshes
 
         hvk.destroy_buffer(api, device, staging_buffer)
         mem.free_alloc(staging_alloc)
 
-    def _setup_staging(self, meshes_size, meshes):
+    def _setup_staging(self, meshes_size, data_meshes):
         engine, api, device = self.ctx
         mem = engine.memory_manager
 
@@ -108,17 +114,25 @@ class DataScene(object):
             (vk.MEMORY_PROPERTY_HOST_COHERENT_BIT | vk.MEMORY_PROPERTY_HOST_VISIBLE_BIT,)
         )
 
+        with mem.map_alloc(staging_alloc) as alloc:
+            for dm in data_meshes:
+                alloc.write_bytes(dm.base_offset, dm.as_bytes())
+
+       
         return staging_alloc, staging_buffer
 
-    def _setup_resources(self, total_size, usage, alloc_types):
+    def _setup_resources(self, meshes_size, meshes):
         engine, api, device = self.ctx
         mem = engine.memory_manager
 
-        buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(size = total_size, usage = usage))
-        alloc = mem.alloc(buffer,  vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO, alloc_types)
+        mesh_buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(
+            size = meshes_size, 
+            usage = vk.BUFFER_USAGE_INDEX_BUFFER_BIT | vk.BUFFER_USAGE_VERTEX_BUFFER_BIT
+        ))
+        mesh_alloc = mem.alloc(mesh_buffer, vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO, (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT,))
 
 
-        return buffer, alloc
+        return mesh_alloc, mesh_buffer
 
     def _setup_render_commands(self):
         engine, api, device = self.ctx
