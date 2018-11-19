@@ -1,6 +1,7 @@
 from vulkan import vk, helpers as hvk
 from .data_shader import DataShader
 from .data_mesh import DataMesh
+from .data_game_object import DataGameObject
 
 
 class DataScene(object):
@@ -14,6 +15,9 @@ class DataScene(object):
         self.render_cache = {}
 
         self.shaders = None
+        self.objects = None
+        self.pipelines = None
+        self.pipeline_cache = None
 
         self.meshes_alloc = None
         self.meshes_buffer = None
@@ -21,12 +25,16 @@ class DataScene(object):
 
         self._setup_shaders()
         self._setup_objects()
+        self._setup_pipelines()
         self._setup_render_commands()
         self._setup_render_cache()
 
     def free(self):
         engine, api, device = self.ctx
         mem = engine.memory_manager
+
+        for pipeline in self.pipelines:
+            hvk.destroy_pipeline(api, device, pipeline)
         
         hvk.destroy_buffer(api, device, self.meshes_buffer)
         mem.free_alloc(self.meshes_alloc)
@@ -47,21 +55,44 @@ class DataScene(object):
         return engine, api, device
 
     def record(self, framebuffer_index):
+        # Cache the helpers module locally to improve lookup speed
+        h = hvk
+
         engine, api, device = self.ctx
         render_command = self.render_commands[framebuffer_index]
         rc = self.render_cache
+
+        pipelines = self.pipelines
+        pipeline_index = None
+
+        meshes = self.meshes
+        meshes_buffer = self.meshes_buffer
         
+        # Render pass begin setup
         render_pass_begin = rc["render_pass_begin_info"]
         render_pass_begin.framebuffer = engine.render_target.framebuffers[framebuffer_index]
 
         extent = rc["render_area_extent"]
-        extent.width, extent.height = engine.window.dimensions()
+        extent.width, extent.height = engine.info["swapchain_extent"].values()
 
-        hvk.begin_command_buffer(api, render_command, rc["begin_info"])
-        hvk.begin_render_pass(api, render_command, render_pass_begin, vk.SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS)
+        # Recording
+        h.begin_command_buffer(api, render_command, rc["begin_info"])
+        h.begin_render_pass(api, render_command, render_pass_begin, vk.SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS)
 
-        hvk.end_render_pass(api, render_command)
-        hvk.end_command_buffer(api, render_command)
+        for obj in self.objects:
+            if obj.pipeline is not None and pipeline_index != obj.pipeline:
+                pipeline_index = obj.pipeline
+                hvk.bind_pipeline(api, render_command, pipelines[pipeline_index], vk.PIPELINE_BIND_POINT_GRAPHICS)
+
+            if obj.mesh is not None:
+                mesh = obj.mesh
+                attributes_buffer = [meshes_buffer] * len(mesh.attribute_offsets)
+
+                h.bind_index_buffer(api, render_command, meshes_buffer, mesh.indices_offset, mesh.indices_type)
+                h.bind_vertex_buffers(api, render_command, attributes_buffer, mesh.attribute_offsets)
+
+        h.end_render_pass(api, render_command)
+        h.end_command_buffer(api, render_command)
 
     def _setup_shaders(self):
         e = self.engine
@@ -82,6 +113,7 @@ class DataScene(object):
         staging_mesh_offset = 0
         mesh_cache_lookup = []
         data_meshes = []
+        data_objects = []
 
         for obj in scene.objects:
             mesh = meshes[obj.mesh]
@@ -90,15 +122,88 @@ class DataScene(object):
                 data_meshes.append(DataMesh(mesh, staging_mesh_offset))
                 staging_mesh_offset += mesh.size()
 
+            data_objects.append(DataGameObject(obj))
+
         staging_alloc, staging_buffer = self._setup_staging(staging_mesh_offset, data_meshes)
-        meshes_alloc, meshes_buffer = self._setup_resources(staging_mesh_offset, data_meshes)
+        meshes_alloc, meshes_buffer = self._setup_resources(staging_alloc, staging_buffer, data_meshes)
 
         self.meshes_alloc = meshes_alloc
         self.meshes_buffer = meshes_buffer
         self.meshes = data_meshes
+        self.objects = data_objects
 
         hvk.destroy_buffer(api, device, staging_buffer)
         mem.free_alloc(staging_alloc)
+
+    def _setup_pipelines(self):
+        engine, api, device = self.ctx
+        shaders = self.shaders
+        rt = engine.render_target
+        render_pass = rt.render_pass
+
+        width, height = engine.info["swapchain_extent"].values()
+        viewport = hvk.viewport(width=width, height=height)
+        render_area = hvk.rect_2d(0, 0, width, height)
+        
+        pipeline_infos = []
+        assembly = hvk.pipeline_input_assembly_state_create_info()
+        raster = hvk.pipeline_rasterization_state_create_info()
+        multisample = hvk.pipeline_multisample_state_create_info()
+
+        viewport = hvk.pipeline_viewport_state_create_info(
+            viewports=(viewport,),
+            scissors=(render_area,)
+        )
+
+        depth_stencil = hvk.pipeline_depth_stencil_state_create_info(
+            depth_test_enable = vk.TRUE,
+            depth_write_enable  = vk.TRUE,
+            depth_compare_op = vk.COMPARE_OP_LESS_OR_EQUAL,
+        )
+
+        color_blend = hvk.pipeline_color_blend_state_create_info(
+            attachments = (hvk.pipeline_color_blend_attachment_state(),)
+        )
+
+        for shader_index, objects in self._group_objects_by_shaders():
+            shader = shaders[shader_index]
+            hvk.pipeline_vertex_input_state_create_info(
+                vertex_binding_descriptions = (),
+                vertex_attribute_descriptions = ()
+            )
+
+            info = hvk.graphics_pipeline_create_info(
+                stages = shader.stage_infos,
+                vertex_input_state = shader.vertex_input_state,
+                input_assembly_state = assembly,
+                viewport_state = viewport,
+                rasterization_state = raster,
+                multisample_state = multisample,
+                depth_stencil_state = depth_stencil,
+                color_blend_state = color_blend,
+                layout = shader.layout,
+                render_pass = render_pass
+            )
+  
+        pipeline_cache = hvk.create_pipeline_cache(api, device, hvk.pipeline_cache_create_info())
+
+        self.pipelines = hvk.create_graphics_pipelines(api, device, pipeline_infos, pipeline_cache)
+        self.pipeline_cache = pipeline_cache
+
+    def _group_objects_by_shaders(self):
+        groups = []
+        shaders_index = []
+
+        for obj in self.objects:
+            if obj.shader in shaders_index:
+                i = shaders_index.index(obj.shader)
+                groups[i][1].append(obj)
+            else:
+                groups.append((obj.shader, [obj]))
+
+        print(groups)
+
+        return groups
 
     def _setup_staging(self, meshes_size, data_meshes):
         engine, api, device = self.ctx
@@ -121,16 +226,28 @@ class DataScene(object):
        
         return staging_alloc, staging_buffer
 
-    def _setup_resources(self, meshes_size, meshes):
+    def _setup_resources(self, staging_alloc, staging_buffer, data_meshes):
         engine, api, device = self.ctx
         mem = engine.memory_manager
+        cmd = engine.setup_command_buffer
 
+        # Final buffer allocation
         mesh_buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(
-            size = meshes_size, 
-            usage = vk.BUFFER_USAGE_INDEX_BUFFER_BIT | vk.BUFFER_USAGE_VERTEX_BUFFER_BIT
+            size = staging_alloc.size, 
+            usage = vk.BUFFER_USAGE_INDEX_BUFFER_BIT | vk.BUFFER_USAGE_VERTEX_BUFFER_BIT | vk.BUFFER_USAGE_TRANSFER_DST_BIT
         ))
         mesh_alloc = mem.alloc(mesh_buffer, vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO, (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT,))
 
+        # Uploading commands
+        region = vk.BufferCopy(src_offset=0, dst_offset=0, size=staging_alloc.size)
+        regions = (region,)
+
+        hvk.begin_command_buffer(api, cmd, hvk.command_buffer_begin_info())
+        hvk.copy_buffer(api, cmd, staging_buffer, mesh_buffer, regions)
+        hvk.end_command_buffer(api, cmd)
+
+        # Submitting
+        engine.submit_setup_command(wait=True)
 
         return mesh_alloc, mesh_buffer
 
@@ -160,7 +277,7 @@ class DataScene(object):
             framebuffer = 0,
             render_area = hvk.rect_2d(0, 0, 0, 0),
             clear_values = (
-                hvk.clear_value(color=(0.2, 0.2, 0.2, 1.0)),
+                hvk.clear_value(color=(0.1, 0.1, 0.1, 1.0)),
                 hvk.clear_value(depth=1.0, stencil=0)
             )
         )

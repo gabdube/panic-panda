@@ -20,6 +20,7 @@ class Engine(object):
         self.api = self.instance = self.device = self.physical_device = None
         self.debugger = self.surface = self.render_queue = None
         self.swapchain = self.swapchain_images = None
+        self.command_pool = self.setup_command_buffer = self.setup_fence = None
         self.info = {}
 
         self.graph = []
@@ -31,6 +32,7 @@ class Engine(object):
         self._setup_device()
         self._setup_device_info()
         self._setup_swapchain()
+        self._setup_setup_commands()
 
         self.memory_manager = MemoryManager(self)
         self.render_target = RenderTarget(self)
@@ -41,6 +43,9 @@ class Engine(object):
         api, i, d = self.api, self.instance, self.device
 
         hvk.device_wait_idle(api, d)
+
+        hvk.destroy_command_pool(api, d, self.command_pool)
+        hvk.destroy_fence(api, d, self.setup_fence)
 
         for scene in self.graph:
             scene.free()
@@ -83,6 +88,19 @@ class Engine(object):
     def render(self):
         scene_data = self.graph[self.current_scene_index]
         self.renderer.render(scene_data)
+
+    def submit_setup_command(self, wait=False):
+        api, device = self.api, self.device
+        fence = self.setup_fence
+
+        infos = (hvk.submit_info(command_buffers=(self.setup_command_buffer,)),)
+        hvk.queue_submit(api, self.render_queue.handle, infos, fence)
+
+        if wait:
+            f = (fence,)
+            hvk.wait_for_fences(api, device, f)
+            hvk.reset_fences(api, device, f)
+
 
     def _setup_instance(self):
         layers = []
@@ -216,3 +234,25 @@ class Engine(object):
 
         self.info["swapchain_extent"] = OrderedDict(width=extent.width, height=extent.height)
         self.info["swapchain_format"] = swapchain_image_format
+
+    def _setup_setup_commands(self):
+        api, device = self.api, self.device
+        render_queue = self.render_queue
+
+        command_pool = hvk.create_command_pool(api, device, hvk.command_pool_create_info(
+            queue_family_index = render_queue.family.index,
+            flags = vk.COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+        ))
+
+        cmds = hvk.allocate_command_buffers(api, device, hvk.command_buffer_allocate_info(
+            command_pool = command_pool,
+            command_buffer_count = 1
+        ))
+
+        fence_info = hvk.fence_create_info()
+        fence = hvk.create_fence(api, device, fence_info)
+
+
+        self.command_pool = command_pool
+        self.setup_command_buffer = cmds[0]
+        self.setup_fence = fence
