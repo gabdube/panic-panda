@@ -10,6 +10,7 @@ class DataShader(object):
         self.modules = None
         self.stage_infos = None
         self.vertex_input_state = None
+        self.ordered_attribute_names = None
         self.pipeline_layout = None
 
         self._compile_shader()
@@ -20,6 +21,8 @@ class DataShader(object):
         engine, api, device = self.ctx
         for m in self.modules:
             hvk.destroy_shader_module(api, device, m)
+
+        hvk.destroy_pipeline_layout(api, device, self.pipeline_layout)
 
         del self.engine
 
@@ -56,6 +59,7 @@ class DataShader(object):
         mapping = self.shader.mapping
         bindings = []
         attributes = []
+        attribute_names = []
         
         for binding in mapping["bindings"]:
             bindings.append(hvk.vertex_input_binding_description(
@@ -70,6 +74,8 @@ class DataShader(object):
                 format = attr["format"],
                 offset = attr.get("offset", 0)
             ))
+
+        self.ordered_attribute_names = tuple(a["name"] for a in sorted(mapping["attributes"], key = lambda i: i["binding"]))
 
         self.vertex_input_state = hvk.pipeline_vertex_input_state_create_info(
             vertex_binding_descriptions = bindings,

@@ -1,5 +1,6 @@
 from ctypes import c_ubyte, c_uint16, c_uint32, memmove, byref
 from vulkan import vk
+from functools import lru_cache
 
 
 class DataMesh(object):
@@ -8,10 +9,14 @@ class DataMesh(object):
         self.mesh = mesh
         self.base_offset = base_offset
 
-        self.indices_type = DataMesh._cache_indices_type(mesh.indices)
+        self.indices_type = None
         self.indices_count = mesh.indices.size
         self.indices_offset = base_offset
-        self.attribute_offsets = base_offset + mesh.indices.size_bytes
+
+        self.attribute_offsets = None
+
+        self._cache_indices_type()
+        self._map_attribute_offsets()
 
     def as_bytes(self):
         offset = 0
@@ -29,14 +34,34 @@ class DataMesh(object):
 
         return buffer
 
-    @staticmethod
-    def _cache_indices_type(indices):
-        base_type = indices.data._type_
+    @lru_cache(maxsize=128)
+    def attribute_offsets_for_shader(self, shader):
+        offsets = self.attribute_offsets
+        sorted_offsets = []
+
+        for name in shader.ordered_attribute_names:
+            sorted_offsets.append(offsets[name])
+
+        return sorted_offsets
+
+    def _cache_indices_type(self):
+        indices_type = None
+        base_type = self.mesh.indices.data._type_
         if base_type is c_uint16:
-            return vk.INDEX_TYPE_UINT16
+            indices_type = vk.INDEX_TYPE_UINT16
         elif base_type is c_uint32:
-            return vk.INDEX_TYPE_UINT32
+            indices_type = vk.INDEX_TYPE_UINT32
         else:
             raise ValueError("Index type must either be c_uint16 or c_uint32")
-        
-        return None
+
+        self.indices_type = indices_type
+
+    def _map_attribute_offsets(self):
+        offsets = {}
+        offset = self.base_offset + self.mesh.indices.size_bytes
+
+        for attr_name, attr in self.mesh.attributes.items():
+            offsets[attr_name] = offset
+            offset += attr.size_bytes
+
+        self.attribute_offsets = offsets

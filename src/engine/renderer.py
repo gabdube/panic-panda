@@ -31,26 +31,26 @@ class Renderer(object):
         return engine, api, device
 
     def render(self, scene_data):
+        h = hvk
         engine, api, device = self.ctx
-        swapchain = engine.swapchain
-        render_queue = engine.render_queue
+        render_queue = engine.render_queue.handle
         rc = self.render_cache
 
-        image_index, result = hvk.acquire_next_image(api, device, swapchain, semaphore = self.image_ready)
+        image_index, result = h.acquire_next_image(api, device, engine.swapchain, semaphore = self.image_ready)
 
         fence = self.render_fences[image_index]
-        hvk.wait_for_fences(api, device, (fence,))
-        hvk.reset_fences(api, device, (fence,))
+        h.wait_for_fences(api, device, (fence,))
+        h.reset_fences(api, device, (fence,))
 
         scene_data.record(image_index)
 
         submit = rc["submit_info"]
         submit.command_buffers[0] = scene_data.render_commands[image_index]
-        hvk.queue_submit(api, render_queue.handle, (submit,), fence = fence)
+        h.queue_submit(api, render_queue, (submit,), fence = fence)
 
         present = rc["present_info"]
         present.image_indices[0] = image_index
-        hvk.queue_present(api, render_queue.handle, present)
+        h.queue_present(api, render_queue, present)
 
     def _setup_sync(self):
         engine, api, device = self.ctx

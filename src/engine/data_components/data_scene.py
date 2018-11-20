@@ -36,6 +36,7 @@ class DataScene(object):
         for pipeline in self.pipelines:
             hvk.destroy_pipeline(api, device, pipeline)
         
+        hvk.destroy_pipeline_cache(api, device, self.pipeline_cache)
         hvk.destroy_buffer(api, device, self.meshes_buffer)
         mem.free_alloc(self.meshes_alloc)
 
@@ -55,7 +56,7 @@ class DataScene(object):
         return engine, api, device
 
     def record(self, framebuffer_index):
-        # Cache the helpers module locally to improve lookup speed
+        # Caching things locally to improve lookup speed
         h = hvk
 
         engine, api, device = self.ctx
@@ -65,6 +66,7 @@ class DataScene(object):
         pipelines = self.pipelines
         pipeline_index = None
 
+        shaders = self.shaders
         meshes = self.meshes
         meshes_buffer = self.meshes_buffer
         
@@ -77,7 +79,7 @@ class DataScene(object):
 
         # Recording
         h.begin_command_buffer(api, render_command, rc["begin_info"])
-        h.begin_render_pass(api, render_command, render_pass_begin, vk.SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS)
+        h.begin_render_pass(api, render_command, render_pass_begin, vk.SUBPASS_CONTENTS_INLINE)
 
         for obj in self.objects:
             if obj.pipeline is not None and pipeline_index != obj.pipeline:
@@ -85,11 +87,16 @@ class DataScene(object):
                 hvk.bind_pipeline(api, render_command, pipelines[pipeline_index], vk.PIPELINE_BIND_POINT_GRAPHICS)
 
             if obj.mesh is not None:
-                mesh = obj.mesh
+                mesh = meshes[obj.mesh]
+                shader = shaders[obj.shader]
+
                 attributes_buffer = [meshes_buffer] * len(mesh.attribute_offsets)
+                attribute_offsets = mesh.attribute_offsets_for_shader(shader)
 
                 h.bind_index_buffer(api, render_command, meshes_buffer, mesh.indices_offset, mesh.indices_type)
-                h.bind_vertex_buffers(api, render_command, attributes_buffer, mesh.attribute_offsets)
+                h.bind_vertex_buffers(api, render_command, attributes_buffer, attribute_offsets)
+
+                h.draw_indexed(api, render_command, mesh.indices_count)
 
         h.end_render_pass(api, render_command)
         h.end_command_buffer(api, render_command)
@@ -139,17 +146,14 @@ class DataScene(object):
         engine, api, device = self.ctx
         shaders = self.shaders
         rt = engine.render_target
-        render_pass = rt.render_pass
-
-        width, height = engine.info["swapchain_extent"].values()
-        viewport = hvk.viewport(width=width, height=height)
-        render_area = hvk.rect_2d(0, 0, width, height)
         
-        pipeline_infos = []
         assembly = hvk.pipeline_input_assembly_state_create_info()
         raster = hvk.pipeline_rasterization_state_create_info()
         multisample = hvk.pipeline_multisample_state_create_info()
 
+        width, height = engine.info["swapchain_extent"].values()
+        viewport = hvk.viewport(width=width, height=height)
+        render_area = hvk.rect_2d(0, 0, width, height)
         viewport = hvk.pipeline_viewport_state_create_info(
             viewports=(viewport,),
             scissors=(render_area,)
@@ -165,13 +169,14 @@ class DataScene(object):
             attachments = (hvk.pipeline_color_blend_attachment_state(),)
         )
 
-        for shader_index, objects in self._group_objects_by_shaders():
+        grouped_objects = self._group_objects_by_shaders()
+        pipeline_infos = []
+        for shader_index, objects in grouped_objects:
             shader = shaders[shader_index]
-            hvk.pipeline_vertex_input_state_create_info(
-                vertex_binding_descriptions = (),
-                vertex_attribute_descriptions = ()
-            )
-
+            
+            for obj in objects:
+                obj.pipeline = shader_index
+  
             info = hvk.graphics_pipeline_create_info(
                 stages = shader.stage_infos,
                 vertex_input_state = shader.vertex_input_state,
@@ -181,14 +186,15 @@ class DataScene(object):
                 multisample_state = multisample,
                 depth_stencil_state = depth_stencil,
                 color_blend_state = color_blend,
-                layout = shader.layout,
-                render_pass = render_pass
+                layout = shader.pipeline_layout,
+                render_pass = rt.render_pass
             )
-  
-        pipeline_cache = hvk.create_pipeline_cache(api, device, hvk.pipeline_cache_create_info())
 
-        self.pipelines = hvk.create_graphics_pipelines(api, device, pipeline_infos, pipeline_cache)
-        self.pipeline_cache = pipeline_cache
+            pipeline_infos.append(info)
+  
+
+        self.pipeline_cache = hvk.create_pipeline_cache(api, device, hvk.pipeline_cache_create_info())
+        self.pipelines = hvk.create_graphics_pipelines(api, device, pipeline_infos, self.pipeline_cache)
 
     def _group_objects_by_shaders(self):
         groups = []
@@ -200,8 +206,6 @@ class DataScene(object):
                 groups[i][1].append(obj)
             else:
                 groups.append((obj.shader, [obj]))
-
-        print(groups)
 
         return groups
 
@@ -263,7 +267,8 @@ class DataScene(object):
 
         cmd_draw = hvk.allocate_command_buffers(api, device, hvk.command_buffer_allocate_info(
             command_pool = command_pool,
-            command_buffer_count = render_target.framebuffer_count
+            command_buffer_count = render_target.framebuffer_count,
+            level = vk.COMMAND_BUFFER_LEVEL_PRIMARY
         ))
 
         self.command_pool = command_pool

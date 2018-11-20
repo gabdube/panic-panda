@@ -24,7 +24,7 @@ class MainScene(object):
         plane_m = Mesh.from_array(
             indices = TypedArray(fmt=DFmt.UInt16, data=(0, 1, 2,  0, 3, 2)),
             attributes = {
-                "positions": TypedArray(fmt=DFmt.Float32, data=(-0.7, 0.7, 0.0,  0.7, 0.7, 0.0,  0.7, -0.7, 0.0,  -0.7, -0.7, 0.0))
+                "inPos": TypedArray(fmt=DFmt.Float32, data=(-0.7, 0.7, 0.0,  0.7, 0.7, 0.0,  0.7, -0.7, 0.0,  -0.7, -0.7, 0.0))
             }
         )
         scene.meshes.append(plane_m)
