@@ -1,4 +1,9 @@
 {
+    "uniforms": [
+        {"name": "View", "set": 0, "binding": 0, "count": 1, "stage": 1, "type": 6, "scope": 0, "fields": [
+            {"name": "mvp", "type": 2, "count": 1}
+        ]}
+    ],
     "bindings": [{"id": 0, "stride": 12}],
     "attributes": [
         {"name": "inPos", "location": 0, "binding": 0, "format": 106}

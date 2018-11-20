@@ -5,8 +5,12 @@
 
 layout (location = 0) in vec3 inPos;
 
+layout (set=0, binding=0) uniform View {
+    mat4 mvp;
+} view;
+
 
 void main() 
 {
-    gl_Position = vec4(inPos, 1.0);
+    gl_Position = view.mvp * vec4(inPos, 1.0);
 }

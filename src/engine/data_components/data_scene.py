@@ -18,6 +18,7 @@ class DataScene(object):
         self.objects = None
         self.pipelines = None
         self.pipeline_cache = None
+        self.descriptor_pool = None
 
         self.meshes_alloc = None
         self.meshes_buffer = None
@@ -26,6 +27,7 @@ class DataScene(object):
         self._setup_shaders()
         self._setup_objects()
         self._setup_pipelines()
+        self._setup_descriptor_sets()
         self._setup_render_commands()
         self._setup_render_cache()
 
@@ -173,7 +175,7 @@ class DataScene(object):
         pipeline_infos = []
         for shader_index, objects in grouped_objects:
             shader = shaders[shader_index]
-            
+
             for obj in objects:
                 obj.pipeline = shader_index
   
@@ -195,6 +197,9 @@ class DataScene(object):
 
         self.pipeline_cache = hvk.create_pipeline_cache(api, device, hvk.pipeline_cache_create_info())
         self.pipelines = hvk.create_graphics_pipelines(api, device, pipeline_infos, self.pipeline_cache)
+
+    def _setup_descriptor_sets(self):
+        raise NotImplementedError()
 
     def _group_objects_by_shaders(self):
         groups = []

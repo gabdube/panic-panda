@@ -1,4 +1,7 @@
 from vulkan import vk, helpers as hvk
+from ctypes import Structure, c_float
+from functools import lru_cache
+from enum import Enum
 
 
 class DataShader(object):
@@ -9,20 +12,28 @@ class DataShader(object):
 
         self.modules = None
         self.stage_infos = None
+
         self.vertex_input_state = None
         self.ordered_attribute_names = None
+
+        self.descriptor_set_layout = None
+        self.descriptor_set_structs = None
         self.pipeline_layout = None
 
         self._compile_shader()
         self._setup_vertex_state()
+        self._setup_descriptor_layouts()
         self._setup_pipeline_layout()
 
     def free(self):
         engine, api, device = self.ctx
-        for m in self.modules:
-            hvk.destroy_shader_module(api, device, m)
+
+        hvk.destroy_descriptor_set_layout(api, device, self.descriptor_set_layout)
 
         hvk.destroy_pipeline_layout(api, device, self.pipeline_layout)
+
+        for m in self.modules:
+            hvk.destroy_shader_module(api, device, m)
 
         del self.engine
 
@@ -82,13 +93,69 @@ class DataShader(object):
             vertex_attribute_descriptions = attributes
         )
 
+    def _setup_descriptor_layouts(self):
+        _, api, device = self.ctx
+        uniforms = self.shader.mapping["uniforms"]
+        bindings = []
+        structs = {}
+
+        repr_fn = lambda self: f"Uniform(name={self.__qualname__}, fields={str(dict(self._fields_))})"
+        
+        for uniform in uniforms:
+            uniform_name = uniform["name"]
+            
+            args = []
+            for field in uniform["fields"]:
+                field_name = field["name"]
+                field_ctype = uniform_member_as_ctype(field["type"], field["count"])
+                args.append((field_name, field_ctype))
+
+            struct = type(uniform_name, (Structure,), {'_fields_': args, '__repr__': repr_fn})
+            
+            binding = hvk.descriptor_set_layout_binding(
+                binding = uniform["binding"],
+                descriptor_type = uniform["type"],
+                descriptor_count = uniform["count"],
+                stage_flags = uniform["stage"]
+            )
+
+            structs[uniform_name] = struct
+            bindings.append(binding)
+
+        info = hvk.descriptor_set_layout_create_info(bindings = bindings)
+        self.descriptor_set_layout = hvk.create_descriptor_set_layout(api, device, info)
+        self.descriptor_set_structs = structs
+
     def _setup_pipeline_layout(self):
         _, api, device = self.ctx
 
-        set_layouts = []
-
-        layout = hvk.create_pipeline_layout(api, device, hvk.pipeline_layout_create_info(
-            set_layouts = set_layouts
+        self.pipeline_layout = hvk.create_pipeline_layout(api, device, hvk.pipeline_layout_create_info(
+            set_layouts = (self.descriptor_set_layout,)
         ))
 
-        self.pipeline_layout = layout
+
+class UniformMemberType(Enum):
+    FLOAT_MAT2 = 0
+    FLOAT_MAT3 = 1
+    FLOAT_MAT4 = 2
+
+
+@lru_cache(maxsize=16)
+def uniform_member_as_ctype(value, count1):
+    mt = UniformMemberType
+    value = mt(value)
+    t = count2 = None
+
+    if value is mt.FLOAT_MAT2:
+        t = c_float 
+        count2 = 4
+    elif value is mt.FLOAT_MAT3:
+        t = c_float 
+        count2 = 9
+    elif value is mt.FLOAT_MAT4:
+        t = c_float 
+        count2 = 16
+    else:
+        raise ValueError("Invalid uniform member type")
+    
+    return t*(count1*count2)

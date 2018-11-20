@@ -6,4 +6,5 @@ class DataGameObject(object):
         self.mesh = obj.mesh
         
         self.pipeline = None
+        self.descriptor_sets = None
         
