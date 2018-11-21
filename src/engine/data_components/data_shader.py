@@ -18,6 +18,7 @@ class DataShader(object):
 
         self.descriptor_set_layout = None
         self.descriptor_set_structs = None
+        self.descriptor_counts = None
         self.pipeline_layout = None
 
         self._compile_shader()
@@ -98,39 +99,60 @@ class DataShader(object):
         uniforms = self.shader.mapping["uniforms"]
         bindings = []
         structs = {}
+        counts = {}
+
+        if len(uniforms) == 0:
+            return
 
         repr_fn = lambda self: f"Uniform(name={self.__qualname__}, fields={str(dict(self._fields_))})"
         
         for uniform in uniforms:
             uniform_name = uniform["name"]
+            dtype = uniform["type"]
+            dcount = uniform["count"]
             
+            # Counts
+            if dtype in counts:
+                counts[dtype] += dcount
+            else:
+                counts[dtype] = dcount
+
+            # Structs
             args = []
             for field in uniform["fields"]:
                 field_name = field["name"]
                 field_ctype = uniform_member_as_ctype(field["type"], field["count"])
                 args.append((field_name, field_ctype))
 
-            struct = type(uniform_name, (Structure,), {'_fields_': args, '__repr__': repr_fn})
+            struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args, '__repr__': repr_fn})
+            structs[uniform_name] = struct
             
+            # Binding
             binding = hvk.descriptor_set_layout_binding(
                 binding = uniform["binding"],
-                descriptor_type = uniform["type"],
-                descriptor_count = uniform["count"],
+                descriptor_type = dtype,
+                descriptor_count = dcount,
                 stage_flags = uniform["stage"]
             )
 
-            structs[uniform_name] = struct
             bindings.append(binding)
 
         info = hvk.descriptor_set_layout_create_info(bindings = bindings)
         self.descriptor_set_layout = hvk.create_descriptor_set_layout(api, device, info)
         self.descriptor_set_structs = structs
+        self.descriptor_counts = tuple(counts.items())
 
     def _setup_pipeline_layout(self):
         _, api, device = self.ctx
 
+        set_layouts = self.descriptor_set_layout
+        if set_layouts is not None:
+             set_layouts = (self.descriptor_set_layout,)
+        else:
+            set_layouts = ()
+
         self.pipeline_layout = hvk.create_pipeline_layout(api, device, hvk.pipeline_layout_create_info(
-            set_layouts = (self.descriptor_set_layout,)
+            set_layouts = set_layouts
         ))
 
 

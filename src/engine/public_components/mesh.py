@@ -4,6 +4,7 @@ from enum import Enum
 class Mesh(object):
 
     def __init__(self):
+        self.id = None
         self.indices = None
         self.attributes = None
 

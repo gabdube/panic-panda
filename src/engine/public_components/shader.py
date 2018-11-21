@@ -7,6 +7,7 @@ SHADER_ASSET_PATH = Path("./assets/shaders/")
 class Shader(object):
 
     def __init__(self, vert, frag, mapping):
+        self.id = None
         self.vert = vert
         self.frag = frag
         self.mapping = mapping
