@@ -9,6 +9,7 @@ from .renderer import Renderer
 from .data_components import DataScene
 
 
+# Tells the engine to instantiate a Debbuger object that will logs various vulkan information 
 DEBUG = True
 
 class Engine(object):
@@ -58,7 +59,10 @@ class Engine(object):
         hvk.destroy_device(api, d)
 
         hvk.destroy_surface(api, i, self.surface)
-        self.debugger.stop()
+
+        if self.debugger is not None:
+            self.debugger.stop()
+
         hvk.destroy_instance(api, i)
 
         self.window.destroy()
@@ -67,6 +71,7 @@ class Engine(object):
         assert scene.id is None, "Scene is already loaded"
         scene_data = DataScene(self, scene)
         scene.id = len(self.graph)
+        scene.on_initialized()
         self.graph.append(scene_data)
 
     def activate(self, scene):
@@ -75,6 +80,10 @@ class Engine(object):
         self.window.show()
         self.running = True
         self.current_scene_index = scene.id
+
+    def update(self):
+        scene_data = self.graph[self.current_scene_index]
+        scene_data.apply_updates()
 
     def events(self):
         w = self.window

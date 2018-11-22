@@ -8,6 +8,10 @@ class Scene(object):
         self.shaders = ComponentArray(Shader)
         self.meshes = ComponentArray(Mesh)
         self.objects = ComponentArray(GameObject)
+        self.update_set = set()
+
+        self.on_initialized = lambda: None
+        self.on_display_resized = lambda: None
 
     @classmethod
     def empty(cls):
@@ -15,6 +19,8 @@ class Scene(object):
         scene.__init__()
         return scene
 
+    def update_objects(self, *objects):
+        self.update_set.update(set(obj for obj in objects if isinstance(obj, GameObject)))
 
 
 class ComponentArray(list):

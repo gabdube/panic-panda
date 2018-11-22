@@ -127,6 +127,26 @@ class DataScene(object):
         h.end_render_pass(api, cmd)
         h.end_command_buffer(api, cmd)
 
+    def apply_updates(self):
+        scene = self.scene
+        data_objects = self.objects
+        uniforms_update = []
+
+        for obj in scene.update_set:
+            dobj = data_objects[obj.id]
+            obj_pair = (obj, dobj)
+
+            if len(obj.uniforms.updated_member_names) > 0:
+                uniforms_update.append(obj_pair)
+
+        self._update_uniforms(uniforms_update)    
+
+        scene.update_set.clear()
+
+    #
+    # Setup things
+    #
+
     def _setup_shaders(self):
         e = self.engine
 
@@ -141,6 +161,7 @@ class DataScene(object):
         mem = engine.memory_manager
 
         scene = self.scene
+        shaders = self.shaders
         meshes = scene.meshes
 
         staging_mesh_offset = 0
@@ -149,11 +170,20 @@ class DataScene(object):
         data_objects = []
 
         for obj in scene.objects:
-            mesh = meshes[obj.mesh]
-            if mesh is not None and id(mesh) not in mesh_cache_lookup:
-                mesh_cache_lookup.append(id(mesh))
-                data_meshes.append(DataMesh(mesh, staging_mesh_offset))
-                staging_mesh_offset += mesh.size()
+            if obj.mesh is not None:
+                mesh = meshes[obj.mesh]
+                mesh_id = id(mesh)
+                if mesh_id not in mesh_cache_lookup:
+                    mesh_cache_lookup.append(mesh_id)
+                    data_meshes.append(DataMesh(mesh, staging_mesh_offset))
+                    staging_mesh_offset += mesh.size()
+
+            if obj.shader is not None:
+                shader = shaders[obj.shader]
+                for layout in shader.descriptor_set_layouts:
+                    for name, struct in layout.struct_map.items():
+                        setattr(obj.uniforms, name, struct())
+                        obj.uniforms.uniform_names.append(name)
 
             data_objects.append(DataGameObject(obj))
 
@@ -333,8 +363,8 @@ class DataScene(object):
         )
 
         # Make sure the uniforms are zeroed
-        with mem.map_alloc(uniforms_alloc) as alloc:
-            memset(alloc.pointer.value, 0, uniforms_alloc.size)
+        with mem.map_alloc(uniforms_alloc) as mapping:
+            memset(mapping.pointer2, 0, uniforms_alloc.size)
 
         self.uniforms_alloc = uniforms_alloc
         self.uniforms_buffer = uniforms_buffer
@@ -374,7 +404,9 @@ class DataScene(object):
 
             for obj in objects:
                 for descriptor_set, descriptor_layout in zip(obj.descriptor_sets, shader.descriptor_set_layouts):
-                    obj.write_sets = tuple( generate_write_set(wst, descriptor_set) for wst in descriptor_layout.write_set_templates )
+                    templates = descriptor_layout.write_set_templates
+                    obj.write_sets_update_infos = { wst["name"]: (uniform_offset, wst["range"]) for wst in templates }
+                    obj.write_sets = tuple( generate_write_set(wst, descriptor_set) for wst in templates )
                     hvk.update_descriptor_sets(api, device, obj.write_sets, ())
 
     def _group_objects_by_shaders(self):
@@ -432,3 +464,33 @@ class DataScene(object):
         self.render_cache["render_pass_begin_info"] = render_pass_begin
         self.render_cache["render_area_extent"] = render_pass_begin.render_area.extent
 
+    #
+    # Update things
+    #
+
+    def _update_uniforms(self, objects):
+        mem = self.engine.memory_manager
+        uniforms_alloc = self.uniforms_alloc
+        base_offset = map_size = None
+        update_list = []
+
+        for obj, dobj in objects:
+            uniforms = obj.uniforms
+
+            for name in uniforms.updated_member_names:
+                offset, size = dobj.write_sets_update_infos[name]
+                offset_size = offset + size
+
+                if base_offset is None or offset < base_offset:
+                    base_offset = offset 
+
+                if map_size is None or offset_size > map_size:
+                    map_size = offset_size
+
+                update_list.append( (getattr(uniforms, name), offset) )
+            
+            uniforms.updated_member_names.clear()
+
+        with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
+            for value, offset in update_list:
+                mapping.write_client_data(value, offset)

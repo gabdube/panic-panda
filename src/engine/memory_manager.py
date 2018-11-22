@@ -1,7 +1,7 @@
 from vulkan import vk, helpers as hvk
 from enum import IntFlag
 from functools import lru_cache
-from ctypes import memmove, byref, c_void_p
+from ctypes import memmove, byref, c_void_p, POINTER
 import weakref
 
 
@@ -133,16 +133,21 @@ class SharedAlloc(object):
         self.size = size
 
 class MappedDeviceMemory(object):
-    __slots__ = ("alloc", "pointer", "unmap")
+    __slots__ = ("alloc", "pointer", "pointer2", "unmap")
 
     def __init__(self, alloc, pointer, unmap):
         self.alloc = alloc
         self.pointer = pointer
+        self.pointer2 = pointer.value
         self.unmap = unmap
 
     def write_bytes(self, offset, data):
-        offset_pointer = c_void_p(self.pointer.value + offset)
+        offset_pointer = self.pointer2 + offset
         memmove(offset_pointer, byref(data), len(data))
+
+    def write_client_data(self, src, offset):
+        dst = (type(src)*1).from_address(self.pointer2 + offset)
+        dst[0] = src
 
     def __enter__(self):
         return self

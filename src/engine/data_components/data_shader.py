@@ -136,6 +136,7 @@ class DataShader(object):
 
                 # Write set template
                 wst.append({
+                    "name": uniform_name,
                     "descriptor_type": dtype,
                     "range": sizeof(struct),
                     "binding": ubinding

@@ -15,6 +15,7 @@ class PanicPanda(object):
         engine.activate(self.main.scene)
 
         while engine.running:
+            engine.update()
             engine.events()
             engine.render()
             sleep(1/60)
