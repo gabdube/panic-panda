@@ -2,6 +2,7 @@ from vulkan import vk, helpers as hvk
 from .data_shader import DataShader
 from .data_mesh import DataMesh
 from .data_game_object import DataGameObject
+from ctypes import sizeof, memset
 
 
 class DataScene(object):
@@ -21,7 +22,7 @@ class DataScene(object):
         self.descriptor_pool = None
 
         self.shader_objects = None
-        self.shader_objects_ordered = False
+        self.shader_objects_sorted = False
 
         self.meshes_alloc = None
         self.meshes_buffer = None
@@ -35,6 +36,7 @@ class DataScene(object):
         self._setup_pipelines()
         self._setup_descriptor_sets_pool()
         self._setup_descriptor_sets()
+        self._setup_descriptor_write_sets()
         self._setup_render_commands()
         self._setup_render_cache()
 
@@ -155,8 +157,8 @@ class DataScene(object):
 
             data_objects.append(DataGameObject(obj))
 
-        staging_alloc, staging_buffer = self._setup_staging(staging_mesh_offset, data_meshes)
-        meshes_alloc, meshes_buffer = self._setup_resources(staging_alloc, staging_buffer, data_meshes)
+        staging_alloc, staging_buffer = self._setup_objects_staging(staging_mesh_offset, data_meshes)
+        meshes_alloc, meshes_buffer = self._setup_objects_resources(staging_alloc, staging_buffer, data_meshes)
 
         self.meshes_alloc = meshes_alloc
         self.meshes_buffer = meshes_buffer
@@ -166,7 +168,7 @@ class DataScene(object):
         hvk.destroy_buffer(api, device, staging_buffer)
         mem.free_alloc(staging_alloc)
 
-    def _setup_staging(self, meshes_size, data_meshes):
+    def _setup_objects_staging(self, meshes_size, data_meshes):
         engine, api, device = self.ctx
         mem = engine.memory_manager
 
@@ -186,7 +188,7 @@ class DataScene(object):
   
         return staging_alloc, staging_buffer
 
-    def _setup_resources(self, staging_alloc, staging_buffer, data_meshes):
+    def _setup_objects_resources(self, staging_alloc, staging_buffer, data_meshes):
         engine, api, device = self.ctx
         mem = engine.memory_manager
         cmd = engine.setup_command_buffer
@@ -239,8 +241,7 @@ class DataScene(object):
         )
 
         pipeline_infos = []
-        grouped_objects = self._group_objects_by_shaders()
-        for shader_index, objects in grouped_objects:
+        for shader_index, objects in self._group_objects_by_shaders():
             shader = shaders[shader_index]
 
             for obj in objects:
@@ -271,21 +272,21 @@ class DataScene(object):
 
         pool_sizes, max_sets = {}, 0
 
-        grouped_objects = self._group_objects_by_shaders()
-        for shader_index, objects in grouped_objects:
+        for shader_index, objects in self._group_objects_by_shaders():
             shader = shaders[shader_index]
             object_count = len(objects)
 
-            if shader.descriptor_set_layout is None:
+            if shader.descriptor_set_layouts is None:
                 continue
 
-            for dtype, dcount in shader.descriptor_counts:
-                if dtype in pool_sizes:
-                    pool_sizes[dtype] += dcount * object_count
-                else:
-                    pool_sizes[dtype] = dcount * object_count
+            for dset_layout in shader.descriptor_set_layouts:
+                for dtype, dcount in dset_layout.pool_size_counts:
+                    if dtype in pool_sizes:
+                        pool_sizes[dtype] += dcount * object_count
+                    else:
+                        pool_sizes[dtype] = dcount * object_count
             
-            max_sets += object_count
+                max_sets += object_count
 
         pool_sizes = tuple( vk.DescriptorPoolSize(type=t, descriptor_count=c) for t, c in pool_sizes.items() )
         pool = hvk.create_descriptor_pool(api, device, hvk.descriptor_pool_create_info(
@@ -305,27 +306,79 @@ class DataScene(object):
 
         for shader_index, objects in self._group_objects_by_shaders():
             shader = shaders[shader_index]
-            set_layouts = [shader.descriptor_set_layout] * len(objects)
+            objlen = len(objects)
+            
+            # Uniforms buffer size
+            uniforms_buffer_size += sum( l.struct_map_size_bytes for l in shader.descriptor_set_layouts ) * objlen
+
+            # Descriptor sets allocations
+            set_layouts = [ l.set_layout for l in shader.descriptor_set_layouts ] * objlen
             descriptor_sets = hvk.allocate_descriptor_sets(api, device, hvk.descriptor_set_allocate_info(
                 descriptor_pool = descriptor_pool,
                 set_layouts = set_layouts
             ))
 
-            for i, obj in enumerate(objects):
-                obj.descriptor_sets = descriptor_sets[i:i+1]
+            for i, obj in zip(range(0, len(set_layouts), objlen), objects):
+                obj.descriptor_sets = descriptor_sets[i:i+objlen]
 
+        # Uniform buffer creation
         uniforms_buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(
             size = uniforms_buffer_size, 
             usage = vk.BUFFER_USAGE_UNIFORM_BUFFER_BIT
         ))
-        uniforms_alloc = mem.alloc(uniforms_buffer, vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO, (vk.MEMORY_PROPERTY_HOST_VISIBLE_BIT | vk.MEMORY_PROPERTY_HOST_COHERENT_BIT,))
+        uniforms_alloc = mem.alloc(
+            uniforms_buffer,
+            vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            (vk.MEMORY_PROPERTY_HOST_VISIBLE_BIT | vk.MEMORY_PROPERTY_HOST_COHERENT_BIT,)
+        )
+
+        # Make sure the uniforms are zeroed
+        with mem.map_alloc(uniforms_alloc) as alloc:
+            memset(alloc.pointer.value, 0, uniforms_alloc.size)
 
         self.uniforms_alloc = uniforms_alloc
         self.uniforms_buffer = uniforms_buffer
         
+    def _setup_descriptor_write_sets(self):
+        _, api, device = self.ctx
+        shaders = self.shaders
+        uniform_buffer = self.uniforms_buffer
+        uniform_offset = 0
+        
+        def generate_write_set(wst, descriptor_set):
+            nonlocal uniform_buffer, uniform_offset
+            dtype, drange, binding = wst['descriptor_type'], wst['range'], wst['binding']
+
+            if dtype == vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                buffer_info = vk.DescriptorBufferInfo(
+                    buffer = uniform_buffer,
+                    offset = uniform_offset,
+                    range = drange
+                )
+
+                write_set = hvk.write_descriptor_set(
+                    dst_set = descriptor_set,
+                    dst_binding = binding,
+                    descriptor_type = dtype,
+                    buffer_info = (buffer_info,)
+                )
+
+                uniform_offset += drange
+            else:
+                raise ValueError(f"Unknown descriptor type: {dtype}")
+
+            return write_set
+
+        for shader_index, objects in self._group_objects_by_shaders():
+            shader = shaders[shader_index]
+
+            for obj in objects:
+                for descriptor_set, descriptor_layout in zip(obj.descriptor_sets, shader.descriptor_set_layouts):
+                    obj.write_sets = tuple( generate_write_set(wst, descriptor_set) for wst in descriptor_layout.write_set_templates )
+                    hvk.update_descriptor_sets(api, device, obj.write_sets, ())
 
     def _group_objects_by_shaders(self):
-        if self.shader_objects_ordered:
+        if self.shader_objects_sorted:
             return self.shader_objects
 
         groups = []
@@ -339,7 +392,7 @@ class DataScene(object):
                 shaders_index.append(obj.shader)
                 groups.append((obj.shader, [obj]))
 
-        self.shader_objects_ordered = True
+        self.shader_objects_sorted = True
         self.shader_objects = groups
 
         return groups

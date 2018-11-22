@@ -101,7 +101,6 @@ class Engine(object):
             hvk.wait_for_fences(api, device, f)
             hvk.reset_fences(api, device, f)
 
-
     def _setup_instance(self):
         layers = []
         extensions = ["VK_KHR_surface", hvk.SYSTEM_SURFACE_EXTENSION]

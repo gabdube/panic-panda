@@ -7,4 +7,5 @@ class DataGameObject(object):
         
         self.pipeline = None
         self.descriptor_sets = None
+        self.write_sets = None
         

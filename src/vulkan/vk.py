@@ -6,7 +6,7 @@ from ctypes import c_int8, c_uint16, c_int32, c_uint32, c_uint64, c_size_t, c_fl
 from platform import system
 
 # Helper functions
-repr_fn = lambda self: str(dict(self._fields_))
+repr_fn = lambda self: repr({n: v for n, v in [(n[0], getattr(self, n[0])) for n in self._fields_]})
 
 def MAKE_VERSION(major, minor, patch):
     return (major<<22) | (minor<<12) | patch
