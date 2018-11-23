@@ -86,10 +86,16 @@ class Engine(object):
         scene_data.apply_updates()
 
     def events(self):
-        w = self.window
+        scene_data = self.graph[self.current_scene_index]
+        scene = scene_data.scene
+        e, w = evt, self.window
+
         w.translate_system_events()
-        for event in w.events:
-            pass
+
+        for event, data in w.events:
+            if event is e.WindowResized:
+                scene.on_window_resized(event, data)
+                self._update_swapchain(data)
 
         if w.must_exit:
             self.running = False
@@ -109,6 +115,8 @@ class Engine(object):
             f = (fence,)
             hvk.wait_for_fences(api, device, f)
             hvk.reset_fences(api, device, f)
+
+    # Setup functions
 
     def _setup_instance(self):
         layers = []
@@ -178,6 +186,7 @@ class Engine(object):
     def _setup_swapchain(self):
         api, device, physical_device, surface = self.api, self.device, self.physical_device, self.surface
         render_queue = self.render_queue
+        old_swapchain = self.swapchain
 
         # Swapchain Setup
         caps = hvk.physical_device_surface_capabilities(api, physical_device, surface)
@@ -227,6 +236,7 @@ class Engine(object):
             transform = vk.SURFACE_TRANSFORM_IDENTITY_BIT_KHR
 
         # Swapchain creation
+        old_swapchain = old_swapchain or 0
         swapchain_image_format = selected_format.format
         self.swapchain = hvk.create_swapchain(api, device, hvk.swapchain_create_info(
             surface = surface,
@@ -237,8 +247,10 @@ class Engine(object):
             present_mode = present_mode,
             pre_transform = transform,
             image_usage = vk.IMAGE_USAGE_COLOR_ATTACHMENT_BIT | vk.IMAGE_USAGE_TRANSFER_DST_BIT,
-            old_swapchain = 0
+            old_swapchain = old_swapchain
         ))
+
+        hvk.destroy_swapchain(api, device, old_swapchain)
 
         self.info["swapchain_extent"] = OrderedDict(width=extent.width, height=extent.height)
         self.info["swapchain_format"] = swapchain_image_format
@@ -264,3 +276,12 @@ class Engine(object):
         self.command_pool = command_pool
         self.setup_command_buffer = cmds[0]
         self.setup_fence = fence
+
+    # Update functions
+
+    def _update_swapchain(self, resize_data):
+        hvk.device_wait_idle(self.api, self.device)
+        self._setup_swapchain()
+        self.render_target._update_swapchain()
+        self.renderer._setup_render_cache()
+        self.graph[self.current_scene_index]._setup_render_cache()

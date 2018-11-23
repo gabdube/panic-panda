@@ -96,6 +96,9 @@ class DataScene(object):
         extent = rc["render_area_extent"]
         extent.width, extent.height = engine.info["swapchain_extent"].values()
 
+        viewports = rc["viewports"]
+        scissors = rc["scissors"]
+
         # Recording
         h.begin_command_buffer(api, cmd, rc["begin_info"])
         h.begin_render_pass(api, cmd, render_pass_begin, vk.SUBPASS_CONTENTS_INLINE)
@@ -108,6 +111,8 @@ class DataScene(object):
             if obj.pipeline is not None and pipeline_index != obj.pipeline:
                 pipeline_index = obj.pipeline
                 hvk.bind_pipeline(api, cmd, pipelines[pipeline_index], vk.PIPELINE_BIND_POINT_GRAPHICS)
+                hvk.set_viewport(api, cmd, viewports)
+                hvk.set_scissor(api, cmd, scissors)
 
             if obj.descriptor_sets is not None:
                 hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, obj.descriptor_sets)
@@ -251,14 +256,7 @@ class DataScene(object):
         assembly = hvk.pipeline_input_assembly_state_create_info()
         raster = hvk.pipeline_rasterization_state_create_info()
         multisample = hvk.pipeline_multisample_state_create_info()
-
-        width, height = engine.info["swapchain_extent"].values()
-        viewport = hvk.viewport(width=width, height=height)
-        render_area = hvk.rect_2d(0, 0, width, height)
-        viewport = hvk.pipeline_viewport_state_create_info(
-            viewports=(viewport,),
-            scissors=(render_area,)
-        )
+        viewport = hvk.pipeline_viewport_state_create_info(viewport_count=1, scissor_count=1)
 
         depth_stencil = hvk.pipeline_depth_stencil_state_create_info(
             depth_test_enable = vk.TRUE,
@@ -268,6 +266,10 @@ class DataScene(object):
 
         color_blend = hvk.pipeline_color_blend_state_create_info(
             attachments = (hvk.pipeline_color_blend_attachment_state(),)
+        )
+
+        dynamic_state = hvk.pipeline_dynamic_state_create_info(
+            dynamic_states = (vk.DYNAMIC_STATE_VIEWPORT, vk.DYNAMIC_STATE_SCISSOR)
         )
 
         pipeline_infos = []
@@ -286,6 +288,7 @@ class DataScene(object):
                 multisample_state = multisample,
                 depth_stencil_state = depth_stencil,
                 color_blend_state = color_blend,
+                dynamic_state = dynamic_state,
                 layout = shader.pipeline_layout,
                 render_pass = rt.render_pass
             )
@@ -449,7 +452,10 @@ class DataScene(object):
         self.render_commands = cmd_draw
 
     def _setup_render_cache(self):
-        self.render_cache["begin_info"] = hvk.command_buffer_begin_info()
+        rc = self.render_cache
+        width, height = self.engine.info["swapchain_extent"].values()
+        viewport = hvk.viewport(width=width, height=height)
+        scissor = hvk.rect_2d(0, 0, width, height)
 
         render_pass_begin = hvk.render_pass_begin_info(
             render_pass = self.engine.render_target.render_pass,
@@ -461,8 +467,11 @@ class DataScene(object):
             )
         )
 
-        self.render_cache["render_pass_begin_info"] = render_pass_begin
-        self.render_cache["render_area_extent"] = render_pass_begin.render_area.extent
+        rc["begin_info"] = hvk.command_buffer_begin_info()
+        rc["viewports"] = (viewport,)
+        rc["scissors"] = (scissor,)
+        rc["render_pass_begin_info"] = render_pass_begin
+        rc["render_area_extent"] = render_pass_begin.render_area.extent
 
     #
     # Update things

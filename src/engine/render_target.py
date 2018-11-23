@@ -44,9 +44,15 @@ class RenderTarget(object):
         api, device = engine.api, engine.device
         return engine, api, device
 
+    # Setup function
+
     def _setup_swapchain_images(self):
         engine, api, device = self.ctx
         swapchain = engine.swapchain
+
+        if len(self.swapchain_images) > 0:
+            for (_, view) in self.swapchain_images:
+                hvk.destroy_image_view(api, device, view)
 
         # Fetch swapchain images
         swapchain_images = hvk.swapchain_images(api, device, swapchain)
@@ -63,9 +69,15 @@ class RenderTarget(object):
             self.swapchain_images.append(ImageAndView(image=image, view=view))
 
     def _setup_depth_stencil(self):
-        ctx, api, device = self.ctx
-        width, height = ctx.info["swapchain_extent"].values()
-        depth_format = ctx.info["depth_format"]
+        engine, api, device = self.ctx
+        width, height = engine.info["swapchain_extent"].values()
+        depth_format = engine.info["depth_format"]
+        mem = engine.memory_manager
+
+        if self.depth_stencil is not None:
+            hvk.destroy_image_view(api, device, self.depth_stencil.view)
+            hvk.destroy_image(api, device, self.depth_stencil.image)
+            mem.free_alloc(self.depth_stencil_alloc)
 
         depth_stencil_image = hvk.create_image(api, device, hvk.image_create_info(
             format = depth_format,
@@ -73,7 +85,7 @@ class RenderTarget(object):
             usage = vk.IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
         ))
 
-        alloc = ctx.memory_manager.alloc(depth_stencil_image, vk.STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        alloc = mem.alloc(depth_stencil_image, vk.STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             types = (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT, )
         )
 
@@ -143,6 +155,10 @@ class RenderTarget(object):
         render_pass = self.render_pass
         width, height = ctx.info["swapchain_extent"].values()
 
+        if self.framebuffers is not None:
+            for fb in self.framebuffers:
+                hvk.destroy_framebuffer(api, device, fb)
+
         depth_view = self.depth_stencil.view
         framebuffers = []
 
@@ -157,3 +173,9 @@ class RenderTarget(object):
             framebuffers.append(framebuffer)
 
         self.framebuffers = framebuffers
+
+    # Update function
+    def _update_swapchain(self):
+        self._setup_swapchain_images()
+        self._setup_depth_stencil()
+        self._setup_framebuffers()

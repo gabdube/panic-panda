@@ -7,7 +7,7 @@ class PanicPanda(object):
     
     def __init__(self):
         self.engine = Engine()
-        self.main = MainScene()
+        self.main = MainScene(self.engine)
 
     def run(self):
         engine = self.engine
@@ -15,8 +15,8 @@ class PanicPanda(object):
         engine.activate(self.main.scene)
 
         while engine.running:
-            engine.update()
             engine.events()
+            engine.update()
             engine.render()
             sleep(1/60)
 

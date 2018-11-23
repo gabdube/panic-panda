@@ -10,8 +10,10 @@ class Scene(object):
         self.objects = ComponentArray(GameObject)
         self.update_set = set()
 
-        self.on_initialized = lambda: None
-        self.on_display_resized = lambda: None
+        empty = lambda: None
+        empty_w_events = lambda x, y: None
+        self.on_initialized = empty
+        self.on_window_resized = empty_w_events
 
     @classmethod
     def empty(cls):
