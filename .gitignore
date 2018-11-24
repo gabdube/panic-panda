@@ -4,4 +4,5 @@ Settings.cap
 .idea
 .vscode
 assets/shaders/*.spv
+assets/models/*.glb
 python/

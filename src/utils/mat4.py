@@ -21,6 +21,13 @@ class Mat4(Structure):
         self.data[::] = buffer_type(*chain(*staging))
 
     @classmethod
+    def from_data(cls, data):
+        obj = super(Mat4, cls).__new__(cls)
+        obj.data[::] = buffer_type(*chain(*data))
+        return obj
+        
+
+    @classmethod
     def perspective(cls, fovy, aspect, near, far):
         obj = super(Mat4, cls).__new__(cls)
 
@@ -91,6 +98,7 @@ class Mat4(Structure):
         obj.data[::] = buffer_type(*chain(r1, r2, r3, r4))
 
         return obj
+
 
     def rotate(self, rad, axis):
         x, y, z = axis
@@ -207,3 +215,46 @@ class Mat4(Structure):
         d[11:15] = d[14], a03, a13, a23
     
         return self
+
+    def __mul__(self, other):
+        a, b = self.data, other.data
+        a00, a01, a02, a03 = a[0:4]
+        a10, a11, a12, a13 = a[4:8]
+        a20, a21, a22, a23 = a[8:12]
+        a30, a31, a32, a33 = a[12:16]
+
+        staging = []
+
+        b0, b1, b2, b3 = b[0:4]
+        staging.append((
+            b0*a00 + b1*a10 + b2*a20 + b3*a30,
+            b0*a01 + b1*a11 + b2*a21 + b3*a31,
+            b0*a02 + b1*a12 + b2*a22 + b3*a32,
+            b0*a03 + b1*a13 + b2*a23 + b3*a33
+        ))
+
+        b0, b1, b2, b3 = b[4:8]
+        staging.append((
+            b0*a00 + b1*a10 + b2*a20 + b3*a30,
+            b0*a01 + b1*a11 + b2*a21 + b3*a31,
+            b0*a02 + b1*a12 + b2*a22 + b3*a32,
+            b0*a03 + b1*a13 + b2*a23 + b3*a33
+        ))
+
+        b0, b1, b2, b3 = b[8:12]
+        staging.append((
+            b0*a00 + b1*a10 + b2*a20 + b3*a30,
+            b0*a01 + b1*a11 + b2*a21 + b3*a31,
+            b0*a02 + b1*a12 + b2*a22 + b3*a32,
+            b0*a03 + b1*a13 + b2*a23 + b3*a33
+        ))
+
+        b0, b1, b2, b3 = b[12:16]
+        staging.append((
+            b0*a00 + b1*a10 + b2*a20 + b3*a30,
+            b0*a01 + b1*a11 + b2*a21 + b3*a31,
+            b0*a02 + b1*a12 + b2*a22 + b3*a32,
+            b0*a03 + b1*a13 + b2*a23 + b3*a33
+        ))
+
+        return Mat4.from_data(staging)

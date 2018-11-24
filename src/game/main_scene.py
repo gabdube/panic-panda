@@ -1,7 +1,6 @@
-from engine import Shader
-from engine import Mesh, TypedArray, TypedArrayFormat as DFmt
-from engine import GameObject
-from engine import Scene
+from engine import Shader, GameObject, Scene
+from engine import Mesh, TypedArray, TypedArrayFormat as AFmt
+from engine.assets import GLBFile
 from utils.mat4 import Mat4
 from math import radians
 
@@ -15,14 +14,18 @@ class MainScene(object):
         self.objects = None
 
         width, height = engine.window.dimensions()
-        self.camera = { "proj": Mat4.perspective(radians(60), width/height, 0.001, 1000.0) }
+        self.camera = { 
+            "pos":  Mat4.from_translation(0,0,-1.5),
+            "proj": Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
+        }
 
         self._load_assets()
         self._bind_callbacks()
 
     def init_objects(self):
-        mvp = self.camera["proj"]
         objects = self.objects
+        cam = self.camera
+        mvp = cam["proj"] * cam["pos"]
 
         for obj in objects:
             obj.uniforms.View.mvp = mvp.data
@@ -44,12 +47,16 @@ class MainScene(object):
         scene = Scene.empty()
 
         shader = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json")
+        shader_attributes_map = {"POSITION": "inPos",}
         scene.shaders.append(shader)
 
+        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", shader_attributes_map)
+        scene.meshes.append(sphere_m)
+
         plane_m = Mesh.from_array(
-            indices = TypedArray(fmt=DFmt.UInt16, data=(0, 1, 2,  0, 3, 2)),
+            indices = TypedArray.from_array(fmt=AFmt.UInt16, array=(0, 1, 2,  0, 3, 2)),
             attributes = {
-                "inPos": TypedArray(fmt=DFmt.Float32, data=(-0.7, 0.7, -1.5,  0.7, 0.7, -1.5,  0.7, -0.7, -1.5,  -0.7, -0.7, -1.5))
+                "inPos": TypedArray.from_array(fmt=AFmt.Float32, array=(-0.7, 0.7, 0,  0.7, 0.7, 0,  0.7, -0.7, 0,  -0.7, -0.7, 0))
             }
         )
         scene.meshes.append(plane_m)

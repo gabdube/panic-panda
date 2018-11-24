@@ -25,11 +25,11 @@ class DataMesh(object):
         attributes = mesh.attributes
         buffer = (c_ubyte * mesh.size())()
 
-        memmove(byref(buffer), byref(indices.data), indices.size_bytes)
+        memmove(byref(buffer), indices.data_pointer(), indices.size_bytes)
         offset += indices.size_bytes
 
         for attr in attributes.values():
-            memmove(byref(buffer, offset), byref(attr.data), attr.size_bytes)
+            memmove(byref(buffer, offset), attr.data_pointer(), attr.size_bytes)
             offset += attr.size_bytes
 
         return buffer
@@ -46,7 +46,7 @@ class DataMesh(object):
 
     def _cache_indices_type(self):
         indices_type = None
-        base_type = self.mesh.indices.data._type_
+        base_type = self.mesh.indices.fmt
         if base_type is c_uint16:
             indices_type = vk.INDEX_TYPE_UINT16
         elif base_type is c_uint32:

@@ -170,18 +170,17 @@ class DataScene(object):
         meshes = scene.meshes
 
         staging_mesh_offset = 0
-        mesh_cache_lookup = []
         data_meshes = []
         data_objects = []
 
+        # Meshes setup
+        for mesh in scene.meshes:
+            data_mesh = DataMesh(mesh, staging_mesh_offset)
+            data_meshes.append(data_mesh)
+            staging_mesh_offset += mesh.size()
+
+        # Objects setup
         for obj in scene.objects:
-            if obj.mesh is not None:
-                mesh = meshes[obj.mesh]
-                mesh_id = id(mesh)
-                if mesh_id not in mesh_cache_lookup:
-                    mesh_cache_lookup.append(mesh_id)
-                    data_meshes.append(DataMesh(mesh, staging_mesh_offset))
-                    staging_mesh_offset += mesh.size()
 
             if obj.shader is not None:
                 shader = shaders[obj.shader]

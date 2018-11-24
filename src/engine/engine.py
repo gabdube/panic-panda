@@ -9,7 +9,7 @@ from .renderer import Renderer
 from .data_components import DataScene
 
 
-# Tells the engine to instantiate a Debbuger object that will logs various vulkan information 
+# Tells the engine to instantiate a Debugger object that will logs various vulkan information 
 DEBUG = True
 
 class Engine(object):
