@@ -93,7 +93,11 @@ class Engine(object):
         w.translate_system_events()
 
         for event, data in w.events:
-            if event is e.WindowResized:
+            if event is e.MouseMove:
+                scene.on_mouse_move(event, data)
+            elif event is e.MouseClick:
+                scene.on_mouse_click(event, data)
+            elif event is e.WindowResized:
                 scene.on_window_resized(event, data)
                 self._update_swapchain(data)
 

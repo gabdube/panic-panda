@@ -14,6 +14,8 @@ class Scene(object):
         empty_w_events = lambda x, y: None
         self.on_initialized = empty
         self.on_window_resized = empty_w_events
+        self.on_mouse_move = empty_w_events
+        self.on_mouse_click = empty_w_events
 
     @classmethod
     def empty(cls):

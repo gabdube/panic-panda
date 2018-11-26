@@ -2,27 +2,37 @@ from engine import Shader, GameObject, Scene
 from engine import Mesh, TypedArray, TypedArrayFormat as AFmt
 from engine.assets import GLBFile
 from utils.mat4 import Mat4
+from system import events as evt
 from math import radians
 
 
 class MainScene(object):
 
     def __init__(self, engine):
+        width, height = engine.window.dimensions()
+
         self.engine = engine
         self.scene = None
-
         self.objects = None
-
-        width, height = engine.window.dimensions()
+        self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
+        self.mouse_state["pos"] = (0,0)
+        
+        cam_pos = [0,0,-3.5]
         self.camera = { 
-            "pos":  Mat4.from_translation(0,0,-1.5),
+            "pos_vec": cam_pos,
+            "pos":  Mat4.from_translation(*cam_pos),
             "proj": Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
         }
 
         self._load_assets()
-        self._bind_callbacks()
+        
+        s = self.scene
+        s.on_initialized = self.update_objects
+        s.on_window_resized = self.update_perspective
+        s.on_mouse_move = self.move_camera
+        s.on_mouse_click = self.move_camera
 
-    def init_objects(self):
+    def update_objects(self):
         objects = self.objects
         cam = self.camera
         mvp = cam["proj"] * cam["pos"]
@@ -32,16 +42,33 @@ class MainScene(object):
 
         self.scene.update_objects(*objects)
 
-    def update_perspective(self, event, event_data):
+    def update_perspective(self, event, data):
         objects = self.objects
+        cam = self.camera
         
-        width, height = event_data
-        mvp = self.camera["proj"] = Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
+        width, height = data
+        cam["proj"] = Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
 
-        for obj in objects:
-            obj.uniforms.View.mvp = mvp.data
+        self.update_objects()
 
-        self.scene.update_objects(*objects)
+    def move_camera(self, event, data):
+        ms = self.mouse_state
+        if event is evt.MouseClick:
+            ms[data.button] = data.state
+        elif event is evt.MouseMove:
+            x1, y1 = data
+            x2, y2 = ms["pos"]
+            right, left, *_ = evt.MouseClickButton
+            down = evt.MouseClickState.Down
+            cam = self.camera
+
+            if ms[left] is down:
+                cam["pos_vec"][2] += (x2 - x1) * -0.01
+                cam["pos"] = Mat4.from_translation(*cam["pos_vec"])
+                self.update_objects()
+
+            ms["pos"] = data
+
 
     def _load_assets(self):
         scene = Scene.empty()
@@ -61,13 +88,8 @@ class MainScene(object):
         )
         scene.meshes.append(plane_m)
 
-        plane_o = GameObject.from_components(shader = shader.id, mesh = plane_m.id)
+        plane_o = GameObject.from_components(shader = shader.id, mesh = sphere_m.id)
         scene.objects.append(plane_o)
 
         self.objects = (plane_o,)
         self.scene = scene
-
-    def _bind_callbacks(self):
-        s = self.scene
-        s.on_initialized = self.init_objects
-        s.on_window_resized = self.update_perspective
