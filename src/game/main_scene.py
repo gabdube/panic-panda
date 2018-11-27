@@ -35,9 +35,13 @@ class MainScene(object):
 
     def init_scene(self):
         rstatic = self.shader.uniforms.rstatic
-        rstatic.light_color = (1,1,1,0)
-        rstatic.light_direction = (1,1,1,0)
-        rstatic.camera_pos = (1,1,1,0)
+        rstatic.light_color = (1,1,1)
+        rstatic.light_direction = (1,1,1)
+
+        rstatic.mat_color = (0.7, 0.3, 0.3)
+        rstatic.roughness_metallic = (0.5, 0.0)
+
+        rstatic.camera_pos = (1,1,1)
 
         self.scene.update_shaders(self.shader)
         self.update_objects()

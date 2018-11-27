@@ -1,12 +1,16 @@
 from enum import Enum
 from engine.assets import GLBFile
 from . import TypedArray
+from ..base_types import name_generator
+
+mesh_name = name_generator("Mesh")
 
 
 class Mesh(object):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.id = None
+        self.name = kwargs.get('name', next(mesh_name))
         self.indices = None
         self.attributes = None
         self.buffer = None

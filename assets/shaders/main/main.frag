@@ -12,6 +12,10 @@ layout (location = 0) out vec4 outColor;
 layout (set=0, binding=0) uniform RenderStatic {
     vec4 lightColor;
     vec4 lightDirection;
+
+    vec4 matColor;
+    vec4 roughnessMetallic;
+
     vec4 cameraPos;
 } rstatic;
 
@@ -39,13 +43,13 @@ const vec3 F0 = vec3(0.04);
 const vec3 F1 = vec3(0.96);
 
 vec4 baseColorValues() {
-    return vec4(0.5, 0.5, 0.5, 1.0);
+    return rstatic.matColor;
 }
 
 vec3 metallicRoughnessValues() {
-    float perceptualRoughness = 0.5;
+    float perceptualRoughness = rstatic.roughnessMetallic.x;
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
-    float metallic = 0.5;
+    float metallic = rstatic.roughnessMetallic.y;
     
     return vec3(perceptualRoughness, alphaRoughness, metallic);
 }

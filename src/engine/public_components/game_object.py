@@ -1,7 +1,13 @@
+from ..base_types import name_generator
+
+obj_name = name_generator("Object")
+
+
 class GameObject(object):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.id = None
+        self.name = kwargs.get('name', next(obj_name))
         self.shader = None
         self.mesh = None
         self.uniforms = UniformsMaps()

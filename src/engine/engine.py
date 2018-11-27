@@ -8,9 +8,17 @@ from .render_target import RenderTarget
 from .renderer import Renderer
 from .data_components import DataScene
 
-
 # Tells the engine to instantiate a Debugger object that will logs various vulkan information 
 DEBUG = True
+if DEBUG:
+    try:
+        from PyQt5.QtWidgets import QApplication
+        from .debug_ui import DebugUI
+    except ImportError:
+        DebugUI = lambda app: print("PYQT5 not found. Debug UI will not be available")
+else:
+    DebugUI = lambda app: None
+
 
 class Engine(object):
 
@@ -19,7 +27,7 @@ class Engine(object):
         self.running = False
 
         self.api = self.instance = self.device = self.physical_device = None
-        self.debugger = self.surface = self.render_queue = None
+        self.debugger = self.debug_ui = self.surface = self.render_queue = None
         self.swapchain = self.swapchain_images = None
         self.command_pool = self.setup_command_buffer = self.setup_fence = None
         self.info = {}
@@ -62,6 +70,7 @@ class Engine(object):
 
         if self.debugger is not None:
             self.debugger.stop()
+            self.debug_ui.close()
 
         hvk.destroy_instance(api, i)
 
@@ -80,6 +89,10 @@ class Engine(object):
         self.window.show()
         self.running = True
         self.current_scene_index = scene.id
+
+        if self.debug_ui is not None:
+            scene_data = self.graph[scene.id]
+            self.debug_ui.load_scene(scene_data)
 
     def update(self):
         scene_data = self.graph[self.current_scene_index]
@@ -141,6 +154,8 @@ class Engine(object):
 
         self.debugger = Debugger(self.api, self.instance)
         self.debugger.start()    
+
+        self.debug_ui = DebugUI(self)
 
     def _setup_surface(self):
         self.surface = hvk.create_surface(self.api, self.instance, self.window)

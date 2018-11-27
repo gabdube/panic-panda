@@ -1,13 +1,17 @@
 import json
 from pathlib import Path
+from ..base_types import name_generator
 
 
 SHADER_ASSET_PATH = Path("./assets/shaders/")
+shader_name = name_generator("Shader")
+
 
 class Shader(object):
 
-    def __init__(self, vert, frag, mapping):
+    def __init__(self, vert, frag, mapping, **kwargs):
         self.id = None
+        self.name = kwargs.get('name', next(shader_name))
         self.vert = vert
         self.frag = frag
         self.mapping = mapping
@@ -49,4 +53,3 @@ class UniformsMaps(object):
             sup.__getattribute__("updated_member_names").add(name)
 
         return sup.__getattribute__(name)
-
