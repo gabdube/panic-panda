@@ -104,9 +104,6 @@ class DataScene(object):
         h.begin_render_pass(api, cmd, render_pass_begin, vk.SUBPASS_CONTENTS_INLINE)
 
         for obj in self.objects:
-            if obj.shader is not None and current_shader_index != obj.shader:
-                current_shader_index = obj.shader
-                current_shader = shaders[obj.shader]
 
             if obj.pipeline is not None and pipeline_index != obj.pipeline:
                 pipeline_index = obj.pipeline
@@ -114,8 +111,13 @@ class DataScene(object):
                 hvk.set_viewport(api, cmd, viewports)
                 hvk.set_scissor(api, cmd, scissors)
 
+            if obj.shader is not None and current_shader_index != obj.shader:
+                current_shader_index = obj.shader
+                current_shader = shaders[obj.shader]
+                hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, current_shader.descriptor_sets)
+
             if obj.descriptor_sets is not None:
-                hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, obj.descriptor_sets)
+                hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, obj.descriptor_sets, firstSet=len(current_shader.descriptor_sets))
 
             if obj.mesh is not None:
                 mesh = meshes[obj.mesh]
@@ -135,18 +137,23 @@ class DataScene(object):
     def apply_updates(self):
         scene = self.scene
         data_objects = self.objects
-        uniforms_update = []
+        data_shaders = self.shaders
+        obj_update, shader_update = [], []
 
-        for obj in scene.update_set:
-            dobj = data_objects[obj.id]
-            obj_pair = (obj, dobj)
-
+        for obj in scene.update_obj_set:
             if len(obj.uniforms.updated_member_names) > 0:
-                uniforms_update.append(obj_pair)
+                dobj = data_objects[obj.id]
+                obj_update.append((obj, dobj))
 
-        self._update_uniforms(uniforms_update)    
+        for shader in scene.update_shader_set:
+            if len(shader.uniforms.updated_member_names) > 0:
+                dshader = data_shaders[shader.id]
+                shader_update.append((shader, dshader))
 
-        scene.update_set.clear()
+        if len(obj_update) > 0 or len(shader_update) > 0:
+            self._update_uniforms(obj_update, shader_update)
+            scene.update_obj_set.clear()
+            scene.update_shader_set.clear()
 
     #
     # Setup things
@@ -184,12 +191,20 @@ class DataScene(object):
 
             if obj.shader is not None:
                 shader = shaders[obj.shader]
-                for layout in shader.descriptor_set_layouts:
+                for layout in shader.local_layouts:
                     for name, struct in layout.struct_map.items():
                         setattr(obj.uniforms, name, struct())
                         obj.uniforms.uniform_names.append(name)
+                    
 
             data_objects.append(DataGameObject(obj))
+
+        # Shader
+        for shader, dshader in zip(scene.shaders, shaders):
+            for layout in dshader.global_layouts:
+                for name, struct in layout.struct_map.items():
+                    setattr(shader.uniforms, name, struct())
+                    shader.uniforms.uniform_names.append(name)
 
         staging_alloc, staging_buffer = self._setup_objects_staging(staging_mesh_offset, data_meshes)
         meshes_alloc, meshes_buffer = self._setup_objects_resources(staging_alloc, staging_buffer, data_meshes)
@@ -311,7 +326,7 @@ class DataScene(object):
             if shader.descriptor_set_layouts is None:
                 continue
 
-            for dset_layout in shader.descriptor_set_layouts:
+            for dset_layout in shader.local_layouts:
                 for dtype, dcount in dset_layout.pool_size_counts:
                     if dtype in pool_sizes:
                         pool_sizes[dtype] += dcount * object_count
@@ -319,6 +334,15 @@ class DataScene(object):
                         pool_sizes[dtype] = dcount * object_count
             
                 max_sets += object_count
+
+            for dset_layout in shader.global_layouts:
+                for dtype, dcount in dset_layout.pool_size_counts:
+                    if dtype in pool_sizes:
+                        pool_sizes[dtype] += dcount
+                    else:
+                        pool_sizes[dtype] = dcount
+            
+                max_sets += 1
 
         pool_sizes = tuple( vk.DescriptorPoolSize(type=t, descriptor_count=c) for t, c in pool_sizes.items() )
         pool = hvk.create_descriptor_pool(api, device, hvk.descriptor_pool_create_info(
@@ -341,17 +365,29 @@ class DataScene(object):
             objlen = len(objects)
             
             # Uniforms buffer size
-            uniforms_buffer_size += sum( l.struct_map_size_bytes for l in shader.descriptor_set_layouts ) * objlen
+            uniforms_buffer_size += sum( l.struct_map_size_bytes for l in shader.local_layouts ) * objlen
+            uniforms_buffer_size += sum( l.struct_map_size_bytes for l in shader.global_layouts )
 
             # Descriptor sets allocations
-            set_layouts = [ l.set_layout for l in shader.descriptor_set_layouts ] * objlen
+            set_layouts_global = [ l.set_layout for l in shader.global_layouts ]
+            set_layouts_local = [ l.set_layout for l in shader.local_layouts ] * objlen
             descriptor_sets = hvk.allocate_descriptor_sets(api, device, hvk.descriptor_set_allocate_info(
                 descriptor_pool = descriptor_pool,
-                set_layouts = set_layouts
+                set_layouts = set_layouts_global + set_layouts_local
             ))
 
-            for i, obj in zip(range(0, len(set_layouts), objlen), objects):
-                obj.descriptor_sets = descriptor_sets[i:i+objlen]
+            # Save the global layouts to the shader
+            shader.descriptor_sets = descriptor_sets[0: len(set_layouts_global)]
+
+            # Save the local layouts to the objects
+            step = len(tuple(shader.local_layouts))
+            end = len(descriptor_sets)
+            start = len(set_layouts_global)
+            iter_objects = iter(objects)
+            for i in range(start, end, step):
+                obj = next(iter_objects)
+                obj.descriptor_sets = descriptor_sets[i:i+step]
+
 
         # Uniform buffer creation
         uniforms_buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(
@@ -404,12 +440,27 @@ class DataScene(object):
         for shader_index, objects in self._group_objects_by_shaders():
             shader = shaders[shader_index]
 
+            # Global descriptor sets
+            shader.write_sets_update_infos = {}
+            shader.write_sets = []
+            for descriptor_set, descriptor_layout in zip(shader.descriptor_sets, shader.global_layouts):
+                templates = descriptor_layout.write_set_templates
+                shader.write_sets_update_infos.update({ wst["name"]: (uniform_offset, wst["range"]) for wst in templates })
+                shader.write_sets.extend( generate_write_set(wst, descriptor_set) for wst in templates )
+
+            hvk.update_descriptor_sets(api, device, shader.write_sets, ())
+
+            # Local descriptor sets
             for obj in objects:
-                for descriptor_set, descriptor_layout in zip(obj.descriptor_sets, shader.descriptor_set_layouts):
+                obj.write_sets_update_infos = {}
+                obj.write_sets = []
+
+                for descriptor_set, descriptor_layout in zip(obj.descriptor_sets, shader.local_layouts):
                     templates = descriptor_layout.write_set_templates
-                    obj.write_sets_update_infos = { wst["name"]: (uniform_offset, wst["range"]) for wst in templates }
-                    obj.write_sets = tuple( generate_write_set(wst, descriptor_set) for wst in templates )
-                    hvk.update_descriptor_sets(api, device, obj.write_sets, ())
+                    obj.write_sets_update_infos.update({ wst["name"]: (uniform_offset, wst["range"]) for wst in templates })
+                    obj.write_sets.extend( generate_write_set(wst, descriptor_set) for wst in templates )
+                
+                hvk.update_descriptor_sets(api, device, obj.write_sets, ())
 
     def _group_objects_by_shaders(self):
         if self.shader_objects_sorted:
@@ -476,29 +527,36 @@ class DataScene(object):
     # Update things
     #
 
-    def _update_uniforms(self, objects):
+    def _update_uniforms(self, objects, shaders):
         mem = self.engine.memory_manager
         uniforms_alloc = self.uniforms_alloc
         base_offset = map_size = None
         update_list = []
 
-        for obj, dobj in objects:
-            uniforms = obj.uniforms
+        def process_uniforms(items):
+            for x, y in items:
+                uniforms = x.uniforms
+                for name in uniforms.updated_member_names:
+                    read_offets(uniforms, y, name)
+                uniforms.updated_member_names.clear()
 
-            for name in uniforms.updated_member_names:
-                offset, size = dobj.write_sets_update_infos[name]
-                offset_size = offset + size
+        def read_offets(uniforms, dobj, name):
+            nonlocal update_list, base_offset, map_size
 
-                if base_offset is None or offset < base_offset:
-                    base_offset = offset 
+            offset, size = dobj.write_sets_update_infos[name]
+            offset_size = offset + size
 
-                if map_size is None or offset_size > map_size:
-                    map_size = offset_size
+            if base_offset is None or offset < base_offset:
+                base_offset = offset 
 
-                update_list.append( (getattr(uniforms, name), offset) )
-            
-            uniforms.updated_member_names.clear()
+            if map_size is None or offset_size > map_size:
+                map_size = size
+
+            update_list.append( (getattr(uniforms, name), offset) )
+
+        process_uniforms(objects)
+        process_uniforms(shaders)
 
         with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
             for value, offset in update_list:
-                mapping.write_client_data(value, offset)
+                mapping.write_typed_data(value, offset-base_offset)

@@ -19,6 +19,10 @@ class DataShader(object):
         self.descriptor_set_layouts = None
         self.pipeline_layout = None
 
+        self.descriptor_sets = None
+        self.write_sets_update_infos = None
+        self.write_sets = None
+
         self._compile_shader()
         self._setup_vertex_state()
         self._setup_descriptor_layouts()
@@ -42,6 +46,14 @@ class DataShader(object):
         engine = self.engine
         api, device = engine.api, engine.device
         return engine, api, device
+
+    @property
+    def local_layouts(self):
+        return (l for l in self.descriptor_set_layouts if l.scope is ShaderScope.LOCAL)
+
+    @property
+    def global_layouts(self):
+        return (l for l in self.descriptor_set_layouts if l.scope is ShaderScope.GLOBAL)
 
     def _compile_shader(self):
         engine, api, device = self.ctx
@@ -100,8 +112,19 @@ class DataShader(object):
             return
 
         layouts = []
-        repr_fn = lambda self: f"Uniform(name={type(self).__qualname__}, fields={repr({n: v for n, v in [(n[0], getattr(self, n[0])) for n in self._fields_]})})"
-        
+
+        def repr_fn(me):
+            type_name = type(me).__qualname__
+            fields = {}
+            for name, ctype in me._fields_:
+                value = getattr(me, name)
+                if hasattr(value, '_length_'):
+                    fields[name] = value[::]
+                else:
+                    fields[name] = value
+                    
+            return f"Uniform(name={type_name}, fields={repr(fields)})"
+
         for dset, uniforms in self._group_uniforms_by_sets():
             counts, structs, bindings, wst = {}, {}, [], []
 
@@ -146,9 +169,10 @@ class DataShader(object):
             info = hvk.descriptor_set_layout_create_info(bindings = bindings)
             dset_layout = DescriptorSetLayout(
                 set_layout = hvk.create_descriptor_set_layout(api, device, info),
+                scope = dset["scope"],
                 struct_map = structs,
                 pool_size_counts = tuple(counts.items()),
-                write_set_templates = wst
+                write_set_templates = wst,
             )
 
             layouts.append(dset_layout)
@@ -166,9 +190,10 @@ class DataShader(object):
         ))
 
     def _group_uniforms_by_sets(self):
+        sets = self.shader.mapping["sets"]
         uniforms = self.shader.mapping["uniforms"]
+        
         uniforms_by_dset = {}
-
         for uniform in uniforms:
             dset = uniform["set"]
             if dset in uniforms_by_dset:
@@ -176,13 +201,19 @@ class DataShader(object):
             else:
                 uniforms_by_dset[dset] = [uniform]
 
-        return tuple(uniforms_by_dset.items())
+        sets_uniforms = []
+        for set_id, uniforms in uniforms_by_dset.items():
+            dset = next( s for s in sets if s["id"] == set_id )
+            sets_uniforms.append((dset, uniforms))
+
+        return sets_uniforms
     
 
 class DescriptorSetLayout(object):
 
-    def __init__(self, set_layout, struct_map, pool_size_counts, write_set_templates):
+    def __init__(self, set_layout, scope, struct_map, pool_size_counts, write_set_templates):
         self.set_layout = set_layout
+        self.scope = ShaderScope(scope)
         self.struct_map = struct_map
         self.pool_size_counts = pool_size_counts
         self.write_set_templates = write_set_templates
@@ -195,6 +226,15 @@ class UniformMemberType(Enum):
     FLOAT_MAT3 = 1
     FLOAT_MAT4 = 2
 
+    FLOAT_VEC2 = 3
+    FLOAT_VEC3 = 4
+    FLOAT_VEC4 = 5
+
+
+class ShaderScope(Enum):
+    GLOBAL = 0
+    LOCAL = 1
+
 
 @lru_cache(maxsize=16)
 def uniform_member_as_ctype(value, count1):
@@ -202,15 +242,16 @@ def uniform_member_as_ctype(value, count1):
     value = mt(value)
     t = count2 = None
 
-    if value is mt.FLOAT_MAT2:
-        t = c_float 
-        count2 = 4
-    elif value is mt.FLOAT_MAT3:
-        t = c_float 
-        count2 = 9
-    elif value is mt.FLOAT_MAT4:
-        t = c_float 
-        count2 = 16
+    if value in (mt.FLOAT_MAT2, mt.FLOAT_MAT3, mt.FLOAT_MAT4, mt.FLOAT_VEC4, mt.FLOAT_VEC2, mt.FLOAT_VEC3):
+        t = c_float
+    else:
+        raise ValueError("Invalid uniform member type")
+
+    if value is mt.FLOAT_MAT2 or value is mt.FLOAT_VEC4: count2 = 4
+    elif value is mt.FLOAT_MAT3: count2 = 9
+    elif value is mt.FLOAT_MAT4: count2 = 16
+    elif value is mt.FLOAT_VEC2: count2 = 2
+    elif value is mt.FLOAT_VEC3: count2 = 3
     else:
         raise ValueError("Invalid uniform member type")
     

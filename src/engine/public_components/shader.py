@@ -12,6 +12,8 @@ class Shader(object):
         self.frag = frag
         self.mapping = mapping
 
+        self.uniforms = UniformsMaps()
+
     @classmethod
     def from_files(cls, vert, frag, mapping):
         shader = super().__new__(cls)
@@ -31,3 +33,20 @@ class Shader(object):
         shader.__init__(vert_spv, frag_spv, mapping_json)
 
         return shader
+
+
+class UniformsMaps(object):
+
+    def __init__(self):
+        self.updated_member_names = set()
+        self.uniform_names = []
+
+    def __getattribute__(self, name):
+        sup = super()
+        names = sup.__getattribute__("uniform_names")
+        
+        if name in names:
+            sup.__getattribute__("updated_member_names").add(name)
+
+        return sup.__getattribute__(name)
+

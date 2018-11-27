@@ -8,7 +8,8 @@ class Scene(object):
         self.shaders = ComponentArray(Shader)
         self.meshes = ComponentArray(Mesh)
         self.objects = ComponentArray(GameObject)
-        self.update_set = set()
+        self.update_obj_set = set()
+        self.update_shader_set = set()
 
         empty = lambda: None
         empty_w_events = lambda x, y: None
@@ -24,7 +25,10 @@ class Scene(object):
         return scene
 
     def update_objects(self, *objects):
-        self.update_set.update(set(obj for obj in objects if isinstance(obj, GameObject)))
+        self.update_obj_set.update(set(obj for obj in objects if isinstance(obj, GameObject)))
+
+    def update_shaders(self, *shaders):
+        self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, Shader)))
 
 
 class ComponentArray(list):

@@ -145,7 +145,7 @@ class MappedDeviceMemory(object):
         offset_pointer = self.pointer2 + offset
         memmove(offset_pointer, byref(data), len(data))
 
-    def write_client_data(self, src, offset):
+    def write_typed_data(self, src, offset):
         dst = (type(src)*1).from_address(self.pointer2 + offset)
         dst[0] = src
 
