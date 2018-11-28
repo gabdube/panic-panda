@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from ..base_types import name_generator
+from ..base_types import name_generator, UniformsMaps
 
 
 SHADER_ASSET_PATH = Path("./assets/shaders/")
@@ -37,19 +37,3 @@ class Shader(object):
         shader.__init__(vert_spv, frag_spv, mapping_json)
 
         return shader
-
-
-class UniformsMaps(object):
-
-    def __init__(self):
-        self.updated_member_names = set()
-        self.uniform_names = []
-
-    def __getattribute__(self, name):
-        sup = super()
-        names = sup.__getattribute__("uniform_names")
-        
-        if name in names:
-            sup.__getattribute__("updated_member_names").add(name)
-
-        return sup.__getattribute__(name)

@@ -315,6 +315,12 @@ class Win32Window(object):
                 self.events[e.WindowResized] = e.WindowResizedData(width, height)
                 self.cached_window_size = (width, height)
 
+        elif msg == WM_SIZE:
+            if w == SIZE_MAXIMIZED:
+                width, height = self.dimensions(False)
+                self.events[e.WindowResized] = e.WindowResizedData(width, height)
+                self.cached_window_size = (width, height)
+
         elif msg == WM_CLOSE:
             self.must_exit = True
         elif msg == WM_CREATE:

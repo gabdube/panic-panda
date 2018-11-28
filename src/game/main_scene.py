@@ -91,17 +91,19 @@ class MainScene(object):
         scene = Scene.empty()
 
         shader = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json")
+        shader.name = "MainShader"
         scene.shaders.append(shader)
 
         gltf_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", gltf_attributes_map)
         scene.meshes.append(sphere_m)
 
-        plane_o = GameObject.from_components(shader = shader.id, mesh = sphere_m.id)
-        scene.objects.append(plane_o)
+        ball_o = GameObject.from_components(shader = shader.id, mesh = sphere_m.id)
+        ball_o.name = "Ball"
+        scene.objects.append(ball_o)
 
         self.shader = shader
-        self.objects = (plane_o,)
+        self.objects = (ball_o,)
         self.scene = scene
 
     def _setup_plane(self):
