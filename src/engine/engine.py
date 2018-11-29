@@ -70,6 +70,8 @@ class Engine(object):
 
         if self.debugger is not None:
             self.debugger.stop()
+
+        if self.debug_ui is not None:
             self.debug_ui.close()
 
         hvk.destroy_instance(api, i)
@@ -113,6 +115,9 @@ class Engine(object):
             elif event is e.WindowResized:
                 scene.on_window_resized(event, data)
                 self._update_swapchain(data)
+
+        if self.debug_ui is not None:
+            self.debug_ui.events()
 
         if w.must_exit:
             self.running = False

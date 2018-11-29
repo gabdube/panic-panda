@@ -223,8 +223,6 @@ class Win32Window(object):
             NULL, NULL, mod, NULL
         )
 
-        Win32Window._fix_window_size(hwnd, width, height)
-
         # Save properties
         self.__hwnd = hwnd
         self.__win32_hinstance = mod
@@ -234,6 +232,8 @@ class Win32Window(object):
         self.was_maximized = False
         self.window_resized = False
         self.must_exit = False
+
+        Win32Window._fix_window_size(hwnd, width, height)
 
 
     def destroy(self):
@@ -316,7 +316,7 @@ class Win32Window(object):
                 self.cached_window_size = (width, height)
 
         elif msg == WM_SIZE:
-            if w == SIZE_MAXIMIZED:
+            if w == SIZE_MAXIMIZED or w == SIZE_RESTORED:
                 width, height = self.dimensions(False)
                 self.events[e.WindowResized] = e.WindowResizedData(width, height)
                 self.cached_window_size = (width, height)

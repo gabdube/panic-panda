@@ -1,7 +1,7 @@
-from multiprocessing import Process, JoinableQueue
+from multiprocessing import Process, JoinableQueue, Queue
 from queue import Empty
 from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QComboBox, QGridLayout,
- QTableWidget, QTableWidgetItem, QAbstractItemView, QLabel, QFrame)
+ QTableWidget, QTableWidgetItem, QAbstractItemView, QLabel, QFrame, QPushButton, QHBoxLayout, QLineEdit, QSizePolicy)
 from PyQt5.QtCore import QTimer, Qt
 from functools import lru_cache
 
@@ -11,8 +11,13 @@ class DebugUI(object):
     def __init__(self, engine):
         self.engine = engine
         self._sync = False
-        self.queue = q = JoinableQueue()
-        self.process = process = Process(target=DebugUIProcess, args=(q,))
+        self.send_queue = q = JoinableQueue()
+        self.recv_queue = q2 = Queue()
+        self.process = process = Process(target=DebugUIProcess, args=(q, q2))
+        self.events_dispatch = {
+            "update_uniform": self._update_uniform
+        }
+
         process.start()
 
     @property
@@ -20,27 +25,68 @@ class DebugUI(object):
         self._sync = True
         return self
 
+    def events(self):
+        try:
+            while True:
+                message = self.recv_queue.get_nowait()
+                dispatch = self.events_dispatch[message["action"]]
+                dispatch(message)
+        except Empty:
+            pass
+
     def load_scene(self, data_scene):
         objects, shaders, meshes = [], [], []
         base_scene = data_scene.scene
 
         for data_obj in data_scene.objects:
             obj = data_obj.obj
-            serialized_obj = (obj.name, (), {"uniforms": obj.uniforms.as_dict() })
+            serialized_obj = (obj.name, (), { "id": id(obj), "uniforms": obj.uniforms.as_dict() })
             objects.append(serialized_obj)
 
         for data_shader in data_scene.shaders:
             shader = data_shader.shader
-            serialized_shader = (shader.name, (), {"uniforms": shader.uniforms.as_dict() })
+            serialized_shader = (shader.name, (), { "id": id(shader), "uniforms": shader.uniforms.as_dict() })
             shaders.append(serialized_shader)
 
         for data_mesh in data_scene.meshes:
             mesh = data_mesh.mesh
-            serialized_mesh = (mesh.name, (), {})
+            serialized_mesh = (mesh.name, (), { "id": id(mesh), })
             meshes.append(serialized_mesh)
 
         serialized_scene = (("Objects", objects), ("Shaders", shaders), ("Meshes", meshes))
         self.sync_scene(serialized_scene)
+
+    def _update_uniform(self, message):
+        engine = self.engine
+        scene_data = engine.graph[engine.current_scene_index]
+        scene = scene_data.scene
+
+        components = comset = None
+        comtype = message["component_type"]
+        if comtype == "object":
+            components = scene.objects
+            comset = scene.update_obj_set
+        elif comtype == "shader":
+            components = scene.shaders
+            comset = scene.update_shader_set
+        else:
+            print(f"Invalid component type when updating uniform: {message}")
+            return
+
+        obj_id = message["id"]
+        com = next((com for com in components if id(com) == obj_id), None)
+        if com is None:
+            print(f"Could not find component associated with message: {message}")
+            return
+        
+        try:
+            uni = getattr(com.uniforms, message["uniform"])
+            field = getattr(uni, message["field"])
+            field[::] = message["value"]
+            comset.add(com)
+        except Exception as e:
+            print(f"Failed to associate new uniform value: {e}")
+
 
     @lru_cache(maxsize=None)
     def __getattr__(self, name):
@@ -51,9 +97,9 @@ class DebugUI(object):
                     print("ERROR: remote process was closed")
                     return
 
-                self.queue.put((name, args, kwargs))
+                self.send_queue.put((name, args, kwargs))
                 if self._sync: 
-                    self.queue.join()
+                    self.send_queue.join()
                 self._sync = False
 
             return send
@@ -63,8 +109,9 @@ class DebugUI(object):
 
 class DebugUIProcess(object):
 
-    def __init__(self, queue):
-        self.queue = queue
+    def __init__(self, recv_queue, send_queue):
+        self.recv_queue = recv_queue
+        self.send_queue = send_queue
         self.app = app = QApplication([])
         self.scene_data = None
 
@@ -136,7 +183,7 @@ class DebugUIProcess(object):
 
         data = item_combo.currentData()
 
-        if uniforms is not None:
+        if uniforms is not None and item_combo is not None:
             uniforms.load_uniforms(data["uniforms"])
 
     def edit_uniform(self, row, column):
@@ -154,13 +201,56 @@ class DebugUIProcess(object):
             print("ERROR: Current tab do not have a uniforms editor")
             return
 
+        if item_combo.count() == 0:
+            return
+
         data = item_combo.currentData()
-        uniform_name = inspector.item(row, 0).text()
-        field_name = inspector.item(row, 1).text()
-        value = data["uniforms"][uniform_name][field_name]
-        uniforms.edit(f"{uniform_name}.{field_name}", value)
+        objname = item_combo.currentText()
+
+        name = inspector.item(row, 0).text()
+        field = inspector.item(row, 1).text()
+        value = data["uniforms"][name][field]
+        uniforms.edit(data["id"], objname, name, field, value)
 
         uniforms.show()
+
+    def update_uniform(self, obj_id, uniform, field, value):
+        current_tab = self.tabs.currentIndex()
+        objects = item_combo = inspect = comtype = None
+
+        if current_tab == 1:
+            objects = self.scene_data[0][1]
+            item_combo = self.current_object
+            inspect = self.object_uniform_inspector
+            comtype = "object"
+        elif current_tab == 2:
+            objects = self.scene_data[1][1]
+            item_combo = self.current_shader
+            inspect = self.shader_uniform_inspector
+            comtype = "shader"
+        else:
+            return
+
+        current_data = item_combo.currentData()
+        if current_data["id"] != obj_id:
+            # If the current item was changed, go fetch back the original item
+            current_data = next((data for _, _, data in objects if data["id"] == obj_id), None)
+
+        if current_data is None:
+            print(f"Could not fetch current data when updating uniform {(uniform, field)}")
+            return
+        
+        current_data["uniforms"][uniform][field] = value
+
+        for row in range(inspect.rowCount()):
+            uniform2, field2 = inspect.item(row, 0).text(), inspect.item(row, 1).text()
+            if uniform2 == uniform and field2 == field:
+                inspect.item(row, 2).setText(repr(value))
+                break
+
+        # Send the updated uniform to the game process
+        event = {"action": "update_uniform", "component_type": comtype, "id": obj_id, "uniform": uniform, "field": field, "value": value}
+        self.send_queue.put(event)
 
     def close(self):
         del self.window.closeEvent
@@ -168,10 +258,11 @@ class DebugUIProcess(object):
 
     def _read_queue(self):
         try:
-            queue = self.queue
-            name, argv, kwargs = queue.get_nowait()
-            value = getattr(self, name)(*argv, **kwargs)
-            queue.task_done()
+            while True:
+                queue = self.recv_queue
+                name, argv, kwargs = queue.get_nowait()
+                value = getattr(self, name)(*argv, **kwargs)
+                queue.task_done()
         except Empty:
             pass
 
@@ -187,8 +278,9 @@ class DebugUIProcess(object):
         self.objects_form = of = QWidget()
         of_layout = QGridLayout()
         of_layout.addWidget(cobj, 0, 0)
-        uni1.cellDoubleClicked.connect(self.edit_uniform)
+        uni1.cellClicked.connect(self.edit_uniform)
         of_layout.addWidget(uni1, 1, 0)
+        ed1.save_requested = self.update_uniform
         of_layout.addWidget(ed1, 2, 0)
         of.setLayout(of_layout)
 
@@ -198,8 +290,9 @@ class DebugUIProcess(object):
         self.shaders_form = sf = QWidget()
         sf_layout = QGridLayout()
         sf_layout.addWidget(cshader, 0, 0)
-        uni2.cellDoubleClicked.connect(self.edit_uniform)
+        uni2.cellClicked.connect(self.edit_uniform)
         sf_layout.addWidget(uni2, 1, 0)
+        ed2.save_requested = self.update_uniform
         sf_layout.addWidget(ed2, 2, 0)
         sf.setLayout(sf_layout)
 
@@ -268,15 +361,72 @@ class UniformEditor(QFrame):
     def __init__(self):
         super().__init__()
         
-        l = QVBoxLayout()
+        self.object = None
+        self.uname = None
+        self.ufield = None
+        self.uvalue = None
+        self.old_uvalue = None
+
+        self.save_requested = lambda a, b, c, d: None
 
         self.uniform_name = QLabel()
+        self.error_label = el = QLabel()
+        el.hide()
 
+        self.value_edit = ve = QLineEdit()
+        ve.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        hide_btn = QPushButton("Hide")
+        hide_btn.clicked.connect(self.hide)
+
+        sync_btn = QPushButton("Reload")
+        sync_btn.clicked.connect(self.reload)
+
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(self.save)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch(1)
+        btn_layout.addWidget(hide_btn)
+        btn_layout.addWidget(sync_btn)
+        btn_layout.addWidget(save_btn)
+
+        l = QVBoxLayout()
         l.addWidget(self.uniform_name)
-        
+        l.addWidget(self.value_edit)
+        l.addWidget(self.error_label)
+        l.addLayout(btn_layout)
+    
         self.setFrameShape(QFrame.Box)
         self.setLayout(l)
         self.hide()
 
-    def edit(self, name, value):
-        self.uniform_name.setText(f"Uniform: {name}")
+    def edit(self, obj_id, objname, name, field, value):
+        self.obj_id = obj_id
+        self.uname = name
+        self.ufield = field
+        self.uvalue = value
+        self.old_uvalue = value
+
+        self.uniform_name.setText(f"Uniform \"{name}.{field}\" for \"{objname}\"")
+        self.value_edit.setText(repr(value))
+
+    def reload(self):
+        self.value_edit.setText(repr(self.old_uvalue))
+        self.uvalue = self.old_uvalue
+
+    def save(self):
+        try:
+            v = eval(self.value_edit.text())
+            if not isinstance(v, (list, tuple)):
+                self.error_label.setText(f"Error: value must be an array got \"{v}\"")
+                return 
+
+            self.uvalue = v
+            self.old_uvalue = self.uvalue
+            self.error_label.hide()
+
+            self.save_requested(self.obj_id, self.uname, self.ufield, v)
+        except Exception as e:
+            self.error_label.setText(f"Error: {repr(e)}")
+            self.error_label.show()
