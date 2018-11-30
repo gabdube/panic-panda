@@ -138,14 +138,18 @@ class DataShader(object):
                     counts[dtype] = dcount
 
                 # ctypes Struct used when allocating uniforms buffers
-                args = []
-                for field in uniform["fields"]:
-                    field_name = field["name"]
-                    field_ctype = uniform_member_as_ctype(field["type"], field["count"])
-                    args.append((field_name, field_ctype))
+                if dtype in (vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER, vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC):
+                    args = []
+                    for field in uniform["fields"]:
+                        field_name = field["name"]
+                        field_ctype = uniform_member_as_ctype(field["type"], field["count"])
+                        args.append((field_name, field_ctype))
 
-                struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args, '__repr__': repr_fn})
-                structs[uniform_name] = struct
+                    struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args, '__repr__': repr_fn})
+                    struct_size = sizeof(struct)
+                    structs[uniform_name] = struct
+                else:
+                    struct_size = None
                 
                 # Bindings for raw set layout creation
                 binding = hvk.descriptor_set_layout_binding(

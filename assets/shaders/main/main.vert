@@ -10,7 +10,7 @@ layout (location = 2) in vec4 inTangent;
 layout (location = 0) out vec3 outPos;
 layout (location = 1) out mat3 outTbn;
 
-layout (set=1, binding=0) uniform View {
+layout (set=2, binding=0) uniform View {
     mat4 mvp;
     mat4 normal;
     mat4 model;

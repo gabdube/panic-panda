@@ -1,8 +1,9 @@
 from multiprocessing import Process, JoinableQueue, Queue
 from queue import Empty
 from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QComboBox, QGridLayout,
- QTableWidget, QTableWidgetItem, QAbstractItemView, QLabel, QFrame, QPushButton, QHBoxLayout, QLineEdit, QSizePolicy)
+ QTableWidget, QTableWidgetItem, QAbstractItemView, QLabel, QFrame, QPushButton, QHBoxLayout, QLineEdit, QSizePolicy, QShortcut )
 from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtGui import QKeySequence
 from functools import lru_cache
 
 
@@ -86,7 +87,6 @@ class DebugUI(object):
             comset.add(com)
         except Exception as e:
             print(f"Failed to associate new uniform value: {e}")
-
 
     @lru_cache(maxsize=None)
     def __getattr__(self, name):
@@ -186,6 +186,30 @@ class DebugUIProcess(object):
         if uniforms is not None and item_combo is not None:
             uniforms.load_uniforms(data["uniforms"])
 
+    def component_changed(self, index):
+        tab_index = self.tabs.currentIndex()
+        self.tab_changed(tab_index)
+
+    def goto_item(self, item, col):
+        tabs = self.tabs
+        parent = item.parent()
+        if parent is None:
+            return
+
+        item_index = parent.indexOfChild(item)
+        parent_text = parent.text(0)
+        if parent_text == "Objects":
+            self.current_object.setCurrentIndex(item_index)
+            tabs.setCurrentIndex(1)
+        elif parent_text == "Shaders":
+            self.current_shader.setCurrentIndex(item_index)
+            tabs.setCurrentIndex(2)
+        elif parent_text == "Meshes":
+            self.current_mesh.setCurrentIndex(item_index)
+            tabs.setCurrentIndex(3)
+        else:
+            print(f"Error: unknown parent text {parent_text}")
+
     def edit_uniform(self, row, column):
         current_tab = self.tabs.currentIndex()
         uniforms = inspector = item_combo = None
@@ -231,16 +255,18 @@ class DebugUIProcess(object):
         else:
             return
 
+        current_index = item_combo.currentIndex()
         current_data = item_combo.currentData()
         if current_data["id"] != obj_id:
             # If the current item was changed, go fetch back the original item
-            current_data = next((data for _, _, data in objects if data["id"] == obj_id), None)
+            current_data, current_index = next(((data, i) for i, (_, _, data) in enumerate(objects) if data["id"] == obj_id), None)
 
         if current_data is None:
             print(f"Could not fetch current data when updating uniform {(uniform, field)}")
             return
         
         current_data["uniforms"][uniform][field] = value
+        item_combo.setItemData(current_index, current_data)
 
         for row in range(inspect.rowCount()):
             uniform2, field2 = inspect.item(row, 0).text(), inspect.item(row, 1).text()
@@ -271,12 +297,14 @@ class DebugUIProcess(object):
 
         self.scene_tree = stree = QTreeWidget()
         stree.header().hide()
+        stree.itemDoubleClicked.connect(self.goto_item)
 
         self.current_object = cobj = QComboBox()
         self.object_uniform_inspector = uni1 = UniformInspector()
         self.object_uniform_editor = ed1 = UniformEditor()
         self.objects_form = of = QWidget()
         of_layout = QGridLayout()
+        cobj.currentIndexChanged.connect(self.component_changed)
         of_layout.addWidget(cobj, 0, 0)
         uni1.cellClicked.connect(self.edit_uniform)
         of_layout.addWidget(uni1, 1, 0)
@@ -289,6 +317,7 @@ class DebugUIProcess(object):
         self.shader_uniform_editor = ed2 = UniformEditor()
         self.shaders_form = sf = QWidget()
         sf_layout = QGridLayout()
+        cshader.currentIndexChanged.connect(self.component_changed)
         sf_layout.addWidget(cshader, 0, 0)
         uni2.cellClicked.connect(self.edit_uniform)
         sf_layout.addWidget(uni2, 1, 0)
@@ -344,16 +373,15 @@ class UniformInspector(QTableWidget):
             for fname, value in fields.items():
                 self.setItem(count, 0, QTableWidgetItem(name))
                 self.setItem(count, 1, QTableWidgetItem(fname))
-                self.setItem(count, 2, QTableWidgetItem(repr(value)))
+                self.setItem(count, 2, QTableWidgetItem(repr([round(x, 4) for x in value])))
                 count += 1
 
     def set_rows(self, uniforms):
         count = 0
         for name, fields in uniforms.items():
-            count += 1
             count += len(fields)
         
-        self.setRowCount(count-1)
+        self.setRowCount(count)
 
 
 class UniformEditor(QFrame):
@@ -375,6 +403,9 @@ class UniformEditor(QFrame):
 
         self.value_edit = ve = QLineEdit()
         ve.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        self.save_shortcut = ss = QShortcut(QKeySequence(Qt.Key_Return), self.value_edit)
+        ss.activated.connect(self.save)
 
         hide_btn = QPushButton("Hide")
         hide_btn.clicked.connect(self.hide)
@@ -409,7 +440,7 @@ class UniformEditor(QFrame):
         self.old_uvalue = value
 
         self.uniform_name.setText(f"Uniform \"{name}.{field}\" for \"{objname}\"")
-        self.value_edit.setText(repr(value))
+        self.value_edit.setText(repr([round(x, 4) for x in value]))
 
     def reload(self):
         self.value_edit.setText(repr(self.old_uvalue))

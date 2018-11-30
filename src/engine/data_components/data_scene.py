@@ -432,6 +432,19 @@ class DataScene(object):
                 )
 
                 uniform_offset += drange
+            elif dtype == vk.DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                sampler_image_info = vk.DescriptorImageInfo(
+                    sampler = texture_sampler,
+                    image_view = texture_view,
+                    image_layout = texture_image_layout
+                )
+
+                write_set = hvk.write_descriptor_set(
+                    dst_set = descriptor_set,
+                    dst_binding = binding,
+                    descriptor_type = dtype,
+                    image_info = (sampler_image_info,)
+                )
             else:
                 raise ValueError(f"Unknown descriptor type: {dtype}")
 

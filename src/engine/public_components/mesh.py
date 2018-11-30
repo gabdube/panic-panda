@@ -16,9 +16,9 @@ class Mesh(object):
         self.buffer = None
 
     @classmethod
-    def from_array(cls, indices, attributes):
+    def from_array(cls, indices, attributes, **kwargs):
         mesh = super().__new__(cls)
-        mesh.__init__()
+        mesh.__init__(**kwargs)
 
         mesh.indices = indices
         mesh.attributes = attributes
@@ -26,7 +26,7 @@ class Mesh(object):
         return mesh
 
     @staticmethod
-    def from_gltf(gltf_file, index_or_name, attributes_map):
+    def from_gltf(gltf_file, index_or_name, attributes_map, **kwargs):
         if isinstance(index_or_name, str):
             mesh = next((m for m in gltf_file.layout["meshes"] if m["name"] == index_or_name), None)
             if mesh is None:
@@ -35,12 +35,12 @@ class Mesh(object):
             mesh = gltf_file.layout["meshes"][index_or_name]
                 
         if isinstance(gltf_file, GLBFile):
-            return Mesh.from_glb(gltf_file, mesh, attributes_map)
+            return Mesh.from_glb(gltf_file, mesh, attributes_map, **kwargs)
         else:
-            raise TypeError(f"Unknown type: {type(gltf_file).__qualname__}") 
+            raise TypeError(f"Unknown/Unsupported type: {type(gltf_file).__qualname__}") 
 
     @classmethod
-    def from_glb(cls, glb, mesh, attributes_map):
+    def from_glb(cls, glb, mesh, attributes_map, **kwargs):
         mesh0 = mesh['primitives'][0]
 
         indices_data = glb.accessor_data(mesh0["indices"])
@@ -52,7 +52,7 @@ class Mesh(object):
                 attributes[mapped_name] = glb.accessor_data(acc_index)
 
         mesh = super().__new__(cls)
-        mesh.__init__()
+        mesh.__init__(**kwargs)
         mesh.indices = TypedArray.from_memory_view(*indices_data)
         mesh.attributes = { name: TypedArray.from_memory_view(*data) for name, data in attributes.items()}
         return mesh

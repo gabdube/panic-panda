@@ -14,7 +14,7 @@ if DEBUG:
     try:
         from PyQt5.QtWidgets import QApplication
         from .debug_ui import DebugUI
-    except ImportError:
+    except FileExistsError:
         DebugUI = lambda app: print("PYQT5 not found. Debug UI will not be available")
 else:
     DebugUI = lambda app: None
@@ -160,7 +160,7 @@ class Engine(object):
         self.debugger = Debugger(self.api, self.instance)
         self.debugger.start()    
 
-        self.debug_ui = DebugUI(self)
+        #self.debug_ui = DebugUI(self)
 
     def _setup_surface(self):
         self.surface = hvk.create_surface(self.api, self.instance, self.window)

@@ -1,17 +1,21 @@
 {
     "sets": [
         {"id": 0, "scope": 0},
-        {"id": 1, "scope": 1}
+        {"id": 1, "scope": 1},
+        {"id": 2, "scope": 1}
     ],
+    "tmp": {"name": "brdf", "set": 1, "binding": 0, "count": 1, "stage": 16, "type": 1},
     "uniforms": [
         {"name": "rstatic", "set": 0, "binding": 0, "count": 1, "stage": 16, "type": 6, "fields": [
             {"name": "light_color", "type": 5, "count": 1},
             {"name": "light_direction", "type": 5, "count": 1},
-            {"name": "mat_color", "type": 5, "count": 1},
-            {"name": "roughness_metallic", "type": 5, "count": 1},
             {"name": "camera_pos", "type": 5, "count": 1}
         ]},
-        {"name": "view", "set": 1, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
+        {"name": "mat", "set": 1, "binding": 0, "count": 1, "stage": 16, "type": 6, "fields": [
+            {"name": "color", "type": 5, "count": 1},
+            {"name": "roughness_metallic", "type": 5, "count": 1}
+        ]},
+        {"name": "view", "set": 2, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
             {"name": "mvp", "type": 2, "count": 1},
             {"name": "normal", "type": 2, "count": 1},
             {"name": "model", "type": 2, "count": 1}
