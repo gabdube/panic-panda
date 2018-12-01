@@ -18,7 +18,7 @@ class DataMesh(object):
         self._cache_indices_type()
         self._map_attribute_offsets()
 
-    def as_bytes(self):
+    def as_ctypes_array(self):
         offset = 0
         mesh = self.mesh
         indices = mesh.indices
@@ -35,11 +35,14 @@ class DataMesh(object):
         return buffer
 
     @lru_cache(maxsize=128)
-    def attribute_offsets_for_shader(self, shader):
+    def attribute_offsets_for_shader(self, data_shader):
         offsets = self.attribute_offsets
         sorted_offsets = []
 
-        for name in shader.ordered_attribute_names:
+        for name in data_shader.ordered_attribute_names:
+            if not name in offsets:
+                raise RuntimeError(f"Mesh \"{self.mesh.name}\" is not compatible with shader \"{data_shader.shader.name}\". Missing attribute: \"{name}\"")
+
             sorted_offsets.append(offsets[name])
 
         return sorted_offsets

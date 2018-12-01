@@ -1,6 +1,7 @@
 from vulkan import vk, helpers as hvk
 from .data_shader import DataShader
 from .data_mesh import DataMesh
+from .data_image import DataImage
 from .data_game_object import DataGameObject
 from ctypes import sizeof, memset
 
@@ -27,6 +28,9 @@ class DataScene(object):
         self.meshes_alloc = None
         self.meshes_buffer = None
         self.meshes = None
+
+        self.images_alloc = None
+        self.images = None
 
         self.uniforms_alloc = None
         self.uniforms_buffer = None
@@ -175,16 +179,23 @@ class DataScene(object):
         scene = self.scene
         shaders = self.shaders
         meshes = scene.meshes
+        images = scene.images
 
         staging_mesh_offset = 0
-        data_meshes = []
-        data_objects = []
+        data_meshes, data_objects, data_images = [], [], []
 
         # Meshes setup
         for mesh in scene.meshes:
             data_mesh = DataMesh(mesh, staging_mesh_offset)
             data_meshes.append(data_mesh)
             staging_mesh_offset += mesh.size()
+        
+        # Images
+        staging_image_offset = staging_mesh_offset
+        for image in images:
+            data_image = DataImage(image, staging_image_offset)
+            data_images.append(data_image)
+            staging_image_offset += image.size()
 
         # Objects setup
         for obj in scene.objects:
@@ -195,8 +206,7 @@ class DataScene(object):
                     for name, struct in layout.struct_map.items():
                         setattr(obj.uniforms, name, struct())
                         obj.uniforms.uniform_names.append(name)
-                    
-
+            
             data_objects.append(DataGameObject(obj))
 
         # Shader
@@ -206,23 +216,26 @@ class DataScene(object):
                     setattr(shader.uniforms, name, struct())
                     shader.uniforms.uniform_names.append(name)
 
-        staging_alloc, staging_buffer = self._setup_objects_staging(staging_mesh_offset, data_meshes)
-        meshes_alloc, meshes_buffer = self._setup_objects_resources(staging_alloc, staging_buffer, data_meshes)
+        staging_alloc, staging_buffer = self._setup_objects_staging(staging_image_offset, data_meshes, data_images)
+        meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, data_meshes)
+        images_alloc = self._setup_images_resources(staging_alloc, data_images)
 
         self.meshes_alloc = meshes_alloc
         self.meshes_buffer = meshes_buffer
         self.meshes = data_meshes
+        self.images_alloc = images_alloc
+        self.images = data_images
         self.objects = data_objects
 
         hvk.destroy_buffer(api, device, staging_buffer)
         mem.free_alloc(staging_alloc)
 
-    def _setup_objects_staging(self, meshes_size, data_meshes):
+    def _setup_objects_staging(self, staging_size, data_meshes, data_images):
         engine, api, device = self.ctx
         mem = engine.memory_manager
 
         staging_buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(
-            size = meshes_size,
+            size = staging_size,
             usage = vk.BUFFER_USAGE_TRANSFER_SRC_BIT
         ))
         staging_alloc = mem.alloc(
@@ -233,11 +246,14 @@ class DataScene(object):
 
         with mem.map_alloc(staging_alloc) as alloc:
             for dm in data_meshes:
-                alloc.write_bytes(dm.base_offset, dm.as_bytes())
+                alloc.write_bytes(dm.base_offset, dm.as_ctypes_array())
+            
+            for di in data_images:
+                alloc.write_bytes(di.base_offset, di.as_ctypes_array())
   
         return staging_alloc, staging_buffer
 
-    def _setup_objects_resources(self, staging_alloc, staging_buffer, data_meshes):
+    def _setup_meshes_resources(self, staging_alloc, staging_buffer, data_meshes):
         engine, api, device = self.ctx
         mem = engine.memory_manager
         cmd = engine.setup_command_buffer
@@ -261,6 +277,9 @@ class DataScene(object):
         engine.submit_setup_command(wait=True)
 
         return mesh_alloc, mesh_buffer
+
+    def _setup_images_resources(self, staging_alloc, data_images):
+        pass
 
     def _setup_pipelines(self):
         engine, api, device = self.ctx

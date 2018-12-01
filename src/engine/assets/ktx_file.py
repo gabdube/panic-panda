@@ -107,10 +107,6 @@ class KTXFile(object):
             data_offset += mipmap_size
             local_offset += mipmap_size
 
-    def data_ptr(self):
-        """Return a pointer to the image raw data by concatenating the image and its mipmap data"""
-        return hvk.array(c_ubyte, len(self.data), self.data)
-
     @staticmethod
     def header_target(header):
         """

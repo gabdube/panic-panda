@@ -1,5 +1,4 @@
-from engine import Shader, GameObject, Scene, Image
-from engine import Mesh, TypedArray, TypedArrayFormat as AFmt
+from engine import Shader, GameObject, Scene, Image, Mesh, MeshPrefab
 from engine.assets import GLBFile, KTXFile
 from utils.mat4 import Mat4
 from system import events as evt
@@ -102,9 +101,13 @@ class MainScene(object):
         shader.name = "MainShader"
         scene.shaders.append(shader)
 
-        gltf_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
-        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", gltf_attributes_map)
+        attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
+
+        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=attributes_map)
         scene.meshes.append(sphere_m)
+
+        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=attributes_map)
+        scene.meshes.append(plane_m)
 
         brdf_i = Image.from_ktx(KTXFile.open("brdfLUT.ktx"))
         scene.images.append(brdf_i)
@@ -121,14 +124,11 @@ class MainScene(object):
         ball_o2.mat = {"color": (0.2, 0.2, 0.7, 1.0), "rm": (0.2, 1.0)}
         scene.objects.append(ball_o2)
 
+        plane_o = GameObject.from_components(shader = shader.id, mesh = plane_m.id)
+        plane_o.model = Mat4.from_translation(0.0, 0.0, 0.0)
+        plane_o.mat = {"color": (1.0, 1.0, 1.0, 1.0), "rm": (0.2, 1.0)}
+        #scene.objects.append(plane_o)
+
         self.shader = shader
         self.objects = (ball_o, ball_o2)
         self.scene = scene
-
-    def _setup_plane(self):
-        return Mesh.from_array(
-            indices = TypedArray.from_array(fmt=AFmt.UInt16, array=(0, 1, 2,  0, 3, 2)),
-            attributes = {
-                "pos": TypedArray.from_array(fmt=AFmt.Float32, array=(-0.7, 0.7, 0,  0.7, 0.7, 0,  0.7, -0.7, 0,  -0.7, -0.7, 0))
-            }
-        )
