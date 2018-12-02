@@ -9,7 +9,7 @@ from .renderer import Renderer
 from .data_components import DataScene
 
 # Tells the engine to instantiate a Debugger object that will logs various vulkan information 
-DEBUG = True
+DEBUG = __debug__
 if DEBUG:
     try:
         from PyQt5.QtWidgets import QApplication

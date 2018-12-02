@@ -3,6 +3,7 @@ from .data_shader import DataShader
 from .data_mesh import DataMesh
 from .data_image import DataImage
 from .data_game_object import DataGameObject
+from ..base_types import UniformsMaps
 from ctypes import sizeof, memset
 
 
@@ -36,6 +37,7 @@ class DataScene(object):
         self.uniforms_buffer = None
 
         self._setup_shaders()
+        self._setup_uniforms()
         self._setup_objects()
         self._setup_pipelines()
         self._setup_descriptor_sets_pool()
@@ -172,17 +174,60 @@ class DataScene(object):
 
         self.shaders = shaders
 
+    def _setup_uniforms(self):
+        scene = self.scene
+        data_shaders = self.shaders
+        
+        filters_names = UniformsMaps._NON_UNIFORM_NAMES
+
+        def map_layouts(obj, layouts):
+            uniforms = obj.uniforms
+            uniforms_members = [f for f in dir(uniforms) if f[0] != "_" and f not in filters_names]
+            
+            for layout in layouts:
+                for name, struct in layout.struct_map.items():
+                    # Fetch default value if one was specified
+                    default = getattr(uniforms, name, None)
+                    if default is not None:
+                        value = struct(**default)
+                        uniforms_members.remove(name)
+                        uniforms.updated_member_names.add(name)
+                    else:
+                        value = struct()
+
+                    setattr(uniforms, name, value)
+                    uniforms.uniform_names.append(name)
+
+            if len(uniforms_members) != 0:
+                print(f"WARNING: uniforms for object {obj.name} contains member(s) that do not map with the associated shader: {uniforms_members}")
+
+        # Shaders global uniforms
+        for shader, data_shader in zip(scene.shaders, data_shaders):
+            map_layouts(shader, data_shader.global_layouts)
+            shader.uniforms.bound = True
+
+        # Objects local uniforms
+        for obj in scene.objects:
+            if obj.shader is not None:
+                data_shader = data_shaders[obj.shader]
+                map_layouts(obj, data_shader.local_layouts)
+
+            obj.uniforms.bound = True
+
     def _setup_objects(self):
         engine, api, device = self.ctx
         mem = engine.memory_manager
 
         scene = self.scene
-        shaders = self.shaders
         meshes = scene.meshes
         images = scene.images
 
         staging_mesh_offset = 0
         data_meshes, data_objects, data_images = [], [], []
+
+        # Objects setup
+        for obj in scene.objects:
+            data_objects.append(DataGameObject(obj))
 
         # Meshes setup
         for mesh in scene.meshes:
@@ -196,25 +241,6 @@ class DataScene(object):
             data_image = DataImage(image, staging_image_offset)
             data_images.append(data_image)
             staging_image_offset += image.size()
-
-        # Objects setup
-        for obj in scene.objects:
-
-            if obj.shader is not None:
-                shader = shaders[obj.shader]
-                for layout in shader.local_layouts:
-                    for name, struct in layout.struct_map.items():
-                        setattr(obj.uniforms, name, struct())
-                        obj.uniforms.uniform_names.append(name)
-            
-            data_objects.append(DataGameObject(obj))
-
-        # Shader
-        for shader, dshader in zip(scene.shaders, shaders):
-            for layout in dshader.global_layouts:
-                for name, struct in layout.struct_map.items():
-                    setattr(shader.uniforms, name, struct())
-                    shader.uniforms.uniform_names.append(name)
 
         staging_alloc, staging_buffer = self._setup_objects_staging(staging_image_offset, data_meshes, data_images)
         meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, data_meshes)
@@ -400,6 +426,9 @@ class DataScene(object):
 
             # Save the local layouts to the objects
             step = len(tuple(shader.local_layouts))
+            if step == 0:
+                continue
+                
             end = len(descriptor_sets)
             start = len(set_layouts_global)
             iter_objects = iter(objects)
@@ -451,7 +480,7 @@ class DataScene(object):
                 )
 
                 uniform_offset += drange
-            elif dtype == vk.DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            elif dtype == vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                 sampler_image_info = vk.DescriptorImageInfo(
                     sampler = texture_sampler,
                     image_view = texture_view,

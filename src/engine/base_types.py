@@ -11,9 +11,20 @@ def name_generator(base):
 
 class UniformsMaps(object):
 
+    # Used to filter out non data fields when initializing uniforms in `DataScene._setup_uniforms`
+    _NON_UNIFORM_NAMES = ('as_dict', 'bound', 'merge', 'uniform_names', 'updated_member_names')
+
     def __init__(self):
         self.updated_member_names = set()
         self.uniform_names = []
+        self.bound = False
+
+    def merge(self, **values):
+        if self.bound:
+            raise NotImplementedError()
+        else:
+            for name, value in values.items():
+                setattr(self, name, value)
 
     def as_dict(self):
         d = {}

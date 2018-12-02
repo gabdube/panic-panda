@@ -37,11 +37,6 @@ class MainScene(object):
         s.on_mouse_click = self.move_camera
 
     def init_scene(self):
-        rstatic = self.shader.uniforms.rstatic
-        rstatic.light_color = (1,1,1)
-        rstatic.light_direction = (0,0,1)
-        rstatic.camera_pos = (0,0, 5.5)
-
         self.scene.update_shaders(self.shader)
         self.update_objects()
 
@@ -55,10 +50,6 @@ class MainScene(object):
             view.model = obj.model.data
             view.normal = obj.model.data
             view.mvp = (mvp * obj.model).data
-
-            mat = obj.uniforms.mat
-            mat.color[::] = obj.mat["color"]
-            mat.roughness_metallic[:2] = obj.mat["rm"]
 
         self.scene.update_objects(*objects)
 
@@ -95,40 +86,50 @@ class MainScene(object):
             ms["pos"] = data
 
     def _load_assets(self):
+        # Scene
         scene = Scene.empty()
 
-        shader = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json")
-        shader.name = "MainShader"
-        scene.shaders.append(shader)
+        # Shaders
+        shader1_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
+        shader2_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
 
-        attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
+        shader1 = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json")
+        shader1.name = "MainShader"
+        shader1.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (0,0,1), "camera_pos": (0,0,5.5)}
+        scene.shaders.append(shader1)
 
-        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=attributes_map)
+        shader2 = Shader.from_files("texture_debug/texture_debug.vert.spv", "texture_debug/texture_debug.frag.spv", "texture_debug/texture_debug.map.json")
+        shader2.name = "DebugTexture"
+        scene.shaders.append(shader2)
+
+        # Meshes
+        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader1_attributes_map)
         scene.meshes.append(sphere_m)
 
-        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=attributes_map)
+        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader2_attributes_map)
         scene.meshes.append(plane_m)
 
+        # Images
         brdf_i = Image.from_ktx(KTXFile.open("brdfLUT.ktx"))
         scene.images.append(brdf_i)
 
-        ball_o = GameObject.from_components(shader = shader.id, mesh = sphere_m.id)
+        # Objects
+        ball_o = GameObject.from_components(shader = shader1.id, mesh = sphere_m.id)
         ball_o.name = "Ball"
         ball_o.model = Mat4.from_translation(1.5, 0, 0)
-        ball_o.mat = {"color": (0.7, 0.2, 0.2, 1.0), "rm": (1.0, 0.1)}
+        ball_o.uniforms.mat = {"color": (0.7, 0.2, 0.2, 1.0), "roughness_metallic": (1.0, 0.1)}
         scene.objects.append(ball_o)
 
-        ball_o2 = GameObject.from_components(shader = shader.id, mesh = sphere_m.id)
+        ball_o2 = GameObject.from_components(shader = shader1.id, mesh = sphere_m.id)
         ball_o2.name = "Ball2"
         ball_o2.model = Mat4.from_translation(-1.5, 0, 0)
-        ball_o2.mat = {"color": (0.2, 0.2, 0.7, 1.0), "rm": (0.2, 1.0)}
+        ball_o2.uniforms.mat = {"color": (0.2, 0.2, 0.7, 1.0), "roughness_metallic": (0.2, 1.0)}
         scene.objects.append(ball_o2)
 
-        plane_o = GameObject.from_components(shader = shader.id, mesh = plane_m.id)
+        plane_o = GameObject.from_components(shader = shader2.id, mesh = plane_m.id)
         plane_o.model = Mat4.from_translation(0.0, 0.0, 0.0)
-        plane_o.mat = {"color": (1.0, 1.0, 1.0, 1.0), "rm": (0.2, 1.0)}
         #scene.objects.append(plane_o)
 
-        self.shader = shader
+        self.shader = shader1
         self.objects = (ball_o, ball_o2)
         self.scene = scene

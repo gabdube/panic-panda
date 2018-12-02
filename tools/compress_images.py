@@ -16,7 +16,6 @@ BASE_PATH = Path("../assets/images/")
 pattern = sys.argv[1]
 arguments = ["-fd", "BC7"]
 
-outputs = {}
 
 for file in BASE_PATH.glob(pattern):
     suffix = file.suffix

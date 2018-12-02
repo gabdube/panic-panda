@@ -80,7 +80,7 @@ class Mesh(object):
             if pname is not None:
                 attributes[pname] = TypedArray.from_array(fmt=AFmt.Float32, array=(-0.7, 0.7, 0,  0.7, 0.7, 0,  0.7, -0.7, 0,  -0.7, -0.7, 0))
             if tex00_name is not None:
-                raise NotImplementedError("Texture coordinates not yet implemented")
+                attributes[tex00_name] = TypedArray.from_array(fmt=AFmt.Float32, array=())
         else:
             raise ValueError(f"Unknown built-in mesh: {builtin}")
 

@@ -113,6 +113,15 @@ class DataShader(object):
 
         layouts = []
 
+        def init_fn(me, **defaults):
+            me_cls = type(me)
+            members = [name for name, _ in me_cls._fields_]
+            bad_members = [m for m in defaults.keys() if not m in members]
+            if len(bad_members) > 0:
+                print(f"WARNING: some unkown members were found when creating uniform \"{me_cls.__qualname__}\": {bad_members}")
+                
+            super(me_cls, me).__init__(**defaults)
+
         def repr_fn(me):
             type_name = type(me).__qualname__
             fields = {}
@@ -145,7 +154,7 @@ class DataShader(object):
                         field_ctype = uniform_member_as_ctype(field["type"], field["count"])
                         args.append((field_name, field_ctype))
 
-                    struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args, '__repr__': repr_fn})
+                    struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args,  '__init__': init_fn, '__repr__': repr_fn})
                     struct_size = sizeof(struct)
                     structs[uniform_name] = struct
                 else:
