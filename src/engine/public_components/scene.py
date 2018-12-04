@@ -1,4 +1,4 @@
-from . import Shader, Mesh, GameObject, Image
+from . import Shader, Mesh, GameObject, Image, Sampler
 
 
 class Scene(object):
@@ -8,6 +8,7 @@ class Scene(object):
         self.shaders = ComponentArray(Shader)
         self.meshes = ComponentArray(Mesh)
         self.objects = ComponentArray(GameObject)
+        self.samplers = ComponentArray(Sampler)
         self.images = ComponentArray(Image)
         self.update_obj_set = set()
         self.update_shader_set = set()

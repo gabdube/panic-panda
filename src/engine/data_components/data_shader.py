@@ -119,7 +119,7 @@ class DataShader(object):
             bad_members = [m for m in defaults.keys() if not m in members]
             if len(bad_members) > 0:
                 print(f"WARNING: some unkown members were found when creating uniform \"{me_cls.__qualname__}\": {bad_members}")
-                
+
             super(me_cls, me).__init__(**defaults)
 
         def repr_fn(me):
@@ -135,7 +135,7 @@ class DataShader(object):
             return f"Uniform(name={type_name}, fields={repr(fields)})"
 
         for dset, uniforms in self._group_uniforms_by_sets():
-            counts, structs, bindings, wst = {}, {}, [], []
+            counts, structs, images, bindings, wst = {}, {}, [], [], []
 
             for uniform in uniforms:
                 uniform_name, dtype, dcount, ubinding = uniform["name"], uniform["type"], uniform["count"], uniform["binding"]
@@ -147,6 +147,7 @@ class DataShader(object):
                     counts[dtype] = dcount
 
                 # ctypes Struct used when allocating uniforms buffers
+                struct_size = None
                 if dtype in (vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER, vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC):
                     args = []
                     for field in uniform["fields"]:
@@ -157,8 +158,10 @@ class DataShader(object):
                     struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args,  '__init__': init_fn, '__repr__': repr_fn})
                     struct_size = sizeof(struct)
                     structs[uniform_name] = struct
+                elif dtype in (vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,):
+                    images.append(uniform_name)
                 else:
-                    struct_size = None
+                    raise NotImplementedError(f"Descriptor type {dtype} not implemented")
                 
                 # Bindings for raw set layout creation
                 binding = hvk.descriptor_set_layout_binding(
@@ -170,11 +173,11 @@ class DataShader(object):
 
                 bindings.append(binding)
 
-                # Write set template
+                # Write set template. Used during descriptor set creation
                 wst.append({
                     "name": uniform_name,
                     "descriptor_type": dtype,
-                    "range": sizeof(struct),
+                    "range": struct_size,
                     "binding": ubinding
                 })
 
@@ -184,6 +187,7 @@ class DataShader(object):
                 set_layout = hvk.create_descriptor_set_layout(api, device, info),
                 scope = dset["scope"],
                 struct_map = structs,
+                images = images,
                 pool_size_counts = tuple(counts.items()),
                 write_set_templates = wst,
             )
@@ -224,10 +228,11 @@ class DataShader(object):
 
 class DescriptorSetLayout(object):
 
-    def __init__(self, set_layout, scope, struct_map, pool_size_counts, write_set_templates):
+    def __init__(self, set_layout, scope, struct_map, images, pool_size_counts, write_set_templates):
         self.set_layout = set_layout
         self.scope = ShaderScope(scope)
         self.struct_map = struct_map
+        self.images = images
         self.pool_size_counts = pool_size_counts
         self.write_set_templates = write_set_templates
 

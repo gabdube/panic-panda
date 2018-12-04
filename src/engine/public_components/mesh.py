@@ -80,7 +80,7 @@ class Mesh(object):
             if pname is not None:
                 attributes[pname] = TypedArray.from_array(fmt=AFmt.Float32, array=(-0.7, 0.7, 0,  0.7, 0.7, 0,  0.7, -0.7, 0,  -0.7, -0.7, 0))
             if tex00_name is not None:
-                attributes[tex00_name] = TypedArray.from_array(fmt=AFmt.Float32, array=())
+                attributes[tex00_name] = TypedArray.from_array(fmt=AFmt.Float32, array=(0,1, 1,1, 1,0, 0,0))
         else:
             raise ValueError(f"Unknown built-in mesh: {builtin}")
 

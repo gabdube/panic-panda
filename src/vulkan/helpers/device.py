@@ -41,15 +41,16 @@ def physical_device_format_properties(api, physical_device, format):
 def physical_device_features(api, physical_device_handle, all=False):
     """
     Return the names of the supported feature for the selected physical device.
-    If `all` is set to True, return all features (supported or not)
+    If `all` is set to False, return an array filled with the supported features names
+    If `all` is set to True, return the features structure
     """
-    if all:
-        return [name for name, _ in vk.PhysicalDeviceFeatures._fields_]
-
     features = vk.PhysicalDeviceFeatures()
     api.GetPhysicalDeviceFeatures(physical_device_handle, byref(features))
-    return [name for name, _ in features._fields_ if getattr(features, name) == 1]
 
+    if all:
+        return features
+    else:
+        return [name for name, _ in features._fields_ if getattr(features, name) == 1]
 
 def enumerate_device_extensions(api, physical_device):
     extensions_count = c_uint32(0)
@@ -117,6 +118,7 @@ def create_device(api, physical_device, extensions, queue_create_infos, features
     :physical_device: The physical device of the device
     :extensions: The extensions to enable for the device
     :queue_create_infos: Queue create info for the device
+    :features: A PhysicalDeviceFeatures structure to use
     """
     
     device = vk.Device()

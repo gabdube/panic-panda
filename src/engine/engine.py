@@ -172,6 +172,13 @@ class Engine(object):
         physical_devices = hvk.list_physical_devices(api, instance)
         self.physical_device = physical_device = physical_devices[0]
 
+        # Get the features
+        supported_features = hvk.physical_device_features(api, physical_device)
+        if not "texture_compression_BC" in supported_features:
+            raise RuntimeError("BC compressed textures are not supported on your machine")
+        
+        features = vk.PhysicalDeviceFeatures(texture_compression_BC = 1)
+
         # Queues setup (A single graphic queue)
         queue_families = hvk.list_queue_families(api, physical_device)
 
@@ -187,7 +194,7 @@ class Engine(object):
 
         # Device creation
         extensions = ("VK_KHR_swapchain",)
-        self.device = device = hvk.create_device(api, physical_device, extensions, (render_queue_create_info,))
+        self.device = device = hvk.create_device(api, physical_device, extensions, (render_queue_create_info,), features)
 
         # Queue setup
         render_queue_handle = hvk.get_queue(api, device, render_queue_family.index, 0)

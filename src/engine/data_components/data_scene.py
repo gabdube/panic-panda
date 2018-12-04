@@ -1,6 +1,7 @@
 from vulkan import vk, helpers as hvk
 from .data_shader import DataShader
 from .data_mesh import DataMesh
+from .data_sampler import DataSampler
 from .data_image import DataImage
 from .data_game_object import DataGameObject
 from ..base_types import UniformsMaps
@@ -29,6 +30,8 @@ class DataScene(object):
         self.meshes_alloc = None
         self.meshes_buffer = None
         self.meshes = None
+
+        self.samplers = None
 
         self.images_alloc = None
         self.images = None
@@ -61,6 +64,14 @@ class DataScene(object):
         hvk.destroy_pipeline_cache(api, device, self.pipeline_cache)
         hvk.destroy_buffer(api, device, self.meshes_buffer)
         mem.free_alloc(self.meshes_alloc)
+
+        for sampler in self.samplers:
+            sampler.free()
+
+        for img in self.images:
+            img.free()
+
+        #mem.free_alloc(self.images_alloc)
 
         for shader in self.shaders:
             shader.free()
@@ -120,9 +131,11 @@ class DataScene(object):
             if obj.shader is not None and current_shader_index != obj.shader:
                 current_shader_index = obj.shader
                 current_shader = shaders[obj.shader]
-                hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, current_shader.descriptor_sets)
 
-            if obj.descriptor_sets is not None:
+                if len(current_shader.descriptor_sets) > 0:
+                    hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, current_shader.descriptor_sets)
+
+            if obj.descriptor_sets is not None and len(obj.descriptor_sets) > 0:
                 hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, obj.descriptor_sets, firstSet=len(current_shader.descriptor_sets))
 
             if obj.mesh is not None:
@@ -185,8 +198,17 @@ class DataScene(object):
             uniforms_members = [f for f in dir(uniforms) if f[0] != "_" and f not in filters_names]
             
             for layout in layouts:
+                # Image based uniforms are specified in `images`
+                for name in layout.images:
+                    default = getattr(uniforms, name, None)
+                    if default is not None:
+                        raise NotImplementedError("TODO: Implement images default.")
+                        setattr(uniforms, name, None)
+                    else:
+                        raise NotImplementedError("TODO: Implement images placeholder. Specify a default image to fix this.")
+
+                # Buffer based uniforms are specified in `struct_map`
                 for name, struct in layout.struct_map.items():
-                    # Fetch default value if one was specified
                     default = getattr(uniforms, name, None)
                     if default is not None:
                         value = struct(**default)
@@ -223,22 +245,26 @@ class DataScene(object):
         images = scene.images
 
         staging_mesh_offset = 0
-        data_meshes, data_objects, data_images = [], [], []
+        data_meshes, data_objects, data_images, data_samplers = [], [], [], []
 
         # Objects setup
         for obj in scene.objects:
             data_objects.append(DataGameObject(obj))
+
+        # Samplers
+        for sampler in scene.samplers:
+            data_samplers.append(DataSampler(engine, sampler))
 
         # Meshes setup
         for mesh in scene.meshes:
             data_mesh = DataMesh(mesh, staging_mesh_offset)
             data_meshes.append(data_mesh)
             staging_mesh_offset += mesh.size()
-        
+
         # Images
         staging_image_offset = staging_mesh_offset
         for image in images:
-            data_image = DataImage(image, staging_image_offset)
+            data_image = DataImage(engine, image, staging_image_offset)
             data_images.append(data_image)
             staging_image_offset += image.size()
 
@@ -251,6 +277,7 @@ class DataScene(object):
         self.meshes = data_meshes
         self.images_alloc = images_alloc
         self.images = data_images
+        self.samplers = data_samplers
         self.objects = data_objects
 
         hvk.destroy_buffer(api, device, staging_buffer)
@@ -461,9 +488,9 @@ class DataScene(object):
         uniform_buffer = self.uniforms_buffer
         uniform_offset = 0
         
-        def generate_write_set(wst, descriptor_set):
+        def generate_write_set(obj, wst, descriptor_set):
             nonlocal uniform_buffer, uniform_offset
-            dtype, drange, binding = wst['descriptor_type'], wst['range'], wst['binding']
+            name, dtype, drange, binding = wst['name'], wst['descriptor_type'], wst['range'], wst['binding']
 
             if dtype == vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                 buffer_info = vk.DescriptorBufferInfo(
@@ -481,7 +508,10 @@ class DataScene(object):
 
                 uniform_offset += drange
             elif dtype == vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-                sampler_image_info = vk.DescriptorImageInfo(
+
+                print(getattr(obj.uniforms, name))
+
+                image_info = vk.DescriptorImageInfo(
                     sampler = texture_sampler,
                     image_view = texture_view,
                     image_layout = texture_image_layout
@@ -491,37 +521,35 @@ class DataScene(object):
                     dst_set = descriptor_set,
                     dst_binding = binding,
                     descriptor_type = dtype,
-                    image_info = (sampler_image_info,)
+                    image_info = (image_info,)
                 )
             else:
                 raise ValueError(f"Unknown descriptor type: {dtype}")
 
             return write_set
 
+        def map_write_sets(data_obj, obj, layouts):
+            update_infos, write_sets = {}, []
+
+            for descriptor_set, descriptor_layout in zip(data_obj.descriptor_sets, layouts):
+                for wst in descriptor_layout.write_set_templates:
+                    name = wst["name"]
+                    update_infos[name] = (uniform_offset, wst["range"])
+                    write_sets.append( generate_write_set(obj, wst, descriptor_set) )
+
+            return update_infos, write_sets
+
         for shader_index, objects in self._group_objects_by_shaders():
-            shader = shaders[shader_index]
+            data_shader = shaders[shader_index]
 
             # Global descriptor sets
-            shader.write_sets_update_infos = {}
-            shader.write_sets = []
-            for descriptor_set, descriptor_layout in zip(shader.descriptor_sets, shader.global_layouts):
-                templates = descriptor_layout.write_set_templates
-                shader.write_sets_update_infos.update({ wst["name"]: (uniform_offset, wst["range"]) for wst in templates })
-                shader.write_sets.extend( generate_write_set(wst, descriptor_set) for wst in templates )
-
-            hvk.update_descriptor_sets(api, device, shader.write_sets, ())
+            data_shader.write_sets_update_infos, data_shader.write_sets = map_write_sets(data_shader, data_shader.shader, data_shader.global_layouts)
+            hvk.update_descriptor_sets(api, device, data_shader.write_sets, ())
 
             # Local descriptor sets
-            for obj in objects:
-                obj.write_sets_update_infos = {}
-                obj.write_sets = []
-
-                for descriptor_set, descriptor_layout in zip(obj.descriptor_sets, shader.local_layouts):
-                    templates = descriptor_layout.write_set_templates
-                    obj.write_sets_update_infos.update({ wst["name"]: (uniform_offset, wst["range"]) for wst in templates })
-                    obj.write_sets.extend( generate_write_set(wst, descriptor_set) for wst in templates )
-                
-                hvk.update_descriptor_sets(api, device, obj.write_sets, ())
+            for data_obj in objects:
+                data_obj.write_sets_update_infos, data_obj.write_sets = map_write_sets(data_obj, data_obj.obj, data_shader.local_layouts)
+                hvk.update_descriptor_sets(api, device, data_obj.write_sets, ())
 
     def _group_objects_by_shaders(self):
         if self.shader_objects_sorted:
@@ -594,13 +622,6 @@ class DataScene(object):
         base_offset = map_size = None
         update_list = []
 
-        def process_uniforms(items):
-            for x, y in items:
-                uniforms = x.uniforms
-                for name in uniforms.updated_member_names:
-                    read_offets(uniforms, y, name)
-                uniforms.updated_member_names.clear()
-
         def read_offets(uniforms, dobj, name):
             nonlocal update_list, base_offset, map_size
 
@@ -614,6 +635,13 @@ class DataScene(object):
                 map_size = size
 
             update_list.append( (getattr(uniforms, name), offset) )
+
+        def process_uniforms(items):
+            for x, y in items:
+                uniforms = x.uniforms
+                for name in uniforms.updated_member_names:
+                    read_offets(uniforms, y, name)
+                uniforms.updated_member_names.clear()
 
         process_uniforms(objects)
         process_uniforms(shaders)

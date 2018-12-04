@@ -14,17 +14,25 @@ class Image(object):
         self.source_type = None
         self.source = None
 
+        self.format = None
+        self.extent = None
+        self.mipmaps_levels = None
         self.texture_size = None
 
     @classmethod
     def from_ktx(cls, ktx_file, **kwargs):
+        f = ktx_file
+
         image = super().__new__(cls)
         image.__init__(**kwargs)
 
         image.source_type = ImageSource.Ktx
-        image.source = ktx_file
+        image.source = f
 
-        image.texture_size = len(ktx_file.data)
+        image.format = f.format
+        image.extent = (f.width, f.height, f.depth)
+        image.mipmaps_levels = f.mips_level
+        image.texture_size = len(f.data)
 
         return image
 

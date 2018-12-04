@@ -2,11 +2,11 @@
     "sets": [
         {"id": 0, "scope": 1}
     ],
+    "tmp": {"name": "color_texture", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
     "uniforms": [
         {"name": "view", "set": 0, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
             {"name": "mvp", "type": 2, "count": 1}
-        ]},
-        {"name": "tex", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1}
+        ]}
     ],
     "bindings": [
         {"id": 0, "stride": 12},
