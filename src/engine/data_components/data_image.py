@@ -5,15 +5,16 @@ from ..public_components import ImageSource
 
 class DataImage(object):
     
-    def __init__(self, engine, image, base_offset):
+    def __init__(self, engine, image, base_staging_offset):
         self.engine = engine
         self.image = image
-        self.base_offset = base_offset
+
+        self.base_staging_offset = base_staging_offset
+        self.base_offset = 0                            # Set in `DataScene._setup_images_resources`
 
         self.image_handle = None
         self.layout = None
 
-        self.default_view = None
         self.views = {}
 
         self._setup_image()

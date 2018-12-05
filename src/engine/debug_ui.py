@@ -36,7 +36,7 @@ class DebugUI(object):
             pass
 
     def load_scene(self, data_scene):
-        objects, shaders, meshes = [], [], []
+        objects, shaders, meshes, images, samplers = [], [], [], [], []
         base_scene = data_scene.scene
 
         for data_obj in data_scene.objects:
@@ -54,7 +54,17 @@ class DebugUI(object):
             serialized_mesh = (mesh.name, (), { "id": id(mesh), })
             meshes.append(serialized_mesh)
 
-        serialized_scene = (("Objects", objects), ("Shaders", shaders), ("Meshes", meshes))
+        for data_image in data_scene.images:
+            image = data_image.image
+            serialized_image = (image.name, (), { "id": id(image), })
+            images.append(serialized_image)
+
+        for data_sampler in data_scene.samplers:
+            sampler = data_sampler.sampler
+            serialized_sampler = (sampler.name, (), { "id": id(sampler), })
+            samplers.append(serialized_sampler)
+
+        serialized_scene = (("Objects", objects), ("Shaders", shaders), ("Meshes", meshes), ("Images", images), ("Samplers", samplers))
         self.sync_scene(serialized_scene)
 
     def _update_uniform(self, message):

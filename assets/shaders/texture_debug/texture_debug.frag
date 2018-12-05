@@ -7,10 +7,10 @@ layout (location = 0) in vec2 inUv;
 
 layout (location = 0) out vec4 outFragColor;
 
-//layout (set=0, binding=1) uniform sampler2D color_texture;
+layout (set=0, binding=1) uniform sampler2D color_texture;
 
 
 void main() 
 {
-    outFragColor = vec4(0.9,0.9,0.9,0); //texture(color_texture, inUv, 0.0);
+    outFragColor = texture(color_texture, inUv, 0.0);
 }

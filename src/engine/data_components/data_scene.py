@@ -40,8 +40,8 @@ class DataScene(object):
         self.uniforms_buffer = None
 
         self._setup_shaders()
-        self._setup_uniforms()
         self._setup_objects()
+        self._setup_uniforms()
         self._setup_pipelines()
         self._setup_descriptor_sets_pool()
         self._setup_descriptor_sets()
@@ -187,55 +187,6 @@ class DataScene(object):
 
         self.shaders = shaders
 
-    def _setup_uniforms(self):
-        scene = self.scene
-        data_shaders = self.shaders
-        
-        filters_names = UniformsMaps._NON_UNIFORM_NAMES
-
-        def map_layouts(obj, layouts):
-            uniforms = obj.uniforms
-            uniforms_members = [f for f in dir(uniforms) if f[0] != "_" and f not in filters_names]
-            
-            for layout in layouts:
-                # Image based uniforms are specified in `images`
-                for name in layout.images:
-                    default = getattr(uniforms, name, None)
-                    if default is not None:
-                        raise NotImplementedError("TODO: Implement images default.")
-                        setattr(uniforms, name, None)
-                    else:
-                        raise NotImplementedError("TODO: Implement images placeholder. Specify a default image to fix this.")
-
-                # Buffer based uniforms are specified in `struct_map`
-                for name, struct in layout.struct_map.items():
-                    default = getattr(uniforms, name, None)
-                    if default is not None:
-                        value = struct(**default)
-                        uniforms_members.remove(name)
-                        uniforms.updated_member_names.add(name)
-                    else:
-                        value = struct()
-
-                    setattr(uniforms, name, value)
-                    uniforms.uniform_names.append(name)
-
-            if len(uniforms_members) != 0:
-                print(f"WARNING: uniforms for object {obj.name} contains member(s) that do not map with the associated shader: {uniforms_members}")
-
-        # Shaders global uniforms
-        for shader, data_shader in zip(scene.shaders, data_shaders):
-            map_layouts(shader, data_shader.global_layouts)
-            shader.uniforms.bound = True
-
-        # Objects local uniforms
-        for obj in scene.objects:
-            if obj.shader is not None:
-                data_shader = data_shaders[obj.shader]
-                map_layouts(obj, data_shader.local_layouts)
-
-            obj.uniforms.bound = True
-
     def _setup_objects(self):
         engine, api, device = self.ctx
         mem = engine.memory_manager
@@ -269,7 +220,7 @@ class DataScene(object):
             staging_image_offset += image.size()
 
         staging_alloc, staging_buffer = self._setup_objects_staging(staging_image_offset, data_meshes, data_images)
-        meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, data_meshes)
+        meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, staging_mesh_offset)
         images_alloc = self._setup_images_resources(staging_alloc, data_images)
 
         self.meshes_alloc = meshes_alloc
@@ -306,20 +257,20 @@ class DataScene(object):
   
         return staging_alloc, staging_buffer
 
-    def _setup_meshes_resources(self, staging_alloc, staging_buffer, data_meshes):
+    def _setup_meshes_resources(self, staging_alloc, staging_buffer, mesh_buffer_size):
         engine, api, device = self.ctx
         mem = engine.memory_manager
         cmd = engine.setup_command_buffer
 
         # Final buffer allocation
         mesh_buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(
-            size = staging_alloc.size, 
+            size = mesh_buffer_size, 
             usage = vk.BUFFER_USAGE_INDEX_BUFFER_BIT | vk.BUFFER_USAGE_VERTEX_BUFFER_BIT | vk.BUFFER_USAGE_TRANSFER_DST_BIT
         ))
         mesh_alloc = mem.alloc(mesh_buffer, vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO, (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT,))
 
         # Uploading commands
-        region = vk.BufferCopy(src_offset=0, dst_offset=0, size=staging_alloc.size)
+        region = vk.BufferCopy(src_offset=0, dst_offset=0, size=mesh_buffer_size)
         regions = (region,)
 
         hvk.begin_command_buffer(api, cmd, hvk.command_buffer_begin_info())
@@ -332,7 +283,67 @@ class DataScene(object):
         return mesh_alloc, mesh_buffer
 
     def _setup_images_resources(self, staging_alloc, data_images):
-        pass
+        engine, api, device = self.ctx
+        mem = engine.memory_manager
+
+        total_images_alloc = 0
+
+        for data_image in data_images:
+            req = hvk.image_memory_requirements(api, device, data_image.image_handle)
+            
+            a, o = req.alignment-1, total_images_alloc
+            aligned = (o + a) & ~a
+
+            data_image.base_offset = aligned
+            total_images_alloc = aligned + req.size
+
+        image_alloc = mem.shared_alloc(total_images_alloc, (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT,))
+
+    def _setup_uniforms(self):
+        scene = self.scene
+        data_shaders = self.shaders
+        
+        filters_names = UniformsMaps._NON_UNIFORM_NAMES
+
+        def map_layouts(obj, layouts):
+            uniforms = obj.uniforms
+            uniforms_members = [f for f in dir(uniforms) if f[0] != "_" and f not in filters_names]
+            
+            for layout in layouts:
+                # Image based uniforms are specified in `images`
+                for name in layout.images:
+                    default = getattr(uniforms, name, None)
+                    if default is None:
+                        raise NotImplementedError("TODO: Implement images placeholder. Specify a default image to fix this.")
+
+                # Buffer based uniforms are specified in `struct_map`
+                for name, struct in layout.struct_map.items():
+                    default = getattr(uniforms, name, None)
+                    if default is not None:
+                        value = struct(**default)
+                        uniforms_members.remove(name)
+                        uniforms.updated_member_names.add(name)
+                    else:
+                        value = struct()
+
+                    setattr(uniforms, name, value)
+                    uniforms.uniform_names.append(name)
+
+            if len(uniforms_members) != 0:
+                print(f"WARNING: uniforms for object {obj.name} contains member(s) that do not map with the associated shader: {uniforms_members}")
+
+        # Shaders global uniforms
+        for shader, data_shader in zip(scene.shaders, data_shaders):
+            map_layouts(shader, data_shader.global_layouts)
+            shader.uniforms.bound = True
+
+        # Objects local uniforms
+        for obj in scene.objects:
+            if obj.shader is not None:
+                data_shader = data_shaders[obj.shader]
+                map_layouts(obj, data_shader.local_layouts)
+
+            obj.uniforms.bound = True
 
     def _setup_pipelines(self):
         engine, api, device = self.ctx
@@ -508,8 +519,7 @@ class DataScene(object):
 
                 uniform_offset += drange
             elif dtype == vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-
-                print(getattr(obj.uniforms, name))
+                image_id, view_name, sampler_id = getattr(obj.uniforms, name)
 
                 image_info = vk.DescriptorImageInfo(
                     sampler = texture_sampler,

@@ -1,8 +1,32 @@
 from ..base_types import name_generator
+from vulkan import vk, helpers as hvk
+from collections import namedtuple
 from enum import Enum
 
 
+CombinedImageSampler = namedtuple("CombinedImageSampler", ("image_id", "view_name", "sampler_id"))
 image_name = name_generator("Image")
+
+
+class ImageSource(Enum):
+    Ktx = 0
+
+
+class ImageView(object):
+
+    def __init__(self, **kw):
+        self.params = dict(
+            view_type = kw.get('view_type', vk.IMAGE_VIEW_TYPE_2D),
+            format = kw['format'],
+            components = kw.get('components', hvk.component_mapping()),
+            subresource_range = kw.get('subresource_range', hvk.image_subresource_range())
+        )
+    
+    @classmethod
+    def from_params(cls, **params):
+        view = super().__new__(cls)
+        view.__init__(**params)
+        return view
 
 
 class Image(object):
@@ -11,6 +35,8 @@ class Image(object):
         self.id = None
         self.name = kwargs.get('name', next(image_name))
         
+        self.views = {}
+
         self.source_type = None
         self.source = None
 
@@ -34,11 +60,15 @@ class Image(object):
         image.mipmaps_levels = f.mips_level
         image.texture_size = len(f.data)
 
+        if kwargs.get("nodefault", False) != True:
+            image.views["default"] = ImageView.from_params(
+                view_type=f.target,
+                format=f.format
+            )
+
         return image
 
     def size(self):
         return self.texture_size
 
 
-class ImageSource(Enum):
-    Ktx = 0

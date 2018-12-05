@@ -1,4 +1,4 @@
-from engine import Shader, GameObject, Scene, Sampler, Image, Mesh, MeshPrefab
+from engine import Shader, GameObject, Scene, Sampler, Image, CombinedImageSampler, Mesh, MeshPrefab
 from engine.assets import GLBFile, KTXFile
 from utils.mat4 import Mat4
 from system import events as evt
@@ -113,7 +113,7 @@ class MainScene(object):
         brdf_i = Image.from_ktx(KTXFile.open("brdfLUT.ktx"))
         scene.images.append(brdf_i)
 
-        sampler = Sampler.from_params()
+        sampler = Sampler.from_params(max_lod = brdf_i.mipmaps_levels)
         scene.samplers.append(sampler)
 
         # Objects
@@ -131,9 +131,9 @@ class MainScene(object):
 
         plane_o = GameObject.from_components(shader = shader2.id, mesh = plane_m.id)
         plane_o.model = Mat4.from_translation(0.0, 0.0, 3.0)
-        plane_o.uniforms.color_texture = brdf_i
-        scene.objects.append(plane_o)
+        plane_o.uniforms.color_texture = CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=sampler.id)
+        #scene.objects.append(plane_o)
 
         self.shader = shader1
-        self.objects = (ball_o, ball_o2, plane_o)
+        self.objects = (ball_o, ball_o2)
         self.scene = scene
