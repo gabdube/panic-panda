@@ -252,8 +252,8 @@ class DataScene(object):
             for dm in data_meshes:
                 alloc.write_bytes(dm.base_offset, dm.as_ctypes_array())
             
-            for di in data_images:
-                alloc.write_bytes(di.base_offset, di.as_ctypes_array())
+            #for di in data_images:
+            #    alloc.write_bytes(di.base_offset, di.as_ctypes_array())
   
         return staging_alloc, staging_buffer
 
