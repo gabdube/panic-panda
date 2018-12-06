@@ -160,7 +160,7 @@ class Engine(object):
         self.debugger = Debugger(self.api, self.instance)
         self.debugger.start()    
 
-        #self.debug_ui = DebugUI(self)
+        self.debug_ui = DebugUI(self)
 
     def _setup_surface(self):
         self.surface = hvk.create_surface(self.api, self.instance, self.window)

@@ -69,9 +69,12 @@ class DataScene(object):
             sampler.free()
 
         for img in self.images:
+            for view in img.views.values():
+                hvk.destroy_image_view(api, device, view)
+
             img.free()
 
-        #mem.free_alloc(self.images_alloc)
+        mem.free_alloc(self.images_alloc)
 
         for shader in self.shaders:
             shader.free()
@@ -213,7 +216,8 @@ class DataScene(object):
             staging_mesh_offset += mesh.size()
 
         # Images
-        staging_image_offset = staging_mesh_offset
+        staging_image_offset = (staging_mesh_offset + 256) & ~255   # staging_image_offset must be aligned to 256 bits for uploading purpose
+
         for image in images:
             data_image = DataImage(engine, image, staging_image_offset)
             data_images.append(data_image)
@@ -221,7 +225,7 @@ class DataScene(object):
 
         staging_alloc, staging_buffer = self._setup_objects_staging(staging_image_offset, data_meshes, data_images)
         meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, staging_mesh_offset)
-        images_alloc = self._setup_images_resources(staging_alloc, data_images)
+        images_alloc = self._setup_images_resources(staging_alloc, staging_buffer, data_images)
 
         self.meshes_alloc = meshes_alloc
         self.meshes_buffer = meshes_buffer
@@ -252,8 +256,8 @@ class DataScene(object):
             for dm in data_meshes:
                 alloc.write_bytes(dm.base_offset, dm.as_ctypes_array())
             
-            #for di in data_images:
-            #    alloc.write_bytes(di.base_offset, di.as_ctypes_array())
+            for di in data_images:
+                alloc.write_bytes(di.base_staging_offset, di.as_ctypes_array())
   
         return staging_alloc, staging_buffer
 
@@ -282,9 +286,11 @@ class DataScene(object):
 
         return mesh_alloc, mesh_buffer
 
-    def _setup_images_resources(self, staging_alloc, data_images):
+    def _setup_images_resources(self, staging_alloc, staging_buffer, data_images):
         engine, api, device = self.ctx
         mem = engine.memory_manager
+
+        # Allocate final images memory 
 
         total_images_alloc = 0
 
@@ -298,6 +304,73 @@ class DataScene(object):
             total_images_alloc = aligned + req.size
 
         image_alloc = mem.shared_alloc(total_images_alloc, (vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT,))
+
+        # Bind image to memory & create image views
+        for data_image in data_images:
+            image_handle = data_image.image_handle
+            hvk.bind_image_memory(api, device, image_handle, image_alloc.device_memory, data_image.base_offset)
+
+            # Create image views
+            for name, view_info in data_image.image.views.items():
+                p = view_info.params
+                view_create_info = hvk.image_view_create_info(image=image_handle, format=p["format"], subresource_range=p["subresource_range"])
+                view = hvk.create_image_view(api, device, view_create_info)
+                data_image.views[name] = view
+
+        # Upload commands submitting
+        cmd = engine.setup_command_buffer
+        hvk.begin_command_buffer(api, cmd, hvk.command_buffer_begin_info())
+
+        to_transfer = hvk.image_memory_barrier(
+            image = 0,
+            new_layout = vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            dst_access_mask = vk.ACCESS_TRANSFER_WRITE_BIT,
+            subresource_range = hvk.image_subresource_range(
+                level_count = 0
+            )
+        )
+
+        to_shader_read = hvk.image_memory_barrier(
+            image = 0,
+            old_layout = vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            new_layout = vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            src_access_mask = vk.ACCESS_TRANSFER_WRITE_BIT,
+            dst_access_mask = vk.ACCESS_SHADER_READ_BIT,
+            subresource_range = hvk.image_subresource_range(
+                level_count = 0
+            )
+        )
+
+        for data_image in data_images:
+            image = data_image.image
+            image_handle = data_image.image_handle
+            regions = []
+
+            for m in image.mipmaps():
+                r = hvk.buffer_image_copy(
+                    image_subresource = hvk.image_subresource_layers( mip_level = m.level ),
+                    image_extent = vk.Extent3D(m.width, m.height, 1),
+                    buffer_offset =  data_image.base_staging_offset + m.offset
+                )
+                regions.append(r)
+
+
+            to_transfer.image = image_handle
+            to_transfer.subresource_range.level_count = image.mipmaps_levels
+
+            to_shader_read.image = image_handle
+            to_shader_read.subresource_range.level_count = image.mipmaps_levels
+
+            hvk.pipeline_barrier(api, cmd, (to_transfer,), dst_stage_mask=vk.PIPELINE_STAGE_TRANSFER_BIT)
+            hvk.copy_buffer_to_image(api, cmd, staging_buffer, image_handle, vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions)
+            hvk.pipeline_barrier(api, cmd, (to_shader_read,), dst_stage_mask=vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
+
+ 
+        hvk.end_command_buffer(api, cmd)
+
+        engine.submit_setup_command(wait=True)
+
+        return image_alloc
 
     def _setup_uniforms(self):
         scene = self.scene
@@ -495,7 +568,7 @@ class DataScene(object):
         
     def _setup_descriptor_write_sets(self):
         _, api, device = self.ctx
-        shaders = self.shaders
+        shaders, data_samplers, data_images = self.shaders, self.samplers, self.images
         uniform_buffer = self.uniforms_buffer
         uniform_offset = 0
         
@@ -520,11 +593,13 @@ class DataScene(object):
                 uniform_offset += drange
             elif dtype == vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                 image_id, view_name, sampler_id = getattr(obj.uniforms, name)
+                data_image = data_images[image_id]
+                data_sampler = data_samplers[sampler_id]
 
                 image_info = vk.DescriptorImageInfo(
-                    sampler = texture_sampler,
-                    image_view = texture_view,
-                    image_layout = texture_image_layout
+                    sampler = data_sampler.sampler_handle,
+                    image_view = data_image.views[view_name],
+                    image_layout = data_image.layout
                 )
 
                 write_set = hvk.write_descriptor_set(

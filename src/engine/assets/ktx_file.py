@@ -35,7 +35,7 @@ GL_TO_VK_FORMATS = {
 }
 
 
-MipmapData = namedtuple('MipmapData', ('offset', 'size', 'width', 'height'))
+MipmapData = namedtuple('MipmapData', ('level', 'offset', 'size', 'width', 'height'))
 GpuTexture = namedtuple('GpuTexture', ('image', 'view', 'sampler', 'layout'))
 
 
@@ -100,7 +100,7 @@ class KTXFile(object):
             data_offset += 4
 
             self.data.extend(data[data_offset:data_offset+mipmap_size])
-            self.mipmaps.append(MipmapData(local_offset, mipmap_size, mip_extent_width, mip_extent_height))
+            self.mipmaps.append(MipmapData(i, local_offset, mipmap_size, mip_extent_width, mip_extent_height))
 
             mip_extent_width //= 2
             mip_extent_height //= 2

@@ -4,6 +4,7 @@ from collections import namedtuple
 from enum import Enum
 
 
+MipmapData = namedtuple('MipmapData', ('level', 'offset', 'size', 'width', 'height'))
 CombinedImageSampler = namedtuple("CombinedImageSampler", ("image_id", "view_name", "sampler_id"))
 image_name = name_generator("Image")
 
@@ -61,12 +62,20 @@ class Image(object):
         image.texture_size = len(f.data)
 
         if kwargs.get("nodefault", False) != True:
+            subs_range = hvk.image_subresource_range(level_count = f.mips_level)
             image.views["default"] = ImageView.from_params(
                 view_type=f.target,
-                format=f.format
+                format=f.format,
+                subresource_range=subs_range
             )
 
         return image
+
+    def mipmaps(self):
+        src, src_t = self.source, self.source_type
+        if src_t is ImageSource.Ktx:
+            for mipmap in src.mipmaps:
+                yield MipmapData(mipmap.level, mipmap.offset, mipmap.size, mipmap.width, mipmap.height)
 
     def size(self):
         return self.texture_size

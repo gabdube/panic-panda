@@ -14,7 +14,6 @@ class DataImage(object):
 
         self.image_handle = None
         self.layout = None
-
         self.views = {}
 
         self._setup_image()

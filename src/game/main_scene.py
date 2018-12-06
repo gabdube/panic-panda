@@ -126,14 +126,14 @@ class MainScene(object):
         ball_o2 = GameObject.from_components(shader = shader1.id, mesh = sphere_m.id)
         ball_o2.name = "Ball2"
         ball_o2.model = Mat4.from_translation(-1.5, 0, 0)
-        ball_o2.uniforms.mat = {"color": (0.2, 0.2, 0.7, 1.0), "roughness_metallic": (0.2, 1.0)}
+        ball_o2.uniforms.mat = {"color": (0.2, 0.7, 0.2, 1.0), "roughness_metallic": (0.3, 1.0)}
         scene.objects.append(ball_o2)
 
         plane_o = GameObject.from_components(shader = shader2.id, mesh = plane_m.id)
         plane_o.model = Mat4.from_translation(0.0, 0.0, 3.0)
         plane_o.uniforms.color_texture = CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=sampler.id)
-        #scene.objects.append(plane_o)
+        scene.objects.append(plane_o)
 
         self.shader = shader1
-        self.objects = (ball_o, ball_o2)
+        self.objects = (ball_o, ball_o2, plane_o)
         self.scene = scene

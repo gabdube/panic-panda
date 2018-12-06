@@ -23,6 +23,7 @@ def image_subresource_range(**kwargs):
         layer_count = kwargs.get('layer_count', 1),
     )
 
+
 def image_subresource_layers(**kwargs):
     check_ctypes_members(vk.ImageSubresourceLayers, (), kwargs.keys())
     return vk.ImageSubresourceLayers(
@@ -159,6 +160,7 @@ def sampler_create_info(**kwargs):
         unnormalized_coordinates = kwargs.get('unnormalized_coordinates', vk.FALSE)
     )
 
+
 def create_sampler(api, device, info):
     sampler = vk.Sampler(0)
     result = api.CreateSampler(device, byref(info), None, byref(sampler))
@@ -166,6 +168,7 @@ def create_sampler(api, device, info):
         raise RuntimeError("Failed to create a sampler")
 
     return sampler
+
 
 def destroy_sampler(api, device, sampler):
     api.DestroySampler(device, sampler, None)
