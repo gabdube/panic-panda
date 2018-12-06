@@ -1,10 +1,15 @@
-from multiprocessing import Process, JoinableQueue, Queue
-from queue import Empty
 from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QComboBox, QGridLayout,
  QTableWidget, QTableWidgetItem, QAbstractItemView, QLabel, QFrame, QPushButton, QHBoxLayout, QLineEdit, QSizePolicy, QShortcut )
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QKeySequence
 from functools import lru_cache
+from multiprocessing import Process, JoinableQueue, Queue
+from collections import namedtuple
+from queue import Empty
+
+
+DataPair = namedtuple("DataPair", ("name", "children"))
+DataItem = namedtuple("DataItem", ("name", "children", "attributes"))
 
 
 class DebugUI(object):
@@ -41,30 +46,36 @@ class DebugUI(object):
 
         for data_obj in data_scene.objects:
             obj = data_obj.obj
-            serialized_obj = (obj.name, (), { "id": id(obj), "uniforms": obj.uniforms.as_dict() })
+            serialized_obj = DataItem(obj.name, (), { "id": id(obj), "uniforms": obj.uniforms.as_dict() })
             objects.append(serialized_obj)
 
         for data_shader in data_scene.shaders:
             shader = data_shader.shader
-            serialized_shader = (shader.name, (), { "id": id(shader), "uniforms": shader.uniforms.as_dict() })
+            serialized_shader = DataItem(shader.name, (), { "id": id(shader), "uniforms": shader.uniforms.as_dict() })
             shaders.append(serialized_shader)
 
         for data_mesh in data_scene.meshes:
             mesh = data_mesh.mesh
-            serialized_mesh = (mesh.name, (), { "id": id(mesh), })
+            serialized_mesh = DataItem(mesh.name, (), { "id": id(mesh), })
             meshes.append(serialized_mesh)
 
         for data_image in data_scene.images:
             image = data_image.image
-            serialized_image = (image.name, (), { "id": id(image), })
+            serialized_image = DataItem(image.name, (), { "id": id(image), })
             images.append(serialized_image)
 
         for data_sampler in data_scene.samplers:
             sampler = data_sampler.sampler
-            serialized_sampler = (sampler.name, (), { "id": id(sampler), })
+            serialized_sampler = DataItem(sampler.name, (), { "id": id(sampler), })
             samplers.append(serialized_sampler)
 
-        serialized_scene = (("Objects", objects), ("Shaders", shaders), ("Meshes", meshes), ("Images", images), ("Samplers", samplers))
+        serialized_scene = (
+            DataPair("Objects", objects),
+            DataPair("Shaders", shaders),
+            DataPair("Meshes", meshes),
+            DataPair("Images", images),
+            DataPair("Samplers", samplers)
+        )
         self.sync_scene(serialized_scene)
 
     def _update_uniform(self, message):
@@ -126,7 +137,9 @@ class DebugUIProcess(object):
         self.scene_data = None
 
         self.scene_tree = self.objects_form = self.shaders_form = self.meshes_form = None
+        self.samplers_form = self.images_form = None
         self.current_object = self.current_shader = self.current_mesh = None
+        self.current_image = self.current_sampler = None
         self.object_uniform_inspector = self.shader_uniform_inspector = None
         self.object_uniform_editor = self.shader_uniform_editor = None
         self.tabs = None
@@ -144,6 +157,7 @@ class DebugUIProcess(object):
 
     def sync_scene(self, scene_data):
         tree, co, cs, cm = self.scene_tree, self.current_object, self.current_shader, self.current_mesh
+        ci, csm = self.current_image, self.current_sampler
         tree.clear(); co.clear(); cs.clear(); cm.clear()
 
         self.tabs.setCurrentIndex(0)
@@ -160,14 +174,22 @@ class DebugUIProcess(object):
         parent = tree
         fill_tree(scene_data)
 
-        for obj_name, _, data in scene_data[0][1]:
+        objects, shaders, meshes, images, samplers = scene_data
+
+        for obj_name, _, data in objects.children:
             co.addItem(obj_name, data)
 
-        for shader_name, _, data in scene_data[1][1]:
+        for shader_name, _, data in shaders.children:
             cs.addItem(shader_name, data)
 
-        for mesh_name, _, data in scene_data[2][1]:
+        for mesh_name, _, data in meshes.children:
             cm.addItem(mesh_name, data)
+
+        for image_name, _, data in images.children:
+            ci.addItem(image_name, data)
+
+        for sampler_name, _, data in samplers.children:
+            csm.addItem(sampler_name, data)
 
         tree.expandAll()
 
@@ -186,6 +208,12 @@ class DebugUIProcess(object):
             uniforms = self.shader_uniform_inspector
         elif index == 3:
             item_combo = self.current_mesh
+            uniforms = None
+        elif index == 4:
+            item_combo = self.current_image
+            uniforms = None
+        elif index == 5:
+            item_combo = self.current_sampler
             uniforms = None
         else:
             print(f"Bad index {index}")
@@ -217,6 +245,12 @@ class DebugUIProcess(object):
         elif parent_text == "Meshes":
             self.current_mesh.setCurrentIndex(item_index)
             tabs.setCurrentIndex(3)
+        elif parent_text == "Images":
+            self.current_image.setCurrentIndex(item_index)
+            tabs.setCurrentIndex(4)
+        elif parent_text == "Samplers":
+            self.current_sampler.setCurrentIndex(item_index)
+            tabs.setCurrentIndex(5)
         else:
             print(f"Error: unknown parent text {parent_text}")
 
@@ -342,11 +376,27 @@ class DebugUIProcess(object):
         mf_layout.addWidget(QWidget(), 1, 0)
         mf.setLayout(mf_layout)
 
+        self.current_image = cimg = QComboBox()
+        self.images_form = imf = QWidget()
+        imf_layout = QGridLayout()
+        imf_layout.addWidget(cimg, 0, 0)
+        imf_layout.addWidget(QWidget(), 1, 0)
+        imf.setLayout(imf_layout)
+
+        self.current_sampler = csamp = QComboBox()
+        self.samplers_form = spf = QWidget()
+        spf_layout = QGridLayout()
+        spf_layout.addWidget(csamp, 0, 0)
+        spf_layout.addWidget(QWidget(), 1, 0)
+        spf.setLayout(spf_layout)
+
         self.tabs = tab = QTabWidget(w)
         tab.addTab(stree, "Scene")
         tab.addTab(of, "Objects")
         tab.addTab(sf, "Shaders")
         tab.addTab(mf, "Meshes")
+        tab.addTab(imf, "Images")
+        tab.addTab(spf, "Samplers")
         tab.currentChanged.connect(self.tab_changed)
 
         l = QVBoxLayout()
