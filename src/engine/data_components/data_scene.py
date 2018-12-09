@@ -309,14 +309,8 @@ class DataScene(object):
         for data_image in data_images:
             image_handle = data_image.image_handle
             hvk.bind_image_memory(api, device, image_handle, image_alloc.device_memory, data_image.base_offset)
-
-            # Create image views
-            for name, view_info in data_image.image.views.items():
-                p = view_info.params
-                view_create_info = hvk.image_view_create_info(image=image_handle, format=p["format"], subresource_range=p["subresource_range"])
-                view = hvk.create_image_view(api, device, view_create_info)
-                data_image.views[name] = view
-
+            data_image._setup_views()
+            
         # Upload commands submitting
         cmd = engine.setup_command_buffer
         hvk.begin_command_buffer(api, cmd, hvk.command_buffer_begin_info())
@@ -348,7 +342,7 @@ class DataScene(object):
 
             for m in image.mipmaps():
                 r = hvk.buffer_image_copy(
-                    image_subresource = hvk.image_subresource_layers( mip_level = m.level ),
+                    image_subresource = hvk.image_subresource_layers( mip_level = m.level, base_array_layer = m.layer ),
                     image_extent = vk.Extent3D(m.width, m.height, 1),
                     buffer_offset =  data_image.base_staging_offset + m.offset
                 )
@@ -357,15 +351,16 @@ class DataScene(object):
 
             to_transfer.image = image_handle
             to_transfer.subresource_range.level_count = image.mipmaps_levels
+            to_transfer.subresource_range.layer_count = image.array_layers
 
             to_shader_read.image = image_handle
             to_shader_read.subresource_range.level_count = image.mipmaps_levels
+            to_shader_read.subresource_range.layer_count = image.array_layers
 
             hvk.pipeline_barrier(api, cmd, (to_transfer,), dst_stage_mask=vk.PIPELINE_STAGE_TRANSFER_BIT)
             hvk.copy_buffer_to_image(api, cmd, staging_buffer, image_handle, vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions)
             hvk.pipeline_barrier(api, cmd, (to_shader_read,), dst_stage_mask=vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
 
- 
         hvk.end_command_buffer(api, cmd)
 
         engine.submit_setup_command(wait=True)
@@ -387,7 +382,10 @@ class DataScene(object):
                 for name in layout.images:
                     default = getattr(uniforms, name, None)
                     if default is None:
-                        raise NotImplementedError("TODO: Implement images placeholder. Specify a default image to fix this.")
+                        msg = f"Default for sampler based uniforms is not yet implemented. To fix this set a default value to uniform \"{name}\" of component \"{obj.name}\""
+                        raise NotImplementedError(msg)
+                    else:
+                        uniforms_members.remove(name)
 
                 # Buffer based uniforms are specified in `struct_map`
                 for name, struct in layout.struct_map.items():
@@ -595,10 +593,14 @@ class DataScene(object):
                 image_id, view_name, sampler_id = getattr(obj.uniforms, name)
                 data_image = data_images[image_id]
                 data_sampler = data_samplers[sampler_id]
+                data_view = data_image.views.get(view_name, None)
+
+                if data_view is None:
+                    raise ValueError(f"No view named \"{view_name}\" for image \"{data_image.image.name}\"")
 
                 image_info = vk.DescriptorImageInfo(
                     sampler = data_sampler.sampler_handle,
-                    image_view = data_image.views[view_name],
+                    image_view = data_view,
                     image_layout = data_image.layout
                 )
 

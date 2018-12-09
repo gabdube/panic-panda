@@ -8,7 +8,8 @@ layout (location = 1) in mat3 inTbn;
 
 layout (location = 0) out vec4 outColor;
 
-//layout (set=0, binding=0) uniform sampler2D brdfLUT;
+layout (set=0, binding=1) uniform sampler2D brdfLUT;
+layout (set=0, binding=2) uniform samplerCube diffuseEnvSampler;
 
 // Render data that won't change much (if at all) during a scene draw
 layout (set=0, binding=0) uniform RenderStatic {

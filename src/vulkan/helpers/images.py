@@ -95,7 +95,7 @@ def image_create_info(**kwargs):
     return vk.ImageCreateInfo(
         type = vk.STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         next = None,
-        flags = 0,
+        flags = kwargs.get('flags', 0),
         image_type = kwargs.get('image_type', vk.IMAGE_TYPE_2D),
         format = kwargs['format'],
         extent = kwargs['extent'],

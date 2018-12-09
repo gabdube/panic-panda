@@ -145,7 +145,7 @@ class DebugUIProcess(object):
         self.tabs = None
 
         self.window = QWidget()
-        self.window.closeEvent = lambda evt: evt.ignore()
+        #self.window.closeEvent = lambda evt: evt.ignore()
         self._init_window()
 
         self.timer = t = QTimer()
@@ -323,7 +323,7 @@ class DebugUIProcess(object):
         self.send_queue.put(event)
 
     def close(self):
-        del self.window.closeEvent
+        #del self.window.closeEvent
         self.window.close()
 
     def _read_queue(self):
