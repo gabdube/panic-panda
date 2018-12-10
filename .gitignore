@@ -11,3 +11,4 @@ assets/images/**/*.png
 assets/images/**/*.jpg
 assets/images/**/*.ktx
 python/
+tools/process_results.txt

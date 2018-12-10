@@ -36,7 +36,7 @@ GL_TO_VK_FORMATS = {
 
 
 MipmapData = namedtuple('MipmapData', ('level', 'offset', 'size', 'width', 'height'))
-GpuTexture = namedtuple('GpuTexture', ('image', 'view', 'sampler', 'layout'))
+#GpuTexture = namedtuple('GpuTexture', ('image', 'view', 'sampler', 'layout'))
 
 
 class KtxHeader(Structure):
@@ -160,13 +160,13 @@ class KTXFile(object):
 
         # File size check
         if length < sizeof(KtxHeader):
-            msg = "The file {} is valid: length inferior to the ktx header"
+            msg = "The file ID is invalid: length inferior to the ktx header"
             raise IOError(msg.format(path))
 
         # Header check
         header = bytes_to_cstruct(data, KtxHeader)
         if header.id[::] != Ktx10HeaderData[::]:
-            msg = "The file {} is not valid: header do not match the ktx header"
+            msg ="The file ID is invalid: header do not match the ktx header"
             raise IOError(msg.format(path))
 
         offset = sizeof(KtxHeader) + header.bytes_of_key_value_data

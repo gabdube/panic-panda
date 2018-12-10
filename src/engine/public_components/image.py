@@ -173,5 +173,3 @@ class Image(object):
 
     def size(self):
         return self.texture_size
-
-
