@@ -10,6 +10,7 @@
             {"name": "camera_pos", "type": 5, "count": 1}
         ]},
         {"name": "brdf", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
+        {"name": "diff_env", "set": 0, "binding": 2, "count": 1, "stage": 16, "type": 1},
         {"name": "mat", "set": 1, "binding": 0, "count": 1, "stage": 16, "type": 6, "fields": [
             {"name": "color", "type": 5, "count": 1},
             {"name": "roughness_metallic", "type": 5, "count": 1}

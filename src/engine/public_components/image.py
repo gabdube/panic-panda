@@ -69,15 +69,17 @@ class Image(object):
         image.source_type = ImageSource.Ktx
         image.source = f
 
+        image.flags = f.vk_flags
         image.format = f.vk_format
         image.extent = (f.width, f.height, f.depth)
         image.mipmaps_levels = f.mips_level
         image.texture_size = f.texture_size
+        image.array_layers = f.faces * f.array_element
 
         if kwargs.get("nodefault", False) != True:
-            subs_range = hvk.image_subresource_range(level_count = f.mips_level)
+            subs_range = hvk.image_subresource_range(level_count = f.mips_level, layer_count=image.array_layers)
             image.views["default"] = ImageView.from_params(
-                view_type=f.vk_target,
+                view_type=f.vk_view_type,
                 format=f.vk_format,
                 subresource_range=subs_range
             )

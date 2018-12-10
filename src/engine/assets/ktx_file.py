@@ -114,44 +114,6 @@ class KTXFile(object):
         self.texture_size = sum(m.size for m in self.mipmaps)
 
     @staticmethod
-    def header_target(header):
-        """
-        Get the target of a ktx texture based on the header data
-        Cube & array textures are not implemented
-
-        :param header: The header loaded with `load`
-        :return:
-        """
-
-        if header.pixel_height == 0:
-            return vk.IMAGE_TYPE_1D
-        elif header.pixel_depth > 0:
-            return vk.IMAGE_TYPE_3D
-
-        return vk.IMAGE_TYPE_2D
-
-    @staticmethod
-    def header_format(header):
-        """
-        Check the format of the texture.
-
-        :param header: The parsed file header
-        :return: The vulkan format identifier
-        """
-        h = header
-        is_compressed = h.gl_type == 0 and h.gl_type_size == 1 and h.gl_format == 0
-        if not is_compressed:
-            raise ValueError("Uncompressed file formats not currently supported")
-
-        formats = GL_TO_VK_FORMATS.get(h.gl_internal_format, (None, None))
-        fmt = formats if isinstance(formats, int) else formats[0]   # Dirty workaround until SRGB is implemented
-
-        if fmt is None:
-            raise ValueError("The format of this texture is not current supported")
-
-        return fmt
-
-    @staticmethod
     def open(path):
         """
         Load and parse a KTX texture
@@ -186,12 +148,65 @@ class KTXFile(object):
         return self.header.gl_format == 0
 
     @property
+    def cubemap(self):
+        return self.faces == 6
+    
+    @property
+    def array(self):
+        return self.array_element > 1
+
+    @property
     def vk_format(self):
-        return KTXFile.header_format(self.header)
+        """
+            Check the format of the texture
+            :return: The vulkan format identifier
+        """
+        h = self.header
+        is_compressed = h.gl_type == 0 and h.gl_type_size == 1 and h.gl_format == 0
+        if not is_compressed:
+            raise ValueError("Uncompressed file formats not currently supported")
+
+        formats = GL_TO_VK_FORMATS.get(h.gl_internal_format, (None, None))
+        fmt = formats if isinstance(formats, int) else formats[0]   # Dirty workaround until SRGB is implemented
+
+        if fmt is None:
+            raise ValueError("The format of this texture is not current supported")
+
+        return fmt
 
     @property
     def vk_target(self):
-        return KTXFile.header_target(self.header)
+        """
+            Get the target of a ktx texture based on the header data
+        """
+
+        if self.height == 0:
+            return vk.IMAGE_TYPE_1D
+        elif self.depth > 0:
+            return vk.IMAGE_TYPE_3D
+
+        return vk.IMAGE_TYPE_2D
+
+    @property
+    def vk_view_type(self):
+        """
+            Get the default view type of a ktx texture based on the header data
+        """
+        view_type = vk.IMAGE_VIEW_TYPE_2D
+        if self.cubemap:
+            view_type = vk.IMAGE_VIEW_TYPE_CUBE
+        elif self.array:
+            view_type = vk.IMAGE_VIEW_TYPE_2D_ARRAY
+
+        return view_type
+
+    @property
+    def vk_flags(self):
+        flags = 0
+        if self.cubemap:
+            flags |= vk.IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+
+        return flags
 
     def find_mipmap(self, index, layer=0, face=0):
         for m in self.mipmaps:

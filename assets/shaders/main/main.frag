@@ -9,7 +9,7 @@ layout (location = 1) in mat3 inTbn;
 layout (location = 0) out vec4 outColor;
 
 layout (set=0, binding=1) uniform sampler2D brdfLUT;
-//layout (set=0, binding=2) uniform samplerCube diffuseEnvSampler;
+layout (set=0, binding=2) uniform samplerCube diffuseEnvSampler;
 
 // Render data that won't change much (if at all) during a scene draw
 layout (set=0, binding=0) uniform RenderStatic {
@@ -48,6 +48,12 @@ const float M_PI = 3.141592653589793;
 const float minRoughness = 0.04;
 const vec3 F0 = vec3(0.04);
 const vec3 F1 = vec3(0.96);
+
+
+vec4 SRGBtoLINEAR(vec4 srgbIn) {
+    vec3 linOut = pow(srgbIn.xyz,vec3(2.2));
+    return vec4(linOut,srgbIn.w);
+}
 
 vec4 baseColorValues() {
     return mat.matColor;
@@ -98,6 +104,22 @@ float geometricOcclusion(PBRInfo pbrInputs)
 vec3 diffuse(PBRInfo pbrInputs)
 {
     return pbrInputs.diffuseColor / M_PI;
+}
+
+vec3 getIBLContribution(PBRInfo pbrInputs, vec3 n, vec3 reflection)
+{
+    float mipCount = 9.0; // resolution of 512x512
+    float lod = (pbrInputs.perceptualRoughness * mipCount);
+
+    vec3 brdf = SRGBtoLINEAR(texture(brdfLUT, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness))).rgb;
+    vec3 diffuseLight = SRGBtoLINEAR(texture(diffuseEnvSampler, n)).rgb;
+    //vec3 specularLight = SRGBtoLINEAR(textureLod(specularEnvSampler, reflection, lod)).rgb;
+
+    vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;
+    //vec3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
+
+
+    return diffuse;// + specular;
 }
 
 void main() {
@@ -162,6 +184,8 @@ void main() {
 
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
     vec3 color = NdotL * lightColor * (diffuseContrib + specContrib);
+
+    color += getIBLContribution(pbrInputs, n, reflection);
 
     outColor = vec4(pow(color,vec3(1.0/2.2)), baseColor.a);
 }

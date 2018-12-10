@@ -44,9 +44,9 @@ class DataImage(object):
             flags = img.flags,
             format = img.format,
             mip_levels = img.mipmaps_levels,
+            array_layers = img.array_layers,
             extent = vk.Extent3D(width, height, depth),
-            usage = vk.IMAGE_USAGE_TRANSFER_DST_BIT | vk.IMAGE_USAGE_SAMPLED_BIT,
-            array_layers = img.array_layers
+            usage = vk.IMAGE_USAGE_TRANSFER_DST_BIT | vk.IMAGE_USAGE_SAMPLED_BIT
         ))
 
         self.image_handle = image

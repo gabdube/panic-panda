@@ -53,17 +53,21 @@ class DataScene(object):
         engine, api, device = self.ctx
         mem = engine.memory_manager
 
-        hvk.destroy_buffer(api, device, self.uniforms_buffer)
-        mem.free_alloc(self.uniforms_alloc)
+        if self.uniforms_alloc is not None:
+            hvk.destroy_buffer(api, device, self.uniforms_buffer)
+            mem.free_alloc(self.uniforms_alloc)
 
-        hvk.destroy_descriptor_pool(api, device, self.descriptor_pool)
+        if self.descriptor_pool is not None:
+            hvk.destroy_descriptor_pool(api, device, self.descriptor_pool)
 
         for pipeline in self.pipelines:
             hvk.destroy_pipeline(api, device, pipeline)
         
         hvk.destroy_pipeline_cache(api, device, self.pipeline_cache)
-        hvk.destroy_buffer(api, device, self.meshes_buffer)
-        mem.free_alloc(self.meshes_alloc)
+
+        if self.meshes_buffer is not None:
+            hvk.destroy_buffer(api, device, self.meshes_buffer)
+            mem.free_alloc(self.meshes_alloc)
 
         for sampler in self.samplers:
             sampler.free()
@@ -74,7 +78,8 @@ class DataScene(object):
 
             img.free()
 
-        mem.free_alloc(self.images_alloc)
+        if self.images_alloc is not None:
+            mem.free_alloc(self.images_alloc)
 
         for shader in self.shaders:
             shader.free()
@@ -210,7 +215,7 @@ class DataScene(object):
             data_samplers.append(DataSampler(engine, sampler))
 
         # Meshes setup
-        for mesh in scene.meshes:
+        for mesh in meshes:
             data_mesh = DataMesh(mesh, staging_mesh_offset)
             data_meshes.append(data_mesh)
             staging_mesh_offset += mesh.size()
@@ -223,9 +228,14 @@ class DataScene(object):
             data_images.append(data_image)
             staging_image_offset += image.size()
 
-        staging_alloc, staging_buffer = self._setup_objects_staging(staging_image_offset, data_meshes, data_images)
-        meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, staging_mesh_offset)
-        images_alloc = self._setup_images_resources(staging_alloc, staging_buffer, data_images)
+        if len(meshes) == 0 and len(images) == 0:
+            staging_alloc = staging_buffer = meshes_alloc = meshes_buffer = images_alloc = None
+        else:
+            staging_alloc, staging_buffer = self._setup_objects_staging(staging_image_offset, data_meshes, data_images)
+            if len(meshes) > 0:
+                meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, staging_mesh_offset)
+            if len(images) > 0:
+                images_alloc = self._setup_images_resources(staging_alloc, staging_buffer, data_images)
 
         self.meshes_alloc = meshes_alloc
         self.meshes_buffer = meshes_buffer
@@ -235,8 +245,9 @@ class DataScene(object):
         self.samplers = data_samplers
         self.objects = data_objects
 
-        hvk.destroy_buffer(api, device, staging_buffer)
-        mem.free_alloc(staging_alloc)
+        if staging_buffer is not None:
+            hvk.destroy_buffer(api, device, staging_buffer)
+            mem.free_alloc(staging_alloc)
 
     def _setup_objects_staging(self, staging_size, data_meshes, data_images):
         engine, api, device = self.ctx
@@ -463,9 +474,12 @@ class DataScene(object):
 
             pipeline_infos.append(info)
   
-
         self.pipeline_cache = hvk.create_pipeline_cache(api, device, hvk.pipeline_cache_create_info())
-        self.pipelines = hvk.create_graphics_pipelines(api, device, pipeline_infos, self.pipeline_cache)
+
+        if len(pipeline_infos) > 0:
+            self.pipelines = hvk.create_graphics_pipelines(api, device, pipeline_infos, self.pipeline_cache)
+        else:
+            self.pipelines = []
 
     def _setup_descriptor_sets_pool(self):
         _, api, device = self.ctx
@@ -497,6 +511,10 @@ class DataScene(object):
                         pool_sizes[dtype] = dcount
             
                 max_sets += 1
+
+        if len(pool_sizes) == 0:
+            self.descriptor_pool = None
+            return
 
         pool_sizes = tuple( vk.DescriptorPoolSize(type=t, descriptor_count=c) for t, c in pool_sizes.items() )
         pool = hvk.create_descriptor_pool(api, device, hvk.descriptor_pool_create_info(
@@ -545,6 +563,9 @@ class DataScene(object):
                 obj = next(iter_objects)
                 obj.descriptor_sets = descriptor_sets[i:i+step]
 
+        if uniforms_buffer_size == 0:
+            self.uniforms_alloc = self.uniforms_buffer = None
+            return
 
         # Uniform buffer creation
         uniforms_buffer = hvk.create_buffer(api, device, hvk.buffer_create_info(

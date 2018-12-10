@@ -221,7 +221,7 @@ class DebugUIProcess(object):
 
         data = item_combo.currentData()
 
-        if uniforms is not None and item_combo is not None:
+        if uniforms is not None and data is not None:
             uniforms.load_uniforms(data["uniforms"])
 
     def component_changed(self, index):

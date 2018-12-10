@@ -11,7 +11,7 @@ class MainScene(object):
         width, height = engine.window.dimensions()
 
         self.engine = engine
-        self.scene = None
+        self.scene = s = Scene.empty()
         self.shader = None
         self.objects = None
 
@@ -30,7 +30,6 @@ class MainScene(object):
         self._load_assets()
         
         # Callbacks
-        s = self.scene
         s.on_initialized = self.init_scene
         s.on_window_resized = self.update_perspective
         s.on_mouse_move = self.move_camera
@@ -86,40 +85,31 @@ class MainScene(object):
             ms["pos"] = data
 
     def _load_assets(self):
-        # Scene
-        scene = Scene.empty()
+        scene = self.scene
 
         # Images & Samplers
         brdf_i = Image.from_ktx(KTXFile.open("brdfLUT.ktx"))
         scene.images.append(brdf_i)
 
-        #diffuse_env = Image.from_cubemap_directory("papermill/diffuse/", "diffuse", KTXFile)
-        #scene.images.append(diffuse_env)
+        diffuse_env = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"))
+        scene.images.append(diffuse_env)
 
         sampler = Sampler.from_params()
         scene.samplers.append(sampler)
 
         # Shaders
         shader1_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
-        shader2_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
 
         shader1 = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json")
         shader1.name = "MainShader"
         shader1.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (0,0,1), "camera_pos": (0,0,5.5)}
         shader1.uniforms.brdf =     CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=sampler.id)
-        #shader1.uniforms.diff_env = CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=sampler.id)
+        shader1.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
         scene.shaders.append(shader1)
-
-        shader2 = Shader.from_files("texture_debug/texture_debug.vert.spv", "texture_debug/texture_debug.frag.spv", "texture_debug/texture_debug.map.json")
-        shader2.name = "DebugTexture"
-        scene.shaders.append(shader2)
 
         # Meshes
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader1_attributes_map)
         scene.meshes.append(sphere_m)
-
-        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader2_attributes_map)
-        scene.meshes.append(plane_m)
 
         # Objects
         ball_o = GameObject.from_components(shader = shader1.id, mesh = sphere_m.id)
@@ -134,12 +124,30 @@ class MainScene(object):
         ball_o2.uniforms.mat = {"color": (0.2, 0.7, 0.2, 1.0), "roughness_metallic": (0.2, 1.0)}
         scene.objects.append(ball_o2)
 
-        #plane_o = GameObject.from_components(shader = shader2.id, mesh = plane_m.id)
-        #plane_o.model = Mat4.from_translation(0.0, 0.0, 3.0)
-        #plane_o.uniforms.color_texture = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
-        #scene.objects.append(plane_o)
-
         self.shader = shader1
         self.objects = [ball_o, ball_o2]
-        #self.objects.append(plane_o)
         self.scene = scene
+
+        #
+        # Debug stuff
+        #
+
+        shader2_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
+        shader2 = Shader.from_files("texture_debug/texture_debug.vert.spv", "texture_debug/texture_debug.frag.spv", "texture_debug/texture_debug.map.json")
+        shader2.name = "DebugTexture"
+        #scene.shaders.append(shader2)
+
+        array = Image.from_ktx(KTXFile.open("papermill_diffuse2.ktx"))
+        array.name = "papermill_diffuse2.ktx"
+        #scene.images.append(array)
+
+        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader2_attributes_map)
+        #scene.meshes.append(plane_m)
+
+        plane_o = GameObject.from_components(shader = shader2.id, mesh = plane_m.id)
+        plane_o.name = "Debug Plane"
+        plane_o.model = Mat4.from_translation(0.0, 0.0, 3.0)
+        plane_o.uniforms.color_texture = CombinedImageSampler(image_id=array.id, view_name="default", sampler_id=sampler.id)
+        #scene.objects.append(plane_o)
+
+        #self.objects.append(plane_o)

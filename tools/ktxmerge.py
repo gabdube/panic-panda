@@ -178,7 +178,10 @@ class KTXFile(object):
         for mipmap_level in range(header.number_of_mipmap_levels):
             for array_layer, file in enumerate(files):
                 mipmap = file.find_mipmap(mipmap_level)
-                data.write(c_uint32(mipmap.size))
+
+                if array_layer == 0:
+                    data.write(c_uint32(mipmap.size))
+                    
                 data.write(file.mipmap_data(mipmap))
 
         return KTXFile("output.ktx", header, memoryview(data.getvalue()))
