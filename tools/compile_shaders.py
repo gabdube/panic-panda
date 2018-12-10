@@ -1,5 +1,6 @@
 """
-Compile the shaders found in the asset shaders directory using
+Compile the shaders found in the asset shaders directory using glslangValidator. 
+glslangValidator must be in your PATH.
 
 Usage:
 1 - Make sure that `glslangValidator` is in your path

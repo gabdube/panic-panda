@@ -92,6 +92,7 @@ class KTXFile(object):
         self.data = data
         self.mipmaps = []
 
+        # Load mipmaps
         data_offset = 0
         mip_extent_width, mip_extent_height = self.width, self.height
 
@@ -108,6 +109,9 @@ class KTXFile(object):
 
             mip_extent_width //= 2
             mip_extent_height //= 2
+
+        # Compute the texture true size (without the mipmap size indicator)
+        self.texture_size = sum(m.size for m in self.mipmaps)
 
     @staticmethod
     def header_target(header):
@@ -199,7 +203,6 @@ class KTXFile(object):
     def mipmap_data(self, mipmap):
         offset = mipmap.offset
         size = mipmap.size
-
         return self.data[offset:offset+size]
 
     def save(self, outfile):

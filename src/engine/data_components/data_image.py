@@ -31,11 +31,8 @@ class DataImage(object):
 
     def as_ctypes_array(self):
         img = self.image
-        src = img.source
-        st = img.source_type
-
-        if st is ImageSource.Ktx:
-            return hvk.array(c_ubyte, len(src.data), src.data)
+        data = hvk.array(c_ubyte, img.texture_size, img.texture_data())
+        return data
 
     def _setup_image(self):
         engine, api, device = self.ctx

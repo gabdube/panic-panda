@@ -49,7 +49,7 @@ from collections import namedtuple
 from pathlib import Path
 from io import BytesIO
 from enum import Enum
-import sys
+import sys, re
 
 
 KTX_ID = (c_uint8*12)(0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A)
@@ -58,6 +58,15 @@ MipmapData = namedtuple('MipmapData', ('index', 'layer', 'face', 'offset', 'size
 
 class KTXException(Exception):
     pass
+
+
+class CubemapFaces(Enum):
+    Right = 0
+    Left = 1
+    Top = 2
+    Bottom = 3
+    Front = 4
+    Back = 5
 
 
 class KtxHeader(Structure):
@@ -130,10 +139,10 @@ class KTXFile(object):
             mip_extent_height //= 2
 
     @staticmethod
-    def merge_array(*inputs):
+    def merge_2d(*input, **attr):
         header = { key: None for key, _ in KtxHeader._fields_ }
-        header["number_of_faces"] = 1
-        header["number_of_array_elements"] = len(inputs)
+        header["number_of_faces"] = attr.get('number_of_faces', 1)
+        header["number_of_array_elements"] = attr.get('number_of_array_elements', 0)
         header["pixel_depth"] = 0
         header["endianness"] = 0x04030201
 
@@ -175,20 +184,15 @@ class KTXFile(object):
         return KTXFile("output.ktx", header, memoryview(data.getvalue()))
 
     @staticmethod
+    def merge_array(*inputs):
+        return KTXFile.merge_2d(*inputs, number_of_array_elements=len(inputs))
+
+    @staticmethod
     def merge_cube(*inputs):
-        files = []
-        header = KtxHeader()
-        header.number_of_faces = 6
-        header.endianness = 0x04030201
-        data = bytearray()
-
         if len(inputs) != 6:
-            raise KTXException(f"A cubemap must have 6 inputs, {len(inputs)} given.")
+            raise KTXException(f"Cubemap must have exactly 6 input files, go {len(inputs)}")
 
-        for i in inputs:
-            f = KTXFile.open(i)
-        
-        return KTXFile("output.ktx", header, data)
+        return KTXFile.merge_2d(*inputs, number_of_faces=6)
 
     @staticmethod
     def open(path):
@@ -251,10 +255,32 @@ def check_mismatch(obj, member, value):
 
 
 def auto_input(pattern, cube):
+    array_re = re.compile("^.+?(\d+)\.ktx")
+    faces = (("_back", CubemapFaces.Back), ("_bottom", CubemapFaces.Bottom), ("_front", CubemapFaces.Front), 
+             ("_left", CubemapFaces.Left), ("_right", CubemapFaces.Right), ("_top", CubemapFaces.Top))
+
+    def array_sort(i):
+        match = next(array_re.finditer(str(i)), None)
+        if match is None:
+            raise KTXException(f"Cannot find array index from filename {i}.")
+        return int(match.group(1))
+
+    def cube_sort(i):
+        file_name = str(i).lower()
+        face = next((face for face_name, face in faces if face_name in file_name), None)
+        if face is None:
+            raise ValueError(f"Impossible to find cubemap face from filename {file_name}.")
+
+        return face.value
+
+    paths = list(Path('.').glob(pattern+'.ktx'))
+
     if cube:
-        pass
+        paths.sort(key=cube_sort)
     else:
-        return tuple(Path('.').glob(pattern+'.ktx'))
+        paths.sort(key=array_sort)
+
+    return paths
 
 if __name__ == "__main__":
     try:

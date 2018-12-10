@@ -340,7 +340,7 @@ class DataScene(object):
             image_handle = data_image.image_handle
             regions = []
 
-            for m in image.mipmaps():
+            for m in image.iter_mipmaps():
                 r = hvk.buffer_image_copy(
                     image_subresource = hvk.image_subresource_layers( mip_level = m.level, base_array_layer = m.layer ),
                     image_extent = vk.Extent3D(m.width, m.height, 1),
