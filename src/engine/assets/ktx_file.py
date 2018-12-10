@@ -4,9 +4,10 @@ from . import bytes_to_cstruct, IMAGE_PATH
 from vulkan import vk, helpers as hvk
 from ctypes import Structure, c_ubyte, c_uint32, sizeof, memmove
 from collections import namedtuple
+from pathlib import Path
 import struct
 
-Ktx10HeaderData = hvk.array(c_ubyte, 12, (0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A))
+KTX_ID = hvk.array(c_ubyte, 12, (0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A))
 
 # OPENGL to VULKAN texture format conversion table (not included: textureCompressionETC2 / textureCompressionASTC_LDR )
 GL_TO_VK_FORMATS = {
@@ -35,8 +36,7 @@ GL_TO_VK_FORMATS = {
 }
 
 
-MipmapData = namedtuple('MipmapData', ('level', 'offset', 'size', 'width', 'height'))
-#GpuTexture = namedtuple('GpuTexture', ('image', 'view', 'sampler', 'layout'))
+MipmapData = namedtuple('MipmapData', ('index', 'layer', 'face', 'offset', 'size', 'width', 'height'))
 
 
 class KtxHeader(Structure):
@@ -75,37 +75,39 @@ class KTXFile(object):
     def __init__(self, fname, header, data):
         self.file_name = fname
 
-        # Main texture data
         self.width = header.pixel_width
         self.height = max(header.pixel_height, 1)
         self.depth = max(header.pixel_depth, 1)
         self.mips_level = max(header.number_of_mipmap_levels, 1)
         self.array_element = max(header.number_of_array_elements, 1)
         self.faces = max(header.number_of_faces, 1)
-        self.target = KTXFile.header_target(header)
-        self.format = KTXFile.header_format(header)
-        self.data = bytearray()
+        self.header = header
 
-        # Mipmap data
+        if header.endianness != 0x04030201:
+            raise ValueError("The endianess of this file do not match your system")
+
+        if not self.compressed:
+            raise ValueError("This tool only works with compressed file format")
+
+        self.data = data
         self.mipmaps = []
 
-        if self.array_element > 1 or self.faces > 1:
-            raise NotImplementedError("Texture array and cubic textures are not yet implemented.")
-            
-        # Load the texture data
-        data_offset = local_offset = 0
+        data_offset = 0
         mip_extent_width, mip_extent_height = self.width, self.height
-        for i in range(self.mips_level):
-            mipmap_size = struct.unpack_from("=I", data, data_offset)[0]
+
+        for mipmap_index in range(self.mips_level):
+            mipmap_size_bytes = data[data_offset:4].cast("I")[0]
             data_offset += 4
 
-            self.data.extend(data[data_offset:data_offset+mipmap_size])
-            self.mipmaps.append(MipmapData(i, local_offset, mipmap_size, mip_extent_width, mip_extent_height))
+            for layer_index in range(self.array_element):
+                for face_index in range(self.faces):
+                    mipmap = MipmapData(mipmap_index, layer_index, face_index, data_offset, mipmap_size_bytes, mip_extent_width, mip_extent_height)
+                    self.mipmaps.append(mipmap)
+
+                    data_offset += mipmap_size_bytes
 
             mip_extent_width //= 2
             mip_extent_height //= 2
-            data_offset += mipmap_size
-            local_offset += mipmap_size
 
     @staticmethod
     def header_target(header):
@@ -153,23 +155,54 @@ class KTXFile(object):
         :param path: The relative path of the file to load
         :return: A KTXFile texture object
         """
+        header_size = sizeof(KtxHeader)
         data = length = None
-        with (IMAGE_PATH / path).open('rb') as f:
-            data = f.read()
+        with Path(IMAGE_PATH / path).open('rb') as f:
+            data = memoryview(f.read())
             length = len(data)
 
         # File size check
-        if length < sizeof(KtxHeader):
+        if length < header_size:
             msg = "The file ID is invalid: length inferior to the ktx header"
             raise IOError(msg.format(path))
 
         # Header check
-        header = bytes_to_cstruct(data, KtxHeader)
-        if header.id[::] != Ktx10HeaderData[::]:
-            msg ="The file ID is invalid: header do not match the ktx header"
+        header = KtxHeader.from_buffer_copy(data[0:header_size])
+        if header.id[::] != KTX_ID[::]:
+            msg = "The file ID is invalid: header do not match the ktx header"
             raise IOError(msg.format(path))
 
         offset = sizeof(KtxHeader) + header.bytes_of_key_value_data
         texture = KTXFile(path, header, data[offset::])
 
         return texture
+
+    @property
+    def compressed(self):
+        return self.header.gl_format == 0
+
+    @property
+    def vk_format(self):
+        return KTXFile.header_format(self.header)
+
+    @property
+    def vk_target(self):
+        return KTXFile.header_target(self.header)
+
+    def find_mipmap(self, index, layer=0, face=0):
+        for m in self.mipmaps:
+            if m.index == index  and m.layer == layer and m.face == face:
+                return m
+
+        raise IndexError(f"No mipmap found with the following attributes: index={index}, layer={layer}, face={face}")
+
+    def mipmap_data(self, mipmap):
+        offset = mipmap.offset
+        size = mipmap.size
+
+        return self.data[offset:offset+size]
+
+    def save(self, outfile):
+        outfile.write(self.header)
+        outfile.write(self.data)
+

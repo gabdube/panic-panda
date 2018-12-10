@@ -13,8 +13,6 @@ image_name = name_generator("Image")
 
 class ImageSource(Enum):
     Ktx = 0
-    Array = 15
-    ArrayCube = 16
 
 
 class ImageCubemapFaces(Enum):
@@ -52,7 +50,6 @@ class Image(object):
         self.views = {}
 
         self.source_type = None
-        self.source_sub_type = None
         self.source = None
 
         self.flags = 0
@@ -72,7 +69,7 @@ class Image(object):
         image.source_type = ImageSource.Ktx
         image.source = f
 
-        image.format = f.format
+        image.format = f.vk_format
         image.extent = (f.width, f.height, f.depth)
         image.mipmaps_levels = f.mips_level
         image.texture_size = len(f.data)
@@ -80,8 +77,8 @@ class Image(object):
         if kwargs.get("nodefault", False) != True:
             subs_range = hvk.image_subresource_range(level_count = f.mips_level)
             image.views["default"] = ImageView.from_params(
-                view_type=f.target,
-                format=f.format,
+                view_type=f.vk_target,
+                format=f.vk_format,
                 subresource_range=subs_range
             )
 
@@ -117,7 +114,7 @@ class Image(object):
             file_path = str(p)[start::]
             f = opener.open(file_path)
 
-            check_mismatch(image, "format", f.format)
+            check_mismatch(image, "format", f.vk_format)
             check_mismatch(image, "extent", (f.width, f.height, f.depth))
             check_mismatch(image, "mipmaps_levels", f.mips_level)
             image.texture_size += len(f.data)
@@ -154,20 +151,12 @@ class Image(object):
         return image
 
     def mipmaps(self):
-        src, st, sst = self.source, self.source_type, self.source_sub_type
+        src, st = self.source, self.source_type
         total_offset, layer = 0, 0
 
         if st is ImageSource.Ktx:
             for mipmap in src.mipmaps:
-                yield MipmapData(mipmap.level, layer, mipmap.offset, mipmap.size, mipmap.width, mipmap.height)
-        elif st is ImageSource.ArrayCube or st is ImageSource.Array:
-            if sst is ImageSource.Ktx:
-                for sub_src in src:
-                    for mipmap in sub_src.mipmaps:
-                        yield MipmapData(mipmap.level, layer, total_offset+mipmap.offset, mipmap.size, mipmap.width, mipmap.height)
-                    
-                    layer += 1
-                    total_offset += len(sub_src.data)
+                yield MipmapData(mipmap.index, layer, mipmap.offset, mipmap.size, mipmap.width, mipmap.height)
         else:
             raise NotImplementedError(f"Mipmaps function not implemented for image of type {st}")
 

@@ -93,8 +93,8 @@ class MainScene(object):
         brdf_i = Image.from_ktx(KTXFile.open("brdfLUT.ktx"))
         scene.images.append(brdf_i)
 
-        diffuse_env = Image.from_cubemap_directory("papermill/diffuse/", "diffuse", KTXFile)
-        scene.images.append(diffuse_env)
+        #diffuse_env = Image.from_cubemap_directory("papermill/diffuse/", "diffuse", KTXFile)
+        #scene.images.append(diffuse_env)
 
         sampler = Sampler.from_params()
         scene.samplers.append(sampler)
@@ -107,7 +107,7 @@ class MainScene(object):
         shader1.name = "MainShader"
         shader1.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (0,0,1), "camera_pos": (0,0,5.5)}
         shader1.uniforms.brdf =     CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=sampler.id)
-        shader1.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
+        #shader1.uniforms.diff_env = CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=sampler.id)
         scene.shaders.append(shader1)
 
         shader2 = Shader.from_files("texture_debug/texture_debug.vert.spv", "texture_debug/texture_debug.frag.spv", "texture_debug/texture_debug.map.json")

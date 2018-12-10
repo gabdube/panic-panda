@@ -32,24 +32,10 @@ class DataImage(object):
     def as_ctypes_array(self):
         img = self.image
         src = img.source
-        st, sst = img.source_type, img.source_sub_type
+        st = img.source_type
 
         if st is ImageSource.Ktx:
             return hvk.array(c_ubyte, len(src.data), src.data)
-            
-        elif st is ImageSource.ArrayCube:
-            src_data = bytearray()
-
-            if sst is ImageSource.Ktx:
-                for sub_src in src:
-                    src_data.extend(sub_src.data)
-                return hvk.array(c_ubyte, len(src_data), src_data)
-        
-
-        if sst is not None:
-            raise NotImplementedError(f"Method `as_ctypes_array` is not implemented for images of type {st} with subtype of {sst}")
-        else:
-            raise NotImplementedError(f"Method `as_ctypes_array` is not implemented for images of type {st}")
 
     def _setup_image(self):
         engine, api, device = self.ctx
