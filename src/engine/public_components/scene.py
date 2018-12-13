@@ -1,10 +1,11 @@
 from . import Shader, Mesh, GameObject, Image, Sampler
+from ..base_types import Id
 
 
 class Scene(object):
 
     def __init__(self):
-        self.id = None
+        self._id = Id()
         self.shaders = ComponentArray(Shader)
         self.meshes = ComponentArray(Mesh)
         self.objects = ComponentArray(GameObject)
@@ -19,12 +20,25 @@ class Scene(object):
         self.on_window_resized = empty_w_events
         self.on_mouse_move = empty_w_events
         self.on_mouse_click = empty_w_events
+        self.on_key_pressed = empty_w_events
 
     @classmethod
     def empty(cls):
         scene = super().__new__(cls)
         scene.__init__()
         return scene
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id.value = value
+
+    @property
+    def loaded(self):
+        return self._id.value is not None
 
     def update_objects(self, *objects):
         self.update_obj_set.update(set(obj for obj in objects if isinstance(obj, GameObject)))
@@ -44,6 +58,16 @@ class ComponentArray(list):
 
         i.id = len(self)
         super().append(i)
+
+    def extend(self, *items):
+        offset = 0
+        for i in items:
+            if not isinstance(i, self.component_type):
+                raise TypeError(f"Item type must be {self.component_type.__qualname__}, got {type(i)}")
+            i.id = len(self) + offset
+            offset += 1
+
+        super().extend(items)
 
     def __repr__(self):
         return f"{self.component_type.__qualname__}({super().__repr__()})"

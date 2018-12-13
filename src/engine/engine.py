@@ -79,7 +79,7 @@ class Engine(object):
         self.window.destroy()
 
     def load(self, scene):
-        assert scene.id is None, "Scene is already loaded"
+        assert not scene.loaded, "Scene is already loaded"
         scene_data = DataScene(self, scene)
         scene.id = len(self.graph)
         scene.on_initialized()
@@ -112,6 +112,8 @@ class Engine(object):
                 scene.on_mouse_move(event, data)
             elif event is e.MouseClick:
                 scene.on_mouse_click(event, data)
+            elif event is e.KeyPress:
+                scene.on_key_pressed(event, data)
             elif event is e.WindowResized:
                 scene.on_window_resized(event, data)
                 self._update_swapchain(data)

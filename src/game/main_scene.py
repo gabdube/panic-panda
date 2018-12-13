@@ -8,8 +8,6 @@ from math import radians
 class MainScene(object):
 
     def __init__(self, engine):
-        width, height = engine.window.dimensions()
-
         self.engine = engine
         self.scene = s = Scene.empty()
         self.shader = None
@@ -19,6 +17,7 @@ class MainScene(object):
         self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
         self.mouse_state["pos"] = (0,0)
         
+        width, height = engine.window.dimensions()
         cam_pos = [0,0,-5.5]
         self.camera = { 
             "pos_vec": cam_pos,
@@ -127,27 +126,3 @@ class MainScene(object):
         self.shader = shader1
         self.objects = [ball_o, ball_o2]
         self.scene = scene
-
-        #
-        # Debug stuff
-        #
-
-        shader2_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
-        shader2 = Shader.from_files("texture_debug/texture_debug.vert.spv", "texture_debug/texture_debug.frag.spv", "texture_debug/texture_debug.map.json")
-        shader2.name = "DebugTexture"
-        #scene.shaders.append(shader2)
-
-        array = Image.from_ktx(KTXFile.open("papermill_diffuse2.ktx"))
-        array.name = "papermill_diffuse2.ktx"
-        #scene.images.append(array)
-
-        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader2_attributes_map)
-        #scene.meshes.append(plane_m)
-
-        plane_o = GameObject.from_components(shader = shader2.id, mesh = plane_m.id)
-        plane_o.name = "Debug Plane"
-        plane_o.model = Mat4.from_translation(0.0, 0.0, 3.0)
-        plane_o.uniforms.color_texture = CombinedImageSampler(image_id=array.id, view_name="default", sampler_id=sampler.id)
-        #scene.objects.append(plane_o)
-
-        #self.objects.append(plane_o)

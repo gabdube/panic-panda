@@ -1,4 +1,4 @@
-from ..base_types import name_generator
+from ..base_types import name_generator, Id
 from vulkan import vk
 
 
@@ -8,7 +8,7 @@ sampler_name = name_generator("Sampler")
 class Sampler(object):
 
     def __init__(self, **kw):
-        self.id = None
+        self._id = Id()
         self.name = kw.get('name', next(sampler_name))
 
         self.params = dict(
@@ -30,7 +30,21 @@ class Sampler(object):
         )
 
     @classmethod
+    def new(cls):
+        sampler = super().__new__(cls)
+        sampler.__init__()
+        return sampler
+
+    @classmethod
     def from_params(cls, **params):
         sampler = super().__new__(cls)
         sampler.__init__(**params)
         return sampler
+    
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id.value = value

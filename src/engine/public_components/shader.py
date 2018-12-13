@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from ..base_types import name_generator, UniformsMaps
+from ..base_types import name_generator, UniformsMaps, Id
 
 
 SHADER_ASSET_PATH = Path("./assets/shaders/")
@@ -10,7 +10,7 @@ shader_name = name_generator("Shader")
 class Shader(object):
 
     def __init__(self, vert, frag, mapping, **kwargs):
-        self.id = None
+        self._id = Id()
         self.name = kwargs.get('name', next(shader_name))
         self.vert = vert
         self.frag = frag
@@ -19,9 +19,8 @@ class Shader(object):
         self.uniforms = UniformsMaps()
 
     @classmethod
-    def from_files(cls, vert, frag, mapping):
-        shader = super().__new__(cls)
-        shader.id = None
+    def from_files(cls, vert, frag, mapping, **kwargs):
+        shader = super().__new__(cls, **kwargs)
 
         vert_spv = frag_spv = mapping_json = None
 
@@ -37,3 +36,11 @@ class Shader(object):
         shader.__init__(vert_spv, frag_spv, mapping_json)
 
         return shader
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id.value = value

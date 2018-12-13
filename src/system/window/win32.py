@@ -47,6 +47,22 @@ MK_RBUTTON = 0x0002
 MK_LBUTTON = 0x0001
 MK_MBUTTON = 0x0010
 
+VK_BACK = 0x8
+VK_TAB = 0x9
+VK_CLEAR = 0x0C
+VK_RETURN = 0x0D
+VK_SHIFT = 0x10
+VK_CONTROL = 0x11
+VK_MENU = 0x12
+VK_PAUSE = 0x13
+VK_CAPITAL = 0x14
+VK_KANA = 0x15
+VK_JUNJA = 0x17
+VK_FINAL = 0x18
+VK_HANJA = 0x19
+VK_KANJI = 0x19
+VK_ESCAPE = 0x1B
+VK_CONVERT = 0x1C
 VK_LEFT = 0x25
 VK_UP = 0x26
 VK_RIGHT = 0x27
@@ -54,6 +70,22 @@ VK_DOWN = 0x28
 
 k = e.Keys
 key_map = {
+    VK_BACK: k.Back,
+    VK_TAB: k.Tab,
+    VK_CLEAR: k.Clear, 
+    VK_RETURN: k.Return,
+    VK_SHIFT: k.Shift,
+    VK_CONTROL: k.Control,
+    VK_MENU: k.Menu,
+    VK_PAUSE: k.Pause,
+    VK_CAPITAL: k.Capital,
+    VK_KANA: k.Kana,
+    VK_JUNJA: k.Junja,
+    VK_FINAL: k.Final,
+    VK_HANJA: k.Hanja,
+    VK_KANJI: k.Kanji,
+    VK_ESCAPE: k.Escape,
+    VK_CONVERT: k.Convert,
     VK_LEFT: k.Left,
     VK_UP: k.Up,
     VK_RIGHT: k.Right,

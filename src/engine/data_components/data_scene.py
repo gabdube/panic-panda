@@ -128,27 +128,28 @@ class DataScene(object):
         h.begin_command_buffer(api, cmd, rc["begin_info"])
         h.begin_render_pass(api, cmd, render_pass_begin, vk.SUBPASS_CONTENTS_INLINE)
 
-        for obj in self.objects:
+        for data_obj in self.objects:
+            obj = data_obj.obj
 
-            if obj.pipeline is not None and pipeline_index != obj.pipeline:
-                pipeline_index = obj.pipeline
+            if data_obj.pipeline is not None and pipeline_index != data_obj.pipeline:
+                pipeline_index = data_obj.pipeline
                 hvk.bind_pipeline(api, cmd, pipelines[pipeline_index], vk.PIPELINE_BIND_POINT_GRAPHICS)
                 hvk.set_viewport(api, cmd, viewports)
                 hvk.set_scissor(api, cmd, scissors)
 
-            if obj.shader is not None and current_shader_index != obj.shader:
-                current_shader_index = obj.shader
-                current_shader = shaders[obj.shader]
+            if data_obj.shader is not None and current_shader_index != data_obj.shader:
+                current_shader_index = data_obj.shader
+                current_shader = shaders[data_obj.shader]
 
                 if len(current_shader.descriptor_sets) > 0:
                     hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, current_shader.descriptor_sets)
 
-            if obj.descriptor_sets is not None and len(obj.descriptor_sets) > 0:
-                hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, obj.descriptor_sets, firstSet=len(current_shader.descriptor_sets))
+            if data_obj.descriptor_sets is not None and len(data_obj.descriptor_sets) > 0:
+                hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, data_obj.descriptor_sets, firstSet=len(current_shader.descriptor_sets))
 
-            if obj.mesh is not None:
-                mesh = meshes[obj.mesh]
-                shader = shaders[obj.shader]
+            if data_obj.mesh is not None and not obj.hidden:
+                mesh = meshes[data_obj.mesh]
+                shader = shaders[data_obj.shader]
 
                 attributes_buffer = [meshes_buffer] * len(mesh.attribute_offsets)
                 attribute_offsets = mesh.attribute_offsets_for_shader(shader)

@@ -1,7 +1,7 @@
 from enum import Enum
 from engine.assets import GLBFile
 from . import TypedArray, TypedArrayFormat as AFmt
-from ..base_types import name_generator
+from ..base_types import name_generator, Id
 
 mesh_name = name_generator("Mesh")
 
@@ -18,7 +18,7 @@ class MeshPrefab(Enum):
 class Mesh(object):
 
     def __init__(self, **kwargs):
-        self.id = None
+        self._id = Id()
         self.name = kwargs.get('name', next(mesh_name))
         self.indices = None
         self.attributes = None
@@ -85,6 +85,14 @@ class Mesh(object):
             raise ValueError(f"Unknown built-in mesh: {builtin}")
 
         return Mesh.from_array(indices = indices, attributes = attributes)
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id.value = value
 
     def size(self):
         return self.indices.size_bytes + sum(map(lambda a: a.size_bytes, self.attributes.values()))

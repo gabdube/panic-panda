@@ -1,4 +1,4 @@
-from ..base_types import name_generator
+from ..base_types import name_generator, Id
 from ..assets import KTXFile, IMAGE_PATH
 from vulkan import vk, helpers as hvk
 from collections import namedtuple
@@ -44,7 +44,7 @@ class ImageView(object):
 class Image(object):
 
     def __init__(self, **kwargs):
-        self.id = None
+        self._id = Id()
         self.name = kwargs.get('name', next(image_name))
         
         self.views = {}
@@ -85,6 +85,14 @@ class Image(object):
             )
 
         return image
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id.value = value
 
     def texture_data(self):
         src, st = self.source, self.source_type

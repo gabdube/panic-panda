@@ -9,6 +9,21 @@ def name_generator(base):
         i += 1
         yield f"{base}_{i}"
 
+
+class Id(object):
+
+    __slots__ = ('value',)
+
+    def __init__(self):
+        self.value = None
+
+    def __index__(self):
+        return self.value
+    
+    def __int__(self):
+        return self.value
+        
+
 class UniformsMaps(object):
 
     # Used to filter out non data fields when initializing uniforms in `DataScene._setup_uniforms`
