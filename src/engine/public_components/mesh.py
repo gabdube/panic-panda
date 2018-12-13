@@ -84,7 +84,7 @@ class Mesh(object):
         else:
             raise ValueError(f"Unknown built-in mesh: {builtin}")
 
-        return Mesh.from_array(indices = indices, attributes = attributes)
+        return Mesh.from_array(indices = indices, attributes = attributes, **params)
 
     @property
     def id(self):

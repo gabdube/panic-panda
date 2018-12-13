@@ -113,7 +113,9 @@ class Image(object):
 
         if st is ImageSource.Ktx:
             for mipmap in src.mipmaps:
-                yield MipmapData(mipmap.index, mipmap.layer, offset, mipmap.size, mipmap.width, mipmap.height)
+                # Fix to work with cubemaps ( In Vulkan, cubemap faces are interpreted as array layers )
+                layer = mipmap.layer + mipmap.face
+                yield MipmapData(mipmap.index, layer, offset, mipmap.size, mipmap.width, mipmap.height)
                 offset += mipmap.size
         else:
             raise NotImplementedError(f"Mipmaps function not implemented for image of type {st}")

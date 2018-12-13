@@ -20,7 +20,7 @@ class Shader(object):
 
     @classmethod
     def from_files(cls, vert, frag, mapping, **kwargs):
-        shader = super().__new__(cls, **kwargs)
+        shader = super().__new__(cls)
 
         vert_spv = frag_spv = mapping_json = None
 
@@ -33,7 +33,7 @@ class Shader(object):
         with open(SHADER_ASSET_PATH / mapping, 'r') as f:
             mapping_json = json.load(f)
 
-        shader.__init__(vert_spv, frag_spv, mapping_json)
+        shader.__init__(vert_spv, frag_spv, mapping_json, **kwargs)
 
         return shader
 

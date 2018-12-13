@@ -80,22 +80,32 @@ class DebugTexturesScene(object):
     def _setup_assets(self):
         scene = self.scene
 
-        simple_name = "debug_texture/debug_texture"
-        array_name = "debug_texture_array/debug_texture_array"
-        cube_name = "debug_cube/debug_cube"
-        
-        shader_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
-        shader_simple = Shader.from_files(f"{simple_name}.vert.spv",  f"{simple_name}.frag.spv", f"{simple_name}.map.json", name="DebugTexture")
-        shader_array = Shader.from_files(f"{array_name}.vert.spv",  f"{array_name}.frag.spv", f"{array_name}.map.json", name="DebugArrayTexture")
-        #shader_cube = Shader.from_files(f"{cube_name}.vert.spv",  f"{cube_name}.frag.spv", f"{cube_name}.map.json", name="DebugCubeTexture")
-
-        sampler = Sampler.new()
-        
+        # Textures
         texture = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="SimpleTexture")
         array_texture = Image.from_ktx(KTXFile.open("papermill_diffuse_array.ktx"), name="ArrayTexture")
+        cube_texture = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="CubeTexture")
 
-        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
+        # Samplers
+        sampler = Sampler.new()
+
+        # Shaders
+        simple_name = "debug_texture/debug_texture"
+        array_name = "debug_texture_array/debug_texture_array"
+        cube_name = "debug_texture_cube/debug_texture_cube"
         
+        shader_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
+        shader_attributes_map_2 = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
+
+        shader_simple = Shader.from_files(f"{simple_name}.vert.spv",  f"{simple_name}.frag.spv", f"{simple_name}.map.json", name="DebugTexture")
+        shader_array = Shader.from_files(f"{array_name}.vert.spv",  f"{array_name}.frag.spv", f"{array_name}.map.json", name="DebugArrayTexture")
+        shader_cube = Shader.from_files(f"{cube_name}.vert.spv",  f"{cube_name}.frag.spv", f"{cube_name}.map.json", name="DebugCubeTexture")
+        shader_cube.uniforms.cube_texture = CombinedImageSampler(image_id=cube_texture.id, view_name="default", sampler_id=sampler.id)
+        
+        # Meshes
+        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
+        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_attributes_map_2, name="SphereMesh")
+      
+        # Objects
         plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
         plane1.model = Mat4.from_translation(0.0, 0.0, 3.0)
         plane1.uniforms.color_texture = CombinedImageSampler(image_id=texture.id, view_name="default", sampler_id=sampler.id)
@@ -103,13 +113,17 @@ class DebugTexturesScene(object):
         plane2 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
         plane2.model = Mat4.from_translation(0.0, 0.0, 3.0)
         plane2.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
-        
 
-        scene.shaders.extend(shader_simple, shader_array)
+        sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTexture", hidden=True)
+        sphere.model = Mat4.from_translation(0.0, 0.0, 3.0)
+        sphere.uniforms.view = {"normal": Mat4().data, "model": Mat4().data}
+
+        # Add objects to scene
+        scene.shaders.extend(shader_simple, shader_array, shader_cube)
         scene.samplers.extend(sampler)
-        scene.images.extend(texture, array_texture)
-        scene.meshes.extend(plane_m)
-        scene.objects.extend(plane1, plane2)
+        scene.images.extend(texture, array_texture, cube_texture)
+        scene.meshes.extend(plane_m, sphere_m)
+        scene.objects.extend(plane1, plane2, sphere)
 
         self.visible_index = 0
-        self.objects.extend((plane1, plane2))
+        self.objects.extend((plane1, plane2, sphere))
