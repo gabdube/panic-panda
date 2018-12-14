@@ -2,12 +2,14 @@ from engine import Shader, GameObject, Scene, Sampler, Image, CombinedImageSampl
 from engine.assets import GLBFile, KTXFile
 from utils.mat4 import Mat4
 from system import events as evt
+from vulkan import vk
 from math import radians, sin, cos
 
 
 class DebugTexturesScene(object):
 
-    def __init__(self, engine):
+    def __init__(self, app, engine):
+        self.app = app
         self.engine = engine
         self.scene = s = Scene.empty()
         self.visible_index = None
@@ -36,7 +38,7 @@ class DebugTexturesScene(object):
         # Callbacks
         s.on_initialized = self.init_scene
         s.on_window_resized = self.update_perspective
-        s.on_key_pressed = self.switch_objects
+        s.on_key_pressed = self.handle_keypress
         s.on_mouse_move = s.on_mouse_click = self.move_camera
 
     def init_scene(self):
@@ -70,7 +72,15 @@ class DebugTexturesScene(object):
 
         self.update_objects()
 
-    def switch_objects(self, event, data):
+    def handle_keypress(self, event, data):
+        k = evt.Keys
+
+        if data.key in evt.NumKeys:
+            self.app.switch_scene(data) 
+        else:
+            self.switch_objects(data)
+
+    def switch_objects(self, data):
         k = evt.Keys
         objects, visible = self.objects, self.visible_index
 
@@ -125,7 +135,7 @@ class DebugTexturesScene(object):
         cube_texture = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="CubeTexture")
 
         # Samplers
-        sampler = Sampler.new()
+        sampler = Sampler.from_params(address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
 
         # Shaders
         simple_name = "debug_texture/debug_texture"

@@ -7,7 +7,8 @@ from math import radians
 
 class MainScene(object):
 
-    def __init__(self, engine):
+    def __init__(self, app, engine):
+        self.app = app
         self.engine = engine
         self.scene = s = Scene.empty()
         self.shader = None
@@ -33,6 +34,7 @@ class MainScene(object):
         s.on_window_resized = self.update_perspective
         s.on_mouse_move = self.move_camera
         s.on_mouse_click = self.move_camera
+        s.on_key_pressed = self.handle_keypress
 
     def init_scene(self):
         self.scene.update_shaders(self.shader)
@@ -82,6 +84,11 @@ class MainScene(object):
                 self.update_objects()
 
             ms["pos"] = data
+
+    def handle_keypress(self, event, data):
+        k = evt.Keys
+        if data.key in evt.NumKeys:
+            self.app.switch_scene(data) 
 
     def _load_assets(self):
         scene = self.scene

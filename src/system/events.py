@@ -37,5 +37,9 @@ MouseMoveData = namedtuple("MouseMoveData", "x y")
 KeyPress = Events.KeyPress
 KeyPressData = namedtuple("KeyPressData", "key")
 
-keys_values = "Back Tab Clear Return Shift Control Menu Pause Capital Kana Junja Final Hanja Kanji Escape Convert Left Up Right Down"
+keys_values = "Back Tab Clear Return Shift Control Menu Pause Capital Kana Junja Final Hanja Kanji Escape Convert " \
+"Left Up Right Down " \
+"_0 _1 _2 _3 _4 _5 _6 _7 _8 _9"
 Keys = Enum("Keys", keys_values)
+
+NumKeys = (Keys._0, Keys._1, Keys._2, Keys._3, Keys._4, Keys._5, Keys._6, Keys._8, Keys._9)

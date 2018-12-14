@@ -67,6 +67,16 @@ VK_LEFT = 0x25
 VK_UP = 0x26
 VK_RIGHT = 0x27
 VK_DOWN = 0x28
+VK_0 = 0x30
+VK_1 = 0x31
+VK_2 = 0x32
+VK_3 = 0x33
+VK_4 = 0x34
+VK_5 = 0x35
+VK_6 = 0x36
+VK_7 = 0x37
+VK_8 = 0x38
+VK_9 = 0x39
 
 k = e.Keys
 key_map = {
@@ -89,7 +99,17 @@ key_map = {
     VK_LEFT: k.Left,
     VK_UP: k.Up,
     VK_RIGHT: k.Right,
-    VK_DOWN: k.Down
+    VK_DOWN: k.Down,
+    VK_0: k._0,
+    VK_1: k._1,
+    VK_2: k._2,
+    VK_3: k._3,
+    VK_4: k._4,
+    VK_5: k._5,
+    VK_6: k._6,
+    VK_7: k._7,
+    VK_8: k._8,
+    VK_9: k._9,
 }
 
 WS_CLIPCHILDREN = 0x02000000
