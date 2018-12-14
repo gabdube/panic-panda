@@ -206,6 +206,9 @@ class Engine(object):
         api, physical_device = self.api, self.physical_device
         info = self.info
 
+        properties = hvk.physical_device_properties(api, physical_device)
+        info["limits"] = properties.limits
+
         depth_formats = (vk.FORMAT_D32_SFLOAT_S8_UINT, vk.FORMAT_D24_UNORM_S8_UINT, vk.FORMAT_D16_UNORM_S8_UINT)
         for fmt in depth_formats:
             prop = hvk.physical_device_format_properties(api, physical_device, fmt)

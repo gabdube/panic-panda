@@ -72,6 +72,7 @@ class GLBFile(object):
         length = acc["type"]
 
         if length == "SCALAR": length = 1
+        elif length == "VEC2": length = 2
         elif length == "VEC3": length = 3
         elif length == "VEC4": length = 4
         else: 

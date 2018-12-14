@@ -99,7 +99,6 @@ class Mat4(Structure):
 
         return obj
 
-
     def rotate(self, rad, axis):
         x, y, z = axis
         length = sqrt(x * x + y * y + z * z)

@@ -9,7 +9,7 @@ layout (location = 0) out vec4 outFragColor;
 
 layout (set=0, binding=1) uniform sampler2DArray color_texture;
 layout (set=0, binding=2) uniform DebugParam {
-    float layer;
+    vec4 layer;
 } params;
 
 

@@ -8,7 +8,7 @@
         ]},
         {"name": "color_texture", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
         {"name": "debug_params", "set": 0, "binding": 2, "count": 1, "stage": 16, "type": 6, "fields": [
-            {"name": "layer", "type": 6, "count": 1}
+            {"name": "layer", "type": 5, "count": 1}
         ]}
     ],
     "bindings": [
