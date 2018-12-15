@@ -14,7 +14,7 @@ if DEBUG:
     try:
         from PyQt5.QtWidgets import QApplication
         from .debug_ui import DebugUI
-    except FileExistsError:
+    except ImportError:
         DebugUI = lambda app: print("PYQT5 not found. Debug UI will not be available")
 else:
     DebugUI = lambda app: None
@@ -79,7 +79,9 @@ class Engine(object):
         self.window.destroy()
 
     def load(self, scene):
-        assert not scene.loaded, "Scene is already loaded"
+        if scene.loaded:
+            return
+
         scene_data = DataScene(self, scene)
         scene.id = len(self.graph)
         scene.on_initialized()

@@ -19,6 +19,7 @@ class PanicPanda(object):
         if data.key is keys._1:
             engine.activate(self.main.scene) 
         elif data.key is keys._2:
+            engine.load(self.debug_texture.scene)
             engine.activate(self.debug_texture.scene)
         else:
             print(f"WARNING: bad scene index {index}")
@@ -26,7 +27,6 @@ class PanicPanda(object):
     def run(self):
         engine = self.engine
         engine.load(self.main.scene)
-        engine.load(self.debug_texture.scene)
         engine.activate(self.main.scene)
 
         while engine.running:

@@ -9,15 +9,19 @@ Usage:
 
 Output types:
 
-* array: Outputs a texture file representing a 2D texture array. Index of inputs file are used for array indices
-* cube: Output a cubemap file. The order of inputs must be "+X,-X,+Y,-Y,+Z,-Z" aka "Right, Left, Top, Bottom, Front, Back"
+* `--array`: Outputs a texture file representing a 2D texture array. Index of inputs file are used for array indices
+* `--cube`: Output a cubemap file. The order of inputs must be "+X,-X,+Y,-Y,+Z,-Z" aka "Right, Left, Top, Bottom, Front, Back"
 
 
 Auto Mode:
 
-Auto mode lets you pass a wildcard pattern instead of a list of input files. 
+Auto mode (`--auto`) lets you pass a wildcard pattern instead of a list of input files. 
 Ktxmerge use the files name in order to sort the inputs.  See the "Wildcard patterns" section for more info
 
+External mipmaps:
+
+If each mipmaps of the files are stored in separate files, passing the parameter `--mipmaps` will look for those files and 
+pack them in the final output. Due to the high amount of files, this mode is obviously better used with `--auto`
 
 Wildcard patterns:
 
@@ -25,6 +29,9 @@ example with pattern "item_*"
 
 * array: item_1.ktx, item_2.ktx, item_3.ktx ... 
 * cube: item_right.ktx, item_left.ktx, item_top.ktx ...
+
+* array --mipmaps: item_1_0.ktx, item_1_1.ktx, item_2_0.ktx ... 
+* cube --mipmaps: item_right_0.ktx, item_right_1.ktx, item_left_0.ktx ...
 
 
 Examples:
@@ -41,6 +48,8 @@ Examples:
 `python ktxmerge.py --cube --auto --output <filename> --input <input wildcard>`
 `python ktxmerge.py --cube --auto --output cube.ktx --input foo_*`
 
+`python ktxmerge.py --cube --auto --mipmaps --output <filename> --input <input wildcard>`
+`python ktxmerge.py --cube --auto --mipmaps --output cube.ktx --input foo_*`
 
 """
 
@@ -257,8 +266,12 @@ def check_mismatch(obj, member, value):
         raise KTXException(f"Property mismatch for \"{member}\": Expected: \"{obj_value}\" / Actual: \"{value}\"")
 
 
-def auto_input(pattern, cube):
-    array_re = re.compile("^.+?(\d+)\.ktx")
+def auto_input(pattern, cube, mipmaps):
+    if mipmaps:
+        array_re = re.compile("^.+?(\d+)_(\d+)\.ktx")
+    else:
+        array_re = re.compile("^.+?(\d+)\.ktx")
+
     faces = (("_back", CubemapFaces.Back), ("_bottom", CubemapFaces.Bottom), ("_front", CubemapFaces.Front), 
              ("_left", CubemapFaces.Left), ("_right", CubemapFaces.Right), ("_top", CubemapFaces.Top))
 
@@ -285,15 +298,17 @@ def auto_input(pattern, cube):
 
     return paths
 
+
 if __name__ == "__main__":
     try:
         argv = sys.argv
         array = "--array" in argv
         cube = "--cube" in argv
         auto = "--auto" in argv
+        mipmaps = "--mipmaps" in argv
 
         if auto:
-            inputs = auto_input(argv[argv.index("--input")+1], cube) 
+            inputs = auto_input(argv[argv.index("--input")+1], cube, mipmaps) 
         else:
             inputs = argv[argv.index("--input")+1::]
 
@@ -304,8 +319,8 @@ if __name__ == "__main__":
 
         output = argv[argv.index("--output")+1]
 
-        with open(output, 'wb') as out:
-            out_file.save(out)
+        #with open(output, 'wb') as out:
+        #    out_file.save(out)
 
     except KTXException as e:
         print(f"ERROR: {e}")

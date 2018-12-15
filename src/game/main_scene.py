@@ -113,23 +113,6 @@ class MainScene(object):
         shader1.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
         scene.shaders.append(shader1)
 
-        # Meshes
-        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader1_attributes_map)
-        scene.meshes.append(sphere_m)
-
-        # Objects
-        ball_o = GameObject.from_components(shader = shader1.id, mesh = sphere_m.id)
-        ball_o.name = "Ball"
-        ball_o.model = Mat4.from_translation(1.5, 0, 0)
-        ball_o.uniforms.mat = {"color": (0.7, 0.2, 0.2, 1.0), "roughness_metallic": (1.0, 0.1)}
-        scene.objects.append(ball_o)
-
-        ball_o2 = GameObject.from_components(shader = shader1.id, mesh = sphere_m.id)
-        ball_o2.name = "Ball2"
-        ball_o2.model = Mat4.from_translation(-1.5, 0, 0)
-        ball_o2.uniforms.mat = {"color": (0.2, 0.7, 0.2, 1.0), "roughness_metallic": (0.2, 1.0)}
-        scene.objects.append(ball_o2)
-
         self.shader = shader1
-        self.objects = [ball_o, ball_o2]
+        self.objects = []
         self.scene = scene

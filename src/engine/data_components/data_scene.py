@@ -233,6 +233,7 @@ class DataScene(object):
             staging_alloc = staging_buffer = meshes_alloc = meshes_buffer = images_alloc = None
         else:
             staging_alloc, staging_buffer = self._setup_objects_staging(staging_image_offset, data_meshes, data_images)
+            meshes_alloc = meshes_buffer = images_alloc = None
             if len(meshes) > 0:
                 meshes_alloc, meshes_buffer = self._setup_meshes_resources(staging_alloc, staging_buffer, staging_mesh_offset)
             if len(images) > 0:
@@ -488,6 +489,19 @@ class DataScene(object):
 
         pool_sizes, max_sets = {}, 0
 
+        for data_shader in shaders:
+            if data_shader.descriptor_set_layouts is None:
+                continue
+
+            for dset_layout in data_shader.global_layouts:
+                for dtype, dcount in dset_layout.pool_size_counts:
+                    if dtype in pool_sizes:
+                        pool_sizes[dtype] += dcount
+                    else:
+                        pool_sizes[dtype] = dcount
+            
+                max_sets += 1
+
         for shader_index, objects in self._group_objects_by_shaders():
             shader = shaders[shader_index]
             object_count = len(objects)
@@ -503,15 +517,6 @@ class DataScene(object):
                         pool_sizes[dtype] = dcount * object_count
             
                 max_sets += object_count
-
-            for dset_layout in shader.global_layouts:
-                for dtype, dcount in dset_layout.pool_size_counts:
-                    if dtype in pool_sizes:
-                        pool_sizes[dtype] += dcount
-                    else:
-                        pool_sizes[dtype] = dcount
-            
-                max_sets += 1
 
         if len(pool_sizes) == 0:
             self.descriptor_pool = None
@@ -533,24 +538,39 @@ class DataScene(object):
 
         uniforms_buffer_size = 0
 
+        for data_shader in shaders:
+            uniforms_buffer_size += sum( l.struct_map_size_bytes for l in data_shader.global_layouts )
+            set_layouts_global = [ l.set_layout for l in data_shader.global_layouts ]
+
+            if len(set_layouts_global) == 0:
+                data_shader.descriptor_sets = []
+                continue
+
+            descriptor_sets = hvk.allocate_descriptor_sets(api, device, hvk.descriptor_set_allocate_info(
+                descriptor_pool = descriptor_pool,
+                set_layouts = set_layouts_global
+            ))
+
+            data_shader.descriptor_sets = descriptor_sets
+
         for shader_index, objects in self._group_objects_by_shaders():
             shader = shaders[shader_index]
             objlen = len(objects)
             
             # Uniforms buffer size
             uniforms_buffer_size += sum( l.struct_map_size_bytes for l in shader.local_layouts ) * objlen
-            uniforms_buffer_size += sum( l.struct_map_size_bytes for l in shader.global_layouts )
-
+            
             # Descriptor sets allocations
-            set_layouts_global = [ l.set_layout for l in shader.global_layouts ]
             set_layouts_local = [ l.set_layout for l in shader.local_layouts ] * objlen
+            if len(set_layouts_local) == 0:
+                for obj in objects:
+                    obj.descriptor_sets = []
+                continue
+
             descriptor_sets = hvk.allocate_descriptor_sets(api, device, hvk.descriptor_set_allocate_info(
                 descriptor_pool = descriptor_pool,
-                set_layouts = set_layouts_global + set_layouts_local
+                set_layouts = set_layouts_local
             ))
-
-            # Save the global layouts to the shader
-            shader.descriptor_sets = descriptor_sets[0: len(set_layouts_global)]
 
             # Save the local layouts to the objects
             step = len(tuple(shader.local_layouts))
@@ -558,9 +578,8 @@ class DataScene(object):
                 continue
                 
             end = len(descriptor_sets)
-            start = len(set_layouts_global)
             iter_objects = iter(objects)
-            for i in range(start, end, step):
+            for i in range(0, end, step):
                 obj = next(iter_objects)
                 obj.descriptor_sets = descriptor_sets[i:i+step]
 
@@ -648,12 +667,12 @@ class DataScene(object):
 
             return update_infos, write_sets
 
-        for shader_index, objects in self._group_objects_by_shaders():
-            data_shader = shaders[shader_index]
-
-            # Global descriptor sets
+        for data_shader in shaders:
             data_shader.write_sets_update_infos, data_shader.write_sets = map_write_sets(data_shader, data_shader.shader, data_shader.global_layouts)
             hvk.update_descriptor_sets(api, device, data_shader.write_sets, ())
+
+        for shader_index, objects in self._group_objects_by_shaders():
+            data_shader = shaders[shader_index]
 
             # Local descriptor sets
             for data_obj in objects:
@@ -746,10 +765,10 @@ class DataScene(object):
             update_list.append( (getattr(uniforms, name), offset) )
 
         def process_uniforms(items):
-            for x, y in items:
-                uniforms = x.uniforms
+            for obj, data_obj in items:
+                uniforms = obj.uniforms
                 for name in uniforms.updated_member_names:
-                    read_offets(uniforms, y, name)
+                    read_offets(uniforms, data_obj, name)
                 uniforms.updated_member_names.clear()
 
         process_uniforms(objects)
