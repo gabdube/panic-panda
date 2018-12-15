@@ -92,7 +92,8 @@ class DebugTexturesScene(object):
             visible += 1
         
         if visible == 1:
-            array_texture = objects[1]
+            # Change array texture layer
+            array_texture = objects[visible]
             debug = array_texture.uniforms.debug_params
             layer =  debug.layer[0]
             if data.key == k.Up and layer < 5:
@@ -101,6 +102,18 @@ class DebugTexturesScene(object):
                 debug.layer[0] -= 1
             
             self.scene.update_objects(array_texture)
+        elif visible == 3:
+            # Change cubemap mipmap level
+            cubemap_lod_texture = objects[visible]
+            debug = cubemap_lod_texture.uniforms.debug_params
+            lod = debug.lod[0]
+            if data.key == k.Up and lod < 9:
+                debug.lod[0] += 0.5
+            elif data.key == k.Down and lod > 0:
+                debug.lod[0] -= 0.5
+
+
+            self.scene.update_objects(cubemap_lod_texture)
 
         objects[visible].hidden = False
         self.visible_index = visible
@@ -133,9 +146,15 @@ class DebugTexturesScene(object):
         texture = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="SimpleTexture")
         array_texture = Image.from_ktx(KTXFile.open("papermill_diffuse_array.ktx"), name="ArrayTexture")
         cube_texture = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="CubeTexture")
+        cube_texture_lod = Image.from_ktx(KTXFile.open("papermill_specular.ktx"), name="CubeTextureLod")
 
         # Samplers
         sampler = Sampler.from_params(address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
+        sampler_lod = Sampler.from_params(
+            address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            max_lod=cube_texture_lod.mipmaps_levels
+        )
 
         # Shaders
         simple_name = "debug_texture/debug_texture"
@@ -165,12 +184,16 @@ class DebugTexturesScene(object):
         sphere.model = Mat4()
         sphere.uniforms.cube_texture = CombinedImageSampler(image_id=cube_texture.id, view_name="default", sampler_id=sampler.id)
 
+        sphere_lod = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTextureLod", hidden=True)
+        sphere_lod.model = Mat4()
+        sphere_lod.uniforms.cube_texture = CombinedImageSampler(image_id=cube_texture_lod.id, view_name="default", sampler_id=sampler_lod.id)
+
         # Add objects to scene
         scene.shaders.extend(shader_simple, shader_array, shader_cube)
-        scene.samplers.extend(sampler)
-        scene.images.extend(texture, array_texture, cube_texture)
+        scene.samplers.extend(sampler, sampler_lod)
+        scene.images.extend(texture, array_texture, cube_texture, cube_texture_lod)
         scene.meshes.extend(plane_m, sphere_m)
-        scene.objects.extend(plane1, plane2, sphere)
+        scene.objects.extend(plane1, plane2, sphere, sphere_lod)
 
         self.visible_index = 0
-        self.objects.extend((plane1, plane2, sphere))
+        self.objects.extend((plane1, plane2, sphere, sphere_lod))

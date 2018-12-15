@@ -21,7 +21,7 @@ Ktxmerge use the files name in order to sort the inputs.  See the "Wildcard patt
 External mipmaps:
 
 If each mipmaps of the files are stored in separate files, passing the parameter `--mipmaps` will look for those files and 
-pack them in the final output. Due to the high amount of files, this mode is obviously better used with `--auto`
+pack them in the final output. Due to the high amount of files, this mode can only be used with `--auto`
 
 Wildcard patterns:
 
@@ -134,7 +134,7 @@ class KTXFile(object):
         mip_extent_width, mip_extent_height = self.width, self.height
 
         for mipmap_index in range(self.mips_level):
-            mipmap_size_bytes = data[data_offset:4].cast("I")[0]
+            mipmap_size_bytes = data[data_offset:data_offset+4].cast("I")[0]
             data_offset += 4
 
             for layer_index in range(self.array_element):
@@ -149,11 +149,17 @@ class KTXFile(object):
 
     @staticmethod
     def merge_2d(*input, **attr):
+        extern_mipmap_count = attr["extern_mipmap_count"]
+        extern_mipmaps = extern_mipmap_count > 0
+
         header = { key: None for key, _ in KtxHeader._fields_ }
         header["number_of_faces"] = attr.get('number_of_faces', 1)
         header["number_of_array_elements"] = attr.get('number_of_array_elements', 0)
         header["pixel_depth"] = 0
         header["endianness"] = 0x04030201
+
+        if extern_mipmaps:
+            header["number_of_mipmap_levels"] = extern_mipmap_count
 
         # Read and validate the files
         files = []
@@ -166,9 +172,18 @@ class KTXFile(object):
             if f.faces > 1:
                 raise KTXException(f"File {f.file_name} is a cubemap")
 
-            check_mismatch(header, "pixel_width", f.width)
-            check_mismatch(header, "pixel_height", f.width)
-            check_mismatch(header, "number_of_mipmap_levels", f.mips_level)
+            if extern_mipmaps and f.mips_level > 1:
+                raise KTXException(f"File {f.file_name} already has mipmaps")
+
+            # Skip size check with extern mipmaps because I'm lazy
+            if not extern_mipmaps:
+                check_mismatch(header, "pixel_width", f.width)
+                check_mismatch(header, "pixel_height", f.height)
+                check_mismatch(header, "number_of_mipmap_levels", f.mips_level)
+            elif extern_mipmaps and header["pixel_width"] is None:
+                header["pixel_width"] = f.width
+                header["pixel_height"] = f.height
+
             check_mismatch(header, "gl_type", f.header.gl_type)
             check_mismatch(header, "gl_type_size", f.header.gl_type_size)
             check_mismatch(header, "gl_format", f.header.gl_format)
@@ -184,27 +199,57 @@ class KTXFile(object):
 
         # Write data
         data = BytesIO()
-        for mipmap_level in range(header.number_of_mipmap_levels):
-            for array_layer, file in enumerate(files):
-                mipmap = file.find_mipmap(mipmap_level)
+        if extern_mipmaps:
+            # Mipmaps are outside the files
+            mips_w = max(map(lambda i: i.width, files))
+            while mips_w != 0:
+                print("Mipmap level", mips_w)
 
-                if array_layer == 0:
-                    data.write(c_uint32(mipmap.size))
-                    
-                data.write(file.mipmap_data(mipmap))
+                for array_layer, file in enumerate(filter(lambda f: f.width == mips_w, files)):
+                    print(array_layer, file.file_name)
+                    mipmap = file.find_mipmap(0)
+                    #print(mipmap.size)
+
+                    if array_layer == 0:
+                        data.write(c_uint32(mipmap.size))
+                        write_mipmap_size = False
+
+                    data.write(file.mipmap_data(mipmap))
+                
+                mips_w //= 2
+                
+        else:
+            # Mipmaps are inside the files
+            for mipmap_level in range(header.number_of_mipmap_levels):
+                print("Mipmap level", mipmap_level)
+                for array_layer, file in enumerate(files):
+                    print(array_layer, file.file_name)
+                    mipmap = file.find_mipmap(mipmap_level)
+
+                    if array_layer == 0:
+                        data.write(c_uint32(mipmap.size))
+                        
+                    data.write(file.mipmap_data(mipmap))
 
         return KTXFile("output.ktx", header, memoryview(data.getvalue()))
 
     @staticmethod
-    def merge_array(*inputs):
-        return KTXFile.merge_2d(*inputs, number_of_array_elements=len(inputs))
+    def merge_array(*inputs, extern_mipmap_count=0):
+        array_len = len(inputs)
+
+        if extern_mipmap_count > 0:
+            array_len //= extern_mipmap_count
+
+        return KTXFile.merge_2d(*inputs, number_of_array_elements=array_len, extern_mipmap_count=extern_mipmap_count)
 
     @staticmethod
-    def merge_cube(*inputs):
-        if len(inputs) != 6:
+    def merge_cube(*inputs, extern_mipmap_count=0):
+        if extern_mipmap_count == 0 and len(inputs) != 6:
             raise KTXException(f"Cubemap must have exactly 6 input files, go {len(inputs)}")
+        elif extern_mipmap_count > 0 and (len(inputs) // extern_mipmap_count) != 6:
+            raise KTXException(f"Cubemap must have exactly 6 input files, go {len(inputs) // extern_mipmap_count}")
 
-        return KTXFile.merge_2d(*inputs, number_of_faces=6)
+        return KTXFile.merge_2d(*inputs, number_of_faces=6, extern_mipmap_count=extern_mipmap_count)
 
     @staticmethod
     def open(path):
@@ -269,6 +314,7 @@ def check_mismatch(obj, member, value):
 def auto_input(pattern, cube, mipmaps):
     if mipmaps:
         array_re = re.compile("^.+?(\d+)_(\d+)\.ktx")
+        cube_mipmaps_re = re.compile("^.+?(\d+)\.ktx")
     else:
         array_re = re.compile("^.+?(\d+)\.ktx")
 
@@ -278,8 +324,12 @@ def auto_input(pattern, cube, mipmaps):
     def array_sort(i):
         match = next(array_re.finditer(str(i)), None)
         if match is None:
-            raise KTXException(f"Cannot find array index from filename {i}.")
-        return int(match.group(1))
+            raise KTXException(f"Cannot find array index or mipmap index from filename {i}.")
+
+        if mipmaps:
+            return int(match.group(1)), int(match.group(2))
+        else:
+            return int(match.group(1))
 
     def cube_sort(i):
         file_name = str(i).lower()
@@ -287,7 +337,14 @@ def auto_input(pattern, cube, mipmaps):
         if face is None:
             raise ValueError(f"Impossible to find cubemap face from filename {file_name}.")
 
-        return face.value
+        if mipmaps:
+            match = next(cube_mipmaps_re.finditer(str(i)), None)
+            if match is None:
+                raise KTXException(f"Cannot find mipmap index from filename {i}.")
+
+            return face.value, int(match.group(1))
+        else:
+            return face.value
 
     paths = list(Path('.').glob(pattern+'.ktx'))
 
@@ -298,6 +355,16 @@ def auto_input(pattern, cube, mipmaps):
 
     return paths
 
+def extern_mipmap_count(pattern, cube):
+    mipmap_count_re = re.compile("^.+?(\d+)\.ktx")
+
+    mip_levels = []
+    for path in Path('.').glob(pattern+'.ktx'):
+        match = next(mipmap_count_re.finditer(str(path)), None)
+        mip_levels.append(int(match.group(1)))
+
+    return max(mip_levels)+1
+
 
 if __name__ == "__main__":
     try:
@@ -307,20 +374,30 @@ if __name__ == "__main__":
         auto = "--auto" in argv
         mipmaps = "--mipmaps" in argv
 
+        if mipmaps and not auto:
+            raise KTXException("Cannot use --mipmaps without --auto")
+
+        mipmaps_count = 0
+        if mipmaps:
+            auto_pattern = argv[argv.index("--input")+1]
+            mipmaps_count = extern_mipmap_count(auto_pattern, cube)
+
         if auto:
             inputs = auto_input(argv[argv.index("--input")+1], cube, mipmaps) 
         else:
             inputs = argv[argv.index("--input")+1::]
 
         if array:
-            out_file = KTXFile.merge_array(*inputs)
+            out_file = KTXFile.merge_array(*inputs, extern_mipmap_count=mipmaps_count)
         elif cube:
-            out_file = KTXFile.merge_cube(*inputs)
+            out_file = KTXFile.merge_cube(*inputs, extern_mipmap_count=mipmaps_count)
 
         output = argv[argv.index("--output")+1]
 
-        #with open(output, 'wb') as out:
-        #    out_file.save(out)
+        with open(output, 'wb') as out:
+            out_file.save(out)
+
+        print(f"Output saved to {output}")
 
     except KTXException as e:
         print(f"ERROR: {e}")

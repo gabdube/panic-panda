@@ -9,15 +9,19 @@ layout (location = 0) out vec4 outColor;
 
 layout (set=0, binding=0) uniform samplerCube cubeTexture;
 
+layout (set=0, binding=2) uniform DebugParam {
+    vec4 lod;
+} params;
 
 void main() 
 {
     const float PI = 3.141592653589793238462643383;
+    float lod = params.lod.x;
 
     vec3 cubmapTexCoords;
     cubmapTexCoords.x = -sin(inUv.x * PI * 2.0) * sin(inUv.y * PI);
     cubmapTexCoords.y = -cos(inUv.y * PI);
     cubmapTexCoords.z = -cos(inUv.x * PI * 2.0) * sin(inUv.y * PI);
 
-    outColor = texture(cubeTexture, cubmapTexCoords);
+    outColor = textureLod(cubeTexture, cubmapTexCoords, 5.0);
 }

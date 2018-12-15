@@ -97,7 +97,7 @@ class KTXFile(object):
         mip_extent_width, mip_extent_height = self.width, self.height
 
         for mipmap_index in range(self.mips_level):
-            mipmap_size_bytes = data[data_offset:4].cast("I")[0]
+            mipmap_size_bytes = data[data_offset:data_offset+4].cast("I")[0]
             data_offset += 4
 
             for layer_index in range(self.array_element):

@@ -132,7 +132,10 @@ class Engine(object):
 
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device
-        fence = self.setup_fence
+        fence = 0
+
+        if wait:
+            fence = self.setup_fence
 
         infos = (hvk.submit_info(command_buffers=(self.setup_command_buffer,)),)
         hvk.queue_submit(api, self.render_queue.handle, infos, fence)
