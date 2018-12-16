@@ -729,7 +729,7 @@ class DataScene(object):
             framebuffer = 0,
             render_area = hvk.rect_2d(0, 0, 0, 0),
             clear_values = (
-                hvk.clear_value(color=(0.1, 0.1, 0.1, 1.0)),
+                hvk.clear_value(color=(0.04, 0.04, 0.04, 1.0)),
                 hvk.clear_value(depth=1.0, stencil=0)
             )
         )

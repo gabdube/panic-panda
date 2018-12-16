@@ -12,10 +12,11 @@ class DebugTexturesScene(object):
         self.app = app
         self.engine = engine
         self.scene = s = Scene.empty()
+        
+        # Global state stuff
         self.visible_index = None
         self.objects = [] 
 
-        # Global state stuff
         self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
         self.mouse_state["pos"] = (0,0)
 

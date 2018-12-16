@@ -12,7 +12,7 @@ class MainScene(object):
         self.engine = engine
         self.scene = s = Scene.empty()
         self.shader = None
-        self.objects = None
+        self.objects = []
 
         # Global state stuff
         self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
@@ -26,9 +26,6 @@ class MainScene(object):
             "proj": Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
         }
 
-        # Assets
-        self._load_assets()
-        
         # Callbacks
         s.on_initialized = self.init_scene
         s.on_window_resized = self.update_perspective
@@ -37,7 +34,6 @@ class MainScene(object):
         s.on_key_pressed = self.handle_keypress
 
     def init_scene(self):
-        self.scene.update_shaders(self.shader)
         self.update_objects()
 
     def update_objects(self):
@@ -90,29 +86,3 @@ class MainScene(object):
         if data.key in evt.NumKeys:
             self.app.switch_scene(data) 
 
-    def _load_assets(self):
-        scene = self.scene
-
-        # Images & Samplers
-        brdf_i = Image.from_ktx(KTXFile.open("brdfLUT.ktx"))
-        scene.images.append(brdf_i)
-
-        diffuse_env = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"))
-        scene.images.append(diffuse_env)
-
-        sampler = Sampler.from_params()
-        scene.samplers.append(sampler)
-
-        # Shaders
-        shader1_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
-
-        shader1 = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json")
-        shader1.name = "MainShader"
-        shader1.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (0,0,1), "camera_pos": (0,0,5.5)}
-        shader1.uniforms.brdf =     CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=sampler.id)
-        shader1.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
-        scene.shaders.append(shader1)
-
-        self.shader = shader1
-        self.objects = []
-        self.scene = scene

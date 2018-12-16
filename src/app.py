@@ -1,6 +1,6 @@
 from engine import Engine 
 from system import events as evt
-from game import MainScene, DebugTexturesScene
+from game import MainScene, DebugTexturesScene, DebugSkeletonScene
 from time import sleep
 
 
@@ -10,6 +10,7 @@ class PanicPanda(object):
         self.engine = Engine()
         self.main = MainScene(self, self.engine)
         self.debug_texture = DebugTexturesScene(self, self.engine)
+        self.debug_skeleton = DebugSkeletonScene(self, self.engine)
 
     def switch_scene(self, data):
         """Called from the scenes on keypress"""
@@ -17,17 +18,19 @@ class PanicPanda(object):
         engine = self.engine
 
         if data.key is keys._1:
+            engine.load(self.main.scene)
             engine.activate(self.main.scene) 
         elif data.key is keys._2:
             engine.load(self.debug_texture.scene)
             engine.activate(self.debug_texture.scene)
-        else:
-            print(f"WARNING: bad scene index {index}")
+        elif data.key is keys._3:
+            engine.load(self.debug_skeleton.scene)
+            engine.activate(self.debug_skeleton.scene)
 
     def run(self):
         engine = self.engine
-        engine.load(self.main.scene)
-        engine.activate(self.main.scene)
+        engine.load(self.debug_skeleton.scene)
+        engine.activate(self.debug_skeleton.scene)
 
         while engine.running:
             engine.events()
