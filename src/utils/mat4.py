@@ -7,7 +7,7 @@ buffer_type = c_float*16
 
 class Mat4(Structure):
     
-    __slots__ = ('staging', 'data')
+    __slots__ = ('data',)
     _fields_ = (('data', buffer_type),)
 
     def __init__(self):
@@ -26,7 +26,6 @@ class Mat4(Structure):
         obj.data[::] = buffer_type(*chain(*data))
         return obj
         
-
     @classmethod
     def perspective(cls, fovy, aspect, near, far):
         obj = super(Mat4, cls).__new__(cls)
@@ -257,3 +256,12 @@ class Mat4(Structure):
         ))
 
         return Mat4.from_data(staging)
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __len__(self):
+        return 16
+
+    def __iter__(self):
+        yield from self.data

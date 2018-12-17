@@ -18,6 +18,7 @@ u32 = windll.user32
 
 # TYPES
 LRESULT = c_size_t
+LONG = c_int32
 HCURSOR = HICON
 WNDPROC = WINFUNCTYPE(LRESULT, HWND, UINT, WPARAM, LPARAM)
 
@@ -148,6 +149,9 @@ class WNDCLASSEXW(Structure):
                 ('cbWndExtra', c_int), ('hinstance', HINSTANCE), ('hIcon', HICON), ('hCursor', HCURSOR),
                 ('hbrBackground', HBRUSH), ('lpszMenuName', LPCWSTR), ('lpszClassName', LPCWSTR), ('hIconSm', HICON))
 
+class POINT(Structure):
+    _fields_ = (('x',LONG), ('y',LONG))
+
 
 # Functions
 def result_not_null(msg):
@@ -223,6 +227,10 @@ SetWindowPos.argtypes = (HWND, HWND, c_int, c_int, c_int, c_int, c_uint)
 GetSystemMetrics = u32.GetSystemMetrics
 GetSystemMetrics.restype = result_not_null('Failed to get system metrics')
 GetSystemMetrics.argtypes = (c_int,)
+
+GetCursorPos = u32.GetCursorPos
+GetCursorPos.restype = result_not_null('Failed to get cursor pos')
+GetCursorPos.argtypes = (POINTER(POINT),)
 
 ################
 
@@ -328,6 +336,11 @@ class Win32Window(object):
         GetClientRect(self.__hwnd, byref(dim))
         return (dim.right, dim.bottom)
 
+    def get_mouse_pos(self):
+        p = POINT()
+        GetCursorPos(byref(p))
+        return (p.x, p.y)
+
     def process_event(self, hwnd, msg, w, l):
         """
         Windows proc wrapper. Translate the system events into application events
@@ -340,7 +353,8 @@ class Win32Window(object):
 
         def handle_btn(msg, down, btn):
             state = e.MouseClickState.Down if msg == down else e.MouseClickState.Up
-            self.events[e.MouseClick] = e.MouseClickData(state = state, button = btn)
+            x, y = self.get_mouse_pos()
+            self.events[e.MouseClick] = e.MouseClickData(state = state, button = btn, x = x, y = y)
 
         if msg == WM_MOUSEMOVE:
             x, y = float(c_short(l).value), float(c_short(l>>16).value)

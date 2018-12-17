@@ -30,9 +30,9 @@ class Sampler(object):
         )
 
     @classmethod
-    def new(cls):
+    def new(cls, **kwargs):
         sampler = super().__new__(cls)
-        sampler.__init__()
+        sampler.__init__(**kwargs)
         return sampler
 
     @classmethod

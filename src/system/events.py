@@ -29,7 +29,7 @@ RenderDisable = Events.RenderDisable
 MouseClick = Events.MouseClick
 MouseClickState = Enum("MouseButtonState", "Down Up")
 MouseClickButton = Enum("MouseClickButton", "Left Right Middle")
-MouseClickData = namedtuple("MouseClickData", "state button")
+MouseClickData = namedtuple("MouseClickData", "state button x y")
 
 MouseMove = Events.MouseMove
 MouseMoveData = namedtuple("MouseMoveData", "x y")
