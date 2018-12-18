@@ -5,6 +5,7 @@ from sys import float_info
 
 buffer_type = c_float*16
 
+
 class Mat4(Structure):
     
     __slots__ = ('data',)

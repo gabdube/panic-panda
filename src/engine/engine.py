@@ -114,6 +114,8 @@ class Engine(object):
                 scene.on_mouse_move(event, data)
             elif event is e.MouseClick:
                 scene.on_mouse_click(event, data)
+            elif event is e.MouseScroll:
+                scene.on_mouse_scroll(event, data)
             elif event is e.KeyPress:
                 scene.on_key_pressed(event, data)
             elif event is e.WindowResized:

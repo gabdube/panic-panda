@@ -232,6 +232,10 @@ GetCursorPos = u32.GetCursorPos
 GetCursorPos.restype = result_not_null('Failed to get cursor pos')
 GetCursorPos.argtypes = (POINTER(POINT),)
 
+ScreenToClient = u32.ScreenToClient
+ScreenToClient.restype = result_not_null('Failed to map cursor pos to client space')
+ScreenToClient.argtypes = (HWND, POINTER(POINT))
+
 ################
 
 
@@ -339,6 +343,7 @@ class Win32Window(object):
     def get_mouse_pos(self):
         p = POINT()
         GetCursorPos(byref(p))
+        ScreenToClient(self.__hwnd, byref(p))
         return (p.x, p.y)
 
     def process_event(self, hwnd, msg, w, l):
@@ -368,6 +373,11 @@ class Win32Window(object):
 
         elif msg in (WM_MBUTTONDOWN, WM_MBUTTONUP):
             handle_btn(msg, WM_MBUTTONDOWN, e.MouseClickButton.Middle)
+
+        elif msg == WM_MOUSEWHEEL:
+            x, y = self.get_mouse_pos()
+            delta = c_int16(w>>16).value // 120
+            self.events[e.MouseScroll] = e.MouseScrollData(delta = delta, x = x, y = y)
 
         elif msg == WM_KEYPRESS:
             self.events[e.KeyPress] = e.KeyPressData(

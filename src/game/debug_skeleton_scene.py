@@ -26,11 +26,20 @@ class DebugSkeletonScene(object):
         # Callbacks
         s.on_initialized = self.init_scene
         s.on_key_pressed = self.handle_keypress
-        s.on_mouse_move = s.on_mouse_click = self.handle_mouse
+        s.on_mouse_move = s.on_mouse_click = s.on_mouse_scroll = self.handle_mouse
 
     def init_scene(self):
+        self.update_camera()
         self.update_object()
-        self.scene.update_shaders(self.shader)
+
+    def update_camera(self):
+        shader = self.shader
+        rstatic = shader.uniforms.rstatic
+
+        x, y, z = self.camera.position
+        rstatic.camera_pos[:3] = (x, y, -z)
+
+        self.scene.update_shaders(shader)
 
     def update_object(self):
         bunny = self.bunny_obj
@@ -44,8 +53,9 @@ class DebugSkeletonScene(object):
             self.app.switch_scene(data) 
 
     def handle_mouse(self, event, event_data):
-        self.camera_view(event, event_data)
-        self.update_object()
+        if self.camera_view(event, event_data):
+            self.update_camera()
+            self.update_object()
 
     def _setup_assets(self):
         scene = self.scene
@@ -62,7 +72,7 @@ class DebugSkeletonScene(object):
         main_shader_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
 
         self.shader = main_shader = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json", name="MainShader")
-        main_shader.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (-0.5,1,0), "camera_pos": cam.position}
+        main_shader.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (-0.5,1,0.4), "camera_pos": (0,0,0)}
         main_shader.uniforms.brdf =     CombinedImageSampler(image_id=brdf.id, view_name="default", sampler_id=sampler.id)
         main_shader.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
 
@@ -72,7 +82,7 @@ class DebugSkeletonScene(object):
         # Game objects
         self.bunny_obj = bunny = GameObject.from_components(shader = main_shader.id, mesh = bunny_mesh.id, name = "Bunny")
         bunny.model = Mat4()
-        bunny.uniforms.mat = {"color": (0.7, 0.7, 0.7, 1.0), "roughness_metallic": (1.0, 0.0)}
+        bunny.uniforms.mat = {"color": (0.7, 0.7, 0.7, 1.0), "roughness_metallic": (0.2, 1.0)}
         bunny.uniforms.view = {"normal": bunny.model.invert().transpose().data, "model": Mat4().data}
 
         # Add the objects to the scene

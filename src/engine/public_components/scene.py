@@ -21,6 +21,7 @@ class Scene(object):
         self.on_mouse_move = empty_w_events
         self.on_mouse_click = empty_w_events
         self.on_key_pressed = empty_w_events
+        self.on_mouse_scroll = empty_w_events
 
     @classmethod
     def empty(cls):

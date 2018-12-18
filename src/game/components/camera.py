@@ -12,3 +12,12 @@ class Camera(object):
         self.view_rotation = Mat4.from_rotation(radians(180), (0.0, 0.0, 1.0))
         self.view_projection = self.projection * (self.view_position * self.view_rotation)
 
+    def move(self, x, y, z):
+        pos = self.position
+        pos[0] += x; pos[1] += y; pos[2] += z
+
+        self.view_position = Mat4.from_translation(*pos)
+        self.view_projection = self.projection * (self.view_position * self.view_rotation)
+
+    def rotate(self):
+        pass
