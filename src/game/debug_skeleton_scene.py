@@ -2,7 +2,7 @@ from engine import Scene, Shader, Image, Sampler, CombinedImageSampler, Mesh, Ga
 from engine.assets import GLBFile, KTXFile
 from system import events as evt
 from utils import Mat4
-from .components import Camera, CameraView
+from .components import Camera, LookAtView
 from math import radians
 
 
@@ -19,7 +19,7 @@ class DebugSkeletonScene(object):
         # Component
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(width, height)
-        self.camera_view = CameraView(cam)
+        self.camera_view = LookAtView(cam, position = [0,0,1.5])
 
         # Assets
         self._setup_assets()
@@ -80,7 +80,7 @@ class DebugSkeletonScene(object):
 
         # Game objects
         self.bunny_obj = bunny = GameObject.from_components(shader = main_shader.id, mesh = bunny_mesh.id, name = "Bunny")
-        bunny.model = model = Mat4.from_rotation(radians(-180), (0,0,1))
+        bunny.model = model = Mat4.from_rotation(radians(180), (0,0,1))
         bunny.uniforms.mat = {"color": (0.7, 0.7, 0.7, 1.0), "roughness_metallic": (0.2, 1.0)}
         bunny.uniforms.view = {"normal": Mat4().data, "model": model}
 

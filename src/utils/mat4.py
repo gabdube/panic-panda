@@ -26,6 +26,68 @@ class Mat4(Structure):
         obj = super(Mat4, cls).__new__(cls)
         obj.data[::] = buffer_type(*chain(*data))
         return obj
+
+    @classmethod
+    def look_at(cls, eye, center, up):
+        e = float_info.epsilon
+
+        eye_x, eye_y, eye_z = eye
+        up_x, up_y, up_z = up
+        cx, cy, cz = center
+
+        if abs(eye_x - cx) < e and abs(eye_y - cy) < e and abs(eye_z - cz) < e:
+            return Mat4()
+
+        z0 = eye_x-cx
+        z1 = eye_y-cy
+        z2 = eye_z-cz
+
+        length = 1 / sqrt(z0*z0 + z1*z1 + z2*z2)
+        z0 *= length
+        z1 *= length
+        z2 *= length
+
+        x0 = up_y*z2 - up_z*z1
+        x1 = up_z*z0 - up_x*z2
+        x2 = up_x*z1 - up_y*z0
+
+        length = sqrt(x0 * x0 + x1 * x1 + x2 * x2)
+        if length == 0:
+            x0 = x1 = x2 = 0
+        else:
+            length = 1 / length
+            x0 *= length
+            x1 *= length
+            x2 *= length
+
+        y0 = z1 * x2 - z2 * x1
+        y1 = z2 * x0 - z0 * x2
+        y2 = z0 * x1 - z1 * x0
+
+        length = sqrt(y0 * y0 + y1 * y1 + y2 * y2)
+        if length == 0:
+            y0 = y1 = y2 = 0
+        else:
+            length = 1 / length
+            y0 *= length
+            y1 *= length
+            y2 *= length
+
+        staging = (
+            (x0, y0, z0, 0),
+            (x1, y1, z1, 0),
+            (x2, y2, z2, 0),
+            (
+                -(x0 * eye_x + x1 * eye_y + x2 * eye_z),
+                -(y0 * eye_x + y1 * eye_y + y2 * eye_z),
+                -(z0 * eye_x + z1 * eye_y + z2 * eye_z),
+                1
+            )
+        )
+
+        obj = super(Mat4, cls).__new__(cls)
+        obj.data[::] = buffer_type(*chain(*staging))
+        return obj
         
     @classmethod
     def perspective(cls, fovy, aspect, near, far):
@@ -155,6 +217,9 @@ class Mat4(Structure):
         data[13] = a01 * x + a11 * y + a21 * z + a31
         data[14] = a02 * x + a12 * y + a22 * z + a32
         data[15] = a03 * x + a13 * y + a23 * z + a33
+
+    def get_translation(self):
+        return self.data[12:15]
 
     def rotate(self, rad, axis):
         x, y, z = axis
@@ -322,4 +387,4 @@ class Mat4(Structure):
         return 16
 
     def __iter__(self):
-        yield from self.data
+        yield from iter(self.data)
