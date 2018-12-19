@@ -99,6 +99,63 @@ class Mat4(Structure):
 
         return obj
 
+    @classmethod
+    def from_quat(cls, quat):
+        obj = super(Mat4, cls).__new__(cls)
+        x, y, z, w = quat.data[::]
+        x2 = x + x
+        y2 = y + y
+        z2 = z + z
+
+        xx = x * x2
+        yx, yy = y * x2, y * y2
+        zx, zy, zz = z * x2, z * y2, z * z2
+        wx, wy, wz = w * x2, w * y2, w * z2
+
+        r1 = (
+            1 - yy - zz,
+            yx + wz,
+            zx - wy,
+            0
+        )
+
+        r2 = (
+            yx - wz,
+            1 - xx - zz,
+            zy + wx,
+            0
+        )
+
+        r3 = (
+            zx + wy,
+            zy - wx,
+            1 - xx - yy,
+            0
+        )
+
+        r4 = (0,0,0,1)
+
+        obj.data[::] = buffer_type(*chain(r1, r2, r3, r4))
+
+        return obj
+
+    def clone(self):
+        mat = Mat4()
+        mat.data[::] = self.data
+        return mat
+
+    def translate(self, x, y, z):
+        data = self.data
+        a00, a01, a02, a03 = data[0:4]
+        a10, a11, a12, a13 = data[4:8]
+        a20, a21, a22, a23 = data[8:12]
+        a30, a31, a32, a33 = data[12:16]
+
+        data[12] = a00 * x + a10 * y + a20 * z + a30
+        data[13] = a01 * x + a11 * y + a21 * z + a31
+        data[14] = a02 * x + a12 * y + a22 * z + a32
+        data[15] = a03 * x + a13 * y + a23 * z + a33
+
     def rotate(self, rad, axis):
         x, y, z = axis
         length = sqrt(x * x + y * y + z * z)

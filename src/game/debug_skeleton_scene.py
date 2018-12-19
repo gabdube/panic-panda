@@ -1,8 +1,9 @@
 from engine import Scene, Shader, Image, Sampler, CombinedImageSampler, Mesh, GameObject
 from engine.assets import GLBFile, KTXFile
 from system import events as evt
-from utils.mat4 import Mat4
+from utils import Mat4
 from .components import Camera, CameraView
+from math import radians
 
 
 class DebugSkeletonScene(object):
@@ -36,15 +37,13 @@ class DebugSkeletonScene(object):
         shader = self.shader
         rstatic = shader.uniforms.rstatic
 
-        x, y, z = self.camera.position
-        rstatic.camera_pos[:3] = (x, y, -z)
-
+        rstatic.camera_pos[:3] = self.camera.position
         self.scene.update_shaders(shader)
 
     def update_object(self):
         bunny = self.bunny_obj
-        bunny_view = self.bunny_obj.uniforms.view
-        bunny_view.mvp[::] = self.camera.view_projection
+        bunny_view = bunny.uniforms.view
+        bunny_view.mvp[::] = self.camera.view_projection * bunny.model
         self.scene.update_objects(bunny)
 
     def handle_keypress(self, event, data):
@@ -81,9 +80,9 @@ class DebugSkeletonScene(object):
 
         # Game objects
         self.bunny_obj = bunny = GameObject.from_components(shader = main_shader.id, mesh = bunny_mesh.id, name = "Bunny")
-        bunny.model = Mat4()
+        bunny.model = model = Mat4.from_rotation(radians(-180), (0,0,1))
         bunny.uniforms.mat = {"color": (0.7, 0.7, 0.7, 1.0), "roughness_metallic": (0.2, 1.0)}
-        bunny.uniforms.view = {"normal": bunny.model.invert().transpose().data, "model": Mat4().data}
+        bunny.uniforms.view = {"normal": Mat4().data, "model": model}
 
         # Add the objects to the scene
         scene.images.extend(brdf, diffuse_env)

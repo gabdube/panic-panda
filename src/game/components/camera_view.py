@@ -13,7 +13,7 @@ class CameraView(object):
     def __init__(self, camera):
         self.mouse_state  = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
         self.pos = (0,0)
-        self.mod_rotate = 0.002
+        self.mod_rotate = 0.5
         self.mod_translate = 0.002
         self.mod_zoom = 0.2
 
@@ -22,20 +22,20 @@ class CameraView(object):
     def rotate_camera(self, x1, y1):
         mod = self.mod_rotate
         x2, y2 = self.pos
-        x3, y3 = (x1-x2) * mod, (y1-y2) * mod
-
-        #self.camera.rotate(x3, y3)
+        x3, y3 = (x1-x2)*mod, (y1-y2)*mod
+        self.camera.rotate(y3, -x3, 0)
+        self.pos = (x1, y1)
 
     def translate_camera(self, x1, y1):
         mod = self.mod_translate
         x2, y2 = self.pos
         x3, y3 = (x1-x2) * mod, (y1-y2) * mod
-        self.camera.move(x3, y3, 0)
+        self.camera.translate(-x3, -y3, 0)
         self.pos = (x1, y1)
 
     def zoom_camera(self, z):
         z *= self.mod_zoom
-        self.camera.move(0, 0, z)
+        self.camera.translate(0, 0, -z)
 
     def __call__(self, event, event_data):
         processed = False
