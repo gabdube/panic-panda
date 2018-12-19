@@ -1,9 +1,10 @@
 from engine import Shader, GameObject, Scene, Sampler, Image, CombinedImageSampler, Mesh, MeshPrefab
 from engine.assets import GLBFile, KTXFile
-from utils.mat4 import Mat4
 from system import events as evt
+from utils import Mat4
 from vulkan import vk
-from math import radians, sin, cos
+from .components import Camera, LookAtView
+from math import radians
 
 
 class DebugTexturesScene(object):
@@ -22,16 +23,8 @@ class DebugTexturesScene(object):
 
         # Camera
         width, height = engine.window.dimensions()
-        translate = -3.0
-        cam_pos = [0,0, translate]
-        self.camera = { 
-            "translate": translate,
-            "pos_vec": cam_pos,
-            "pitch_roll": (0.0, 0.0),
-            "pos":  Mat4.from_translation(*cam_pos),
-            "rot": Mat4(),
-            "proj": Mat4.perspective(radians(60), width/height, 0.001, 1000.0),
-        }
+        self.camera = cam = Camera(60, width, height)
+        self.camera_view = LookAtView(cam, position = [0,0,1.5])
 
         # Assets
         self._setup_assets()
@@ -40,38 +33,23 @@ class DebugTexturesScene(object):
         s.on_initialized = self.init_scene
         s.on_window_resized = self.update_perspective
         s.on_key_pressed = self.handle_keypress
-        s.on_mouse_move = s.on_mouse_click = self.move_camera
+        s.on_mouse_move = s.on_mouse_click = s.on_mouse_scroll = self.handle_mouse
 
     def init_scene(self):
         self.update_objects()
 
     def update_objects(self):
         objects, cam = self.objects, self.camera
-        mvp = cam["proj"] * (cam["pos"] * cam["rot"])
+        view_projection = self.camera.view_projection
 
         for obj in objects:
-            obj.uniforms.view.mvp = (mvp * obj.model).data
+            obj.uniforms.view.mvp[::] = view_projection * obj.model
 
         self.scene.update_objects(*objects)
 
-    def update_camera(self):
-        cam = self.camera
-        pitch, roll = map(radians, cam["pitch_roll"])
-        translate = cam["translate"]
-
-        for obj in self.objects:
-            obj.model = Mat4.from_rotation(roll,  (1.0, 0.0, 0.0))\
-                            .rotate(pitch, (0.0, 1.0, 0.0))
-
-        self.update_objects()
-
     def update_perspective(self, event, data):
-        cam = self.camera
-        
-        width, height = data
-        cam["proj"] = Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
-
-        self.update_objects()
+        self.camera.update_perspective(60, data.width, data.height)
+        self.update_object()
 
     def handle_keypress(self, event, data):
         k = evt.Keys
@@ -119,26 +97,9 @@ class DebugTexturesScene(object):
         objects[visible].hidden = False
         self.visible_index = visible
 
-    def move_camera(self, event, data):
-        ms = self.mouse_state
-        if event is evt.MouseClick:
-            ms[data.button] = data.state
-        elif event is evt.MouseMove:
-            right, left, *_ = evt.MouseClickButton
-            down = evt.MouseClickState.Down
-            
-            if ms[right] is down:
-                cam = self.camera
-                x1, y1 = data
-                x2, y2 = ms["pos"]
-                
-                pitch, roll = cam["pitch_roll"]
-                pitch_mod, roll_mod = (x2 - x1)*-0.5, (y2 - y1)*0.5
-
-                cam["pitch_roll"] = (pitch + pitch_mod, roll + roll_mod)
-                self.update_camera()
-                
-            ms["pos"] = data
+    def handle_mouse(self, event, event_data):
+        if self.camera_view(event, event_data):
+            self.update_objects()
 
     def _setup_assets(self):
         scene = self.scene

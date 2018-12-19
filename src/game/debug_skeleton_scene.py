@@ -18,7 +18,7 @@ class DebugSkeletonScene(object):
 
         # Component
         width, height = engine.window.dimensions()
-        self.camera = cam = Camera(width, height)
+        self.camera = cam = Camera(60, width, height)
         self.camera_view = LookAtView(cam, position = [0,0,1.5])
 
         # Assets
@@ -26,6 +26,7 @@ class DebugSkeletonScene(object):
 
         # Callbacks
         s.on_initialized = self.init_scene
+        s.on_window_resized = self.update_perspective
         s.on_key_pressed = self.handle_keypress
         s.on_mouse_move = s.on_mouse_click = s.on_mouse_scroll = self.handle_mouse
 
@@ -45,6 +46,10 @@ class DebugSkeletonScene(object):
         bunny_view = bunny.uniforms.view
         bunny_view.mvp[::] = self.camera.view_projection * bunny.model
         self.scene.update_objects(bunny)
+
+    def update_perspective(self, event, data):
+        self.camera.update_perspective(60, data.width, data.height)
+        self.update_object()
 
     def handle_keypress(self, event, data):
         k = evt.Keys

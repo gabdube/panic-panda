@@ -4,7 +4,7 @@ from math import radians
 
 class Camera(object):
 
-    def __init__(self, width, height, position=(0,0,0), rotation=(0,0,0)):
+    def __init__(self, fov, width, height, position=(0,0,0), rotation=(0,0,0)):
         self.position = pos = list(position)
         self.rotation = rot = list(rotation)
 
@@ -16,9 +16,13 @@ class Camera(object):
         
         self.camera = cam
         self.view = view = cam.clone().invert()
-        self.projection = Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
+        self.projection = Mat4.perspective(radians(fov), width/height, 0.001, 1000.0)
 
         self.view_projection = self.projection * view
+
+    def update_perspective(self, fov, width, height):
+        self.projection = Mat4.perspective(radians(fov), width/height, 0.001, 1000.0)
+        self.view_projection = self.projection * self.view
 
     def update_view(self, new_view):
         self.view = new_view
