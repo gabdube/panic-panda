@@ -23,5 +23,5 @@ void main()
     cubmapTexCoords.y = -cos(inUv.y * PI);
     cubmapTexCoords.z = -cos(inUv.x * PI * 2.0) * sin(inUv.y * PI);
 
-    outColor = textureLod(cubeTexture, cubmapTexCoords, 5.0);
+    outColor = textureLod(cubeTexture, cubmapTexCoords, lod);
 }

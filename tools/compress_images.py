@@ -2,6 +2,8 @@
 Utility to quickly compress image in this project.
 Uses "Compressonator" (the CLI tool, not the GUI) from https://github.com/GPUOpen-Tools/Compressonator
 
+Note that compressonator don't like when you try to compress 200 images simultaneously, hence the subprocess limit.
+
 Usage:
 
 -- Simple compression
@@ -16,6 +18,8 @@ import sys, subprocess
 argv = sys.argv
 
 CLI_PATH = "C:/Program Files/Compressonator 3.1.4064/bin/CLI/CompressonatorCLI.exe"
+MAX_SUBPROCESS = 5
+OUTPUT = ""
 
 help = "--help" in argv or "-h" in argv
 
@@ -33,8 +37,17 @@ if mipsize:
     mipsize = argv[argv.index("--miplevels")+1]
     arguments.extend(('-miplevels', mipsize))
 
-print(arguments)
 outputs = {}
+
+def wait_subprocesses():
+    global OUTPUT, outputs
+
+    print(f"WAITING FOR {tuple(outputs.keys())}")
+
+    for name, process in outputs.items():
+        OUTPUT += f"\n{name}\n" + (process.communicate()[0]).decode("utf8")
+
+    outputs.clear()
 
 def process_simple():
 
@@ -44,21 +57,20 @@ def process_simple():
         file_out = file_in[:-len(suffix)] + ".ktx"
 
         p = subprocess.Popen([CLI_PATH, *arguments, file_in, file_out], stdout=subprocess.PIPE)
-        outputs[file.name] = p.communicate()[0]
+        outputs[file.name] = p
 
-def process_cube():
-    pass
+        if len(outputs) > MAX_SUBPROCESS:
+            wait_subprocesses()
 
 def process_help():
     p = subprocess.Popen([CLI_PATH], stdout=subprocess.PIPE)
-    outputs["HELP"] = p.communicate()[0]
+    outputs["HELP"] = p
 
 if not help:
     process_simple()
 else:
     process_help()
 
-print()
-for name, output in outputs.items():
-    print(name)
-    print(output.decode('utf8'))
+wait_subprocesses()
+
+print(OUTPUT)

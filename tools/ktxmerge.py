@@ -203,7 +203,7 @@ class KTXFile(object):
             # Mipmaps are outside the files
             mips_w = max(map(lambda i: i.width, files))
             while mips_w != 0:
-                print("Mipmap level", mips_w)
+                print("Mipmap size", mips_w)
 
                 for array_layer, file in enumerate(filter(lambda f: f.width == mips_w, files)):
                     print(array_layer, file.file_name)
@@ -386,6 +386,9 @@ if __name__ == "__main__":
             inputs = auto_input(argv[argv.index("--input")+1], cube, mipmaps) 
         else:
             inputs = argv[argv.index("--input")+1::]
+
+        if len(inputs) == 0:
+            raise KTXException("No input specified")
 
         if array:
             out_file = KTXFile.merge_array(*inputs, extern_mipmap_count=mipmaps_count)
