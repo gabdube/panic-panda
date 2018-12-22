@@ -53,8 +53,7 @@ shaders = (
     (SHADERS_PATH/"debug_texture", "debug_texture"),
     (SHADERS_PATH/"debug_texture_array", "debug_texture_array"),
     (SHADERS_PATH/"debug_texture_cube", "debug_texture_cube"),
-    (SHADERS_PATH/"debug_pbr", "debug_pbr"),
-    (SHADERS_PATH/"main", "main"),
+    (SHADERS_PATH/"pbr", "pbr"),
 )
 
 
@@ -64,7 +63,6 @@ images = (
     (IMAGES_PATH/"dev/papermill/diffuse", "*.png"),
     (IMAGES_PATH/"dev/papermill/specular", "*.png"),
     (MODELS_PATH/"dev/bunny", "bunny_*.jpg"),
-    (MODELS_PATH/"dev/hex_nut", "hexnut_*.png"),
 )
 
 
@@ -74,7 +72,6 @@ images_merge_copy = (
     ("MERGE_CUBE", IMAGES_PATH/"dev/papermill/diffuse/*", IMAGES_PATH/"papermill_diffuse.ktx"),
     ("MERGE_CUBE_MIPS", IMAGES_PATH/"dev/papermill/specular/*", IMAGES_PATH/"papermill_specular.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/bunny/bunny_*", IMAGES_PATH/"bunny.ktx"),
-    ("MERGE_ARRAY", MODELS_PATH/"dev/hex_nut/hex_nut_*", IMAGES_PATH/"hex_nut.ktx"),
 )
 
 clean = (
@@ -82,7 +79,6 @@ clean = (
     (IMAGES_PATH/"dev/papermill/diffuse", "*.ktx"),
     (IMAGES_PATH/"dev/papermill/specular", "*.ktx"),
     (MODELS_PATH/"dev/bunny/", "*.ktx"),
-    (MODELS_PATH/"dev/hex_nut/", "*.ktx"),
 )
 
 

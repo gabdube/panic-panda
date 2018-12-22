@@ -29,7 +29,7 @@ void main()
 
     outPos = vec3(pos.xyz) / pos.w;
     outTbn = mat3(tangentW, bitangentW, normalW);
-    outUv = inUv;
+    outUv = vec2(inUv.x, inUv.y);
 
     gl_Position = view.mvp * vec4(inPos, 1.0);
 }

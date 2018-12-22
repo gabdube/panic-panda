@@ -68,18 +68,21 @@ class DebugSkeletonScene(object):
         # Images
         brdf = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="BrdfTexture")
         diffuse_env = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="DiffuseTexture")
+        specular_env = Image.from_ktx(KTXFile.open("papermill_specular.ktx"), name="SpecularTexture")
         bunny_texture = Image.from_ktx(KTXFile.open("bunny.ktx"), name="BunnyTexture")
 
         # Samplers
         sampler = Sampler.new(name="BunnySampler")
+        sampler_lod = Sampler.from_params( max_lod=specular_env.mipmaps_levels )
         
         # Shaders
         main_shader_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
 
-        self.shader = main_shader = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json", name="MainShader")
+        self.shader = main_shader = Shader.from_files("pbr/pbr.vert.spv", "pbr/pbr.frag.spv", "pbr/pbr.map.json", name="PBRShader")
         main_shader.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (-0.5,1,0.4), "camera_pos": (0,0,0)}
         main_shader.uniforms.brdf =     CombinedImageSampler(image_id=brdf.id, view_name="default", sampler_id=sampler.id)
         main_shader.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
+        main_shader.uniforms.specular_env = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
 
         # Meshes
         bunny_mesh = Mesh.from_gltf(GLBFile.open("bunny.glb"), "BunnyMesh", attributes_map=main_shader_attributes_map, name="BunnyMesh")
@@ -91,8 +94,8 @@ class DebugSkeletonScene(object):
         bunny.uniforms.texture_maps = CombinedImageSampler(image_id=bunny_texture.id, view_name="default", sampler_id=sampler.id)
 
         # Add the objects to the scene
-        scene.images.extend(brdf, diffuse_env, bunny_texture)
-        scene.samplers.extend(sampler)
+        scene.images.extend(brdf, diffuse_env, specular_env, bunny_texture)
+        scene.samplers.extend(sampler, sampler_lod)
         scene.meshes.extend(bunny_mesh)
         scene.shaders.extend(main_shader)
         scene.objects.extend(bunny)

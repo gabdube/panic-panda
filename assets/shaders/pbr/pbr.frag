@@ -56,12 +56,13 @@ vec4 SRGBtoLINEAR(vec4 srgbIn) {
 }
 
 vec4 baseColorValues() {
-    return texture(textureMaps, vec3(inUv, DIFFUSE_INDEX), 0.0);
+    return SRGBtoLINEAR(texture(textureMaps, vec3(inUv, DIFFUSE_INDEX), 0.0));
 }
 
 vec3 metallicRoughnessValues() {
-    float metallic = 0.0;
-    float perceptualRoughness = 1.0;
+    vec4 packedMetallicRougness = texture(textureMaps, vec3(inUv, METALLIC_ROUGHNESS_INDEX), 0.0);
+    float metallic = packedMetallicRougness.b;
+    float perceptualRoughness = packedMetallicRougness.g;
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
     return vec3(perceptualRoughness, alphaRoughness, metallic);
 }
@@ -69,10 +70,10 @@ vec3 metallicRoughnessValues() {
 vec3 getNormal() {
     float normalScale = 1.0;
     mat3 tbn = inTbn;
-    //vec3 n = texture(textureMaps, vec3(v_uv, NORMALS_INDEX) ).rgb;
-    //n = normalize(tbn * ((2.0 * n - 1.0) * vec3(normalScale, normalScale, 1.0)));
+    vec3 n = texture(textureMaps, vec3(inUv, NORMALS_INDEX) ).rgb;
+    n = normalize(tbn * ((2.0 * n - 1.0) * vec3(normalScale, normalScale, 1.0)));
 
-    vec3 n = normalize(tbn[2].xyz);
+    //vec3 n = normalize(tbn[2].xyz);
 
     return n;
 }
