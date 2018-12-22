@@ -245,9 +245,9 @@ class KTXFile(object):
     @staticmethod
     def merge_cube(*inputs, extern_mipmap_count=0):
         if extern_mipmap_count == 0 and len(inputs) != 6:
-            raise KTXException(f"Cubemap must have exactly 6 input files, go {len(inputs)}")
+            raise KTXException(f"Cubemap must have exactly 6 input files, got {len(inputs)}")
         elif extern_mipmap_count > 0 and (len(inputs) // extern_mipmap_count) != 6:
-            raise KTXException(f"Cubemap must have exactly 6 input files, go {len(inputs) // extern_mipmap_count}")
+            raise KTXException(f"Cubemap must have exactly 6 input files, got {len(inputs) // extern_mipmap_count}")
 
         return KTXFile.merge_2d(*inputs, number_of_faces=6, extern_mipmap_count=extern_mipmap_count)
 

@@ -4,12 +4,14 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (location = 0) in vec3 inPos;
-layout (location = 1) in mat3 inTbn;
+layout (location = 1) in vec2 inUv;
+layout (location = 2) in mat3 inTbn;
 
 layout (location = 0) out vec4 outColor;
 
 layout (set=0, binding=1) uniform sampler2D brdfLUT;
 layout (set=0, binding=2) uniform samplerCube diffuseEnvSampler;
+layout (set=1, binding=0) uniform sampler2DArray textureMaps;
 
 // Render data that won't change much (if at all) during a scene draw
 layout (set=0, binding=0) uniform RenderStatic {
@@ -18,12 +20,6 @@ layout (set=0, binding=0) uniform RenderStatic {
 
     vec4 cameraPos;
 } rstatic;
-
-
-layout (set=1, binding=0) uniform Mat {
-    vec4 matColor;
-    vec4 roughnessMetallic;
-} mat;
 
 
 struct PBRInfo
@@ -49,6 +45,8 @@ const float minRoughness = 0.04;
 const vec3 F0 = vec3(0.04);
 const vec3 F1 = vec3(0.96);
 
+const int DIFFUSE_INDEX = 0;
+
 
 vec4 SRGBtoLINEAR(vec4 srgbIn) {
     vec3 linOut = pow(srgbIn.xyz,vec3(2.2));
@@ -56,14 +54,13 @@ vec4 SRGBtoLINEAR(vec4 srgbIn) {
 }
 
 vec4 baseColorValues() {
-    return mat.matColor;
+    return texture(textureMaps, vec3(inUv, DIFFUSE_INDEX), 0.0);
 }
 
 vec3 metallicRoughnessValues() {
-    float perceptualRoughness = mat.roughnessMetallic.x;
+    float metallic = 0.0;
+    float perceptualRoughness = 1.0;
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
-    float metallic = mat.roughnessMetallic.y;
-    
     return vec3(perceptualRoughness, alphaRoughness, metallic);
 }
 

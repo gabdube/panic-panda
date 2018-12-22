@@ -68,12 +68,13 @@ class DebugSkeletonScene(object):
         # Images
         brdf = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="BrdfTexture")
         diffuse_env = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="DiffuseTexture")
+        bunny_texture = Image.from_ktx(KTXFile.open("bunny.ktx"), name="BunnyTexture")
 
         # Samplers
         sampler = Sampler.new(name="BunnySampler")
         
         # Shaders
-        main_shader_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent"}
+        main_shader_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
 
         self.shader = main_shader = Shader.from_files("main/main.vert.spv", "main/main.frag.spv", "main/main.map.json", name="MainShader")
         main_shader.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (-0.5,1,0.4), "camera_pos": (0,0,0)}
@@ -86,11 +87,11 @@ class DebugSkeletonScene(object):
         # Game objects
         self.bunny_obj = bunny = GameObject.from_components(shader = main_shader.id, mesh = bunny_mesh.id, name = "Bunny")
         bunny.model = model = Mat4.from_rotation(radians(180), (0,0,1))
-        bunny.uniforms.mat = {"color": (0.7, 0.7, 0.7, 1.0), "roughness_metallic": (0.2, 1.0)}
         bunny.uniforms.view = {"normal": Mat4().data, "model": model}
+        bunny.uniforms.texture_maps = CombinedImageSampler(image_id=bunny_texture.id, view_name="default", sampler_id=sampler.id)
 
         # Add the objects to the scene
-        scene.images.extend(brdf, diffuse_env)
+        scene.images.extend(brdf, diffuse_env, bunny_texture)
         scene.samplers.extend(sampler)
         scene.meshes.extend(bunny_mesh)
         scene.shaders.extend(main_shader)

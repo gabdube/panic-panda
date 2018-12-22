@@ -153,7 +153,7 @@ class KTXFile(object):
     
     @property
     def array(self):
-        return self.array_element > 1
+        return self.header.number_of_array_elements >= 1
 
     @property
     def vk_format(self):

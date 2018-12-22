@@ -23,7 +23,10 @@ else:
 class Engine(object):
 
     def __init__(self):
-        self.window = Window(width=800, height=600)
+        self.window = w = Window(width=800, height=600)
+        w.translate_system_events()
+        w.events.clear()
+
         self.running = False
 
         self.api = self.instance = self.device = self.physical_device = None
@@ -119,7 +122,6 @@ class Engine(object):
             elif event is e.KeyPress:
                 scene.on_key_pressed(event, data)
             elif event is e.WindowResized:
-                scene.on_window_resized(event, data)
                 self._update_swapchain(data)
 
         if self.debug_ui is not None:

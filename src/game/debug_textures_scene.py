@@ -105,28 +105,36 @@ class DebugTexturesScene(object):
         scene = self.scene
 
         # Textures
-        texture = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="SimpleTexture")
+        brdf = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="SimpleTexture")
         array_texture = Image.from_ktx(KTXFile.open("array_test.ktx"), name="ArrayTexture")
-        cube_texture_lod = Image.from_ktx(KTXFile.open("papermill_specular.ktx"), name="CubeTextureLod")
-
+        diffuse_env = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="DiffuseTexture")
+        specular_env = Image.from_ktx(KTXFile.open("papermill_specular.ktx"), name="CubeTextureLod")
+        
         # Samplers
         sampler = Sampler.from_params(address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
         sampler_lod = Sampler.from_params(
             address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            max_lod=cube_texture_lod.mipmaps_levels
+            max_lod=specular_env.mipmaps_levels
         )
 
         # Shaders
         simple_name = "debug_texture/debug_texture"
         array_name = "debug_texture_array/debug_texture_array"
         cube_name = "debug_texture_cube/debug_texture_cube"
+        pbr_name = "debug_pbr/debug_pbr"
         
         shader_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
 
         shader_simple = Shader.from_files(f"{simple_name}.vert.spv",  f"{simple_name}.frag.spv", f"{simple_name}.map.json", name="DebugTexture")
         shader_array = Shader.from_files(f"{array_name}.vert.spv",  f"{array_name}.frag.spv", f"{array_name}.map.json", name="DebugArrayTexture")
         shader_cube = Shader.from_files(f"{cube_name}.vert.spv",  f"{cube_name}.frag.spv", f"{cube_name}.map.json", name="DebugCubeTexture")
+       
+        shader_pbr = Shader.from_files(f"{pbr_name}.vert.spv",  f"{pbr_name}.frag.spv", f"{pbr_name}.map.json", name="DebugCubeTexture")
+        shader_pbr.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (-0.5,1,0.4), "camera_pos": (0,0,0)}
+        shader_pbr.uniforms.brdf =     CombinedImageSampler(image_id=brdf.id, view_name="default", sampler_id=sampler.id)
+        shader_pbr.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
+        shader_pbr.uniforms.specular_env = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
     
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
@@ -135,7 +143,7 @@ class DebugTexturesScene(object):
         # Objects
         plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
         plane1.model = Mat4()
-        plane1.uniforms.color_texture = CombinedImageSampler(image_id=texture.id, view_name="default", sampler_id=sampler.id)
+        plane1.uniforms.color_texture = CombinedImageSampler(image_id=brdf.id, view_name="default", sampler_id=sampler.id)
 
         plane2 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
         plane2.model = Mat4()
@@ -143,12 +151,12 @@ class DebugTexturesScene(object):
 
         sphere_lod = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTextureLod", hidden=True)
         sphere_lod.model = Mat4()
-        sphere_lod.uniforms.cube_texture = CombinedImageSampler(image_id=cube_texture_lod.id, view_name="default", sampler_id=sampler_lod.id)
+        sphere_lod.uniforms.cube_texture = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
 
         # Add objects to scene
-        scene.shaders.extend(shader_simple, shader_array, shader_cube)
+        scene.shaders.extend(shader_simple, shader_array, shader_cube, shader_pbr)
         scene.samplers.extend(sampler, sampler_lod)
-        scene.images.extend(texture, array_texture, cube_texture_lod)
+        scene.images.extend(brdf, array_texture, diffuse_env, specular_env)
         scene.meshes.extend(plane_m, sphere_m)
         scene.objects.extend(plane1, plane2, sphere_lod)
 

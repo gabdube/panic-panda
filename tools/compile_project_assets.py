@@ -20,6 +20,7 @@ KTX_MERGE_PATH = "./tools/ktxmerge.py"
 
 SHADERS_PATH = Path("./assets/shaders")
 IMAGES_PATH = Path("./assets/images")
+MODELS_PATH = Path("./assets/models")
 
 ONLY_COMMANDS = "--commands" in sys.argv
 
@@ -52,6 +53,7 @@ shaders = (
     (SHADERS_PATH/"debug_texture", "debug_texture"),
     (SHADERS_PATH/"debug_texture_array", "debug_texture_array"),
     (SHADERS_PATH/"debug_texture_cube", "debug_texture_cube"),
+    (SHADERS_PATH/"debug_pbr", "debug_pbr"),
     (SHADERS_PATH/"main", "main"),
 )
 
@@ -60,7 +62,8 @@ images = (
     (IMAGES_PATH/"dev", "brdfLUT.png"),
     (IMAGES_PATH/"dev/array_test", "*.png"),
     (IMAGES_PATH/"dev/papermill/diffuse", "*.png"),
-    (IMAGES_PATH/"dev/papermill/specular", "*.png")
+    (IMAGES_PATH/"dev/papermill/specular", "*.png"),
+    (MODELS_PATH/"dev/bunny", "bunny_*.jpg"),
 )
 
 
@@ -69,6 +72,7 @@ images_merge_copy = (
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
     ("MERGE_CUBE", IMAGES_PATH/"dev/papermill/diffuse/*", IMAGES_PATH/"papermill_diffuse.ktx"),
     ("MERGE_CUBE_MIPS", IMAGES_PATH/"dev/papermill/specular/*", IMAGES_PATH/"papermill_specular.ktx"),
+    ("MERGE_ARRAY", MODELS_PATH/"dev/bunny/bunny_*", IMAGES_PATH/"bunny.ktx"),
 )
 
 
