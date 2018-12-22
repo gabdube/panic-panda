@@ -16,9 +16,9 @@ class LookAtView(object):
         self.mouse_state  = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
         self.mouse_pos = (0,0)
         
-        self.mod_rotate = 0.005
-        self.mod_translate = 0.002
-        self.mod_zoom = 0.09
+        self.mod_rotate = kwargs.get('mod_rotate', 0.005)
+        self.mod_translate = kwargs.get('mod_translate', 0.005)
+        self.mod_zoom = kwargs.get('mod_zoom', 0.09)
 
         self.bounds_zoom = kwargs.get('bounds_zoom', (0.4, 3.0))
         self.bounds_rot_y = kwargs.get('bounds_rot_y', (radians(-89), radians(89)))

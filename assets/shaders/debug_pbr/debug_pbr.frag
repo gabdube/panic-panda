@@ -46,6 +46,8 @@ const vec3 F0 = vec3(0.04);
 const vec3 F1 = vec3(0.96);
 
 const int DIFFUSE_INDEX = 0;
+const int METALLIC_ROUGHNESS_INDEX = 1;
+const int NORMALS_INDEX = 2;
 
 
 vec4 SRGBtoLINEAR(vec4 srgbIn) {

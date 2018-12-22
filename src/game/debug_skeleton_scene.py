@@ -19,7 +19,7 @@ class DebugSkeletonScene(object):
         # Component
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(60, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0,1.5])
+        self.camera_view = LookAtView(cam, position = [0,0,1.5], mod_translate=0.002)
 
         # Assets
         self._setup_assets()

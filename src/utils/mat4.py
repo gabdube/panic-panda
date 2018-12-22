@@ -218,6 +218,8 @@ class Mat4(Structure):
         data[14] = a02 * x + a12 * y + a22 * z + a32
         data[15] = a03 * x + a13 * y + a23 * z + a33
 
+        return self
+
     def get_translation(self):
         return self.data[12:15]
 

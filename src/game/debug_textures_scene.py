@@ -109,6 +109,7 @@ class DebugTexturesScene(object):
         array_texture = Image.from_ktx(KTXFile.open("array_test.ktx"), name="ArrayTexture")
         diffuse_env = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="DiffuseTexture")
         specular_env = Image.from_ktx(KTXFile.open("papermill_specular.ktx"), name="CubeTextureLod")
+        hex_nut_img = Image.from_ktx(KTXFile.open("hex_nut.ktx"), name="HexNut")
         
         # Samplers
         sampler = Sampler.from_params(address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
@@ -125,20 +126,22 @@ class DebugTexturesScene(object):
         pbr_name = "debug_pbr/debug_pbr"
         
         shader_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
+        pbr_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
 
         shader_simple = Shader.from_files(f"{simple_name}.vert.spv",  f"{simple_name}.frag.spv", f"{simple_name}.map.json", name="DebugTexture")
         shader_array = Shader.from_files(f"{array_name}.vert.spv",  f"{array_name}.frag.spv", f"{array_name}.map.json", name="DebugArrayTexture")
         shader_cube = Shader.from_files(f"{cube_name}.vert.spv",  f"{cube_name}.frag.spv", f"{cube_name}.map.json", name="DebugCubeTexture")
        
         shader_pbr = Shader.from_files(f"{pbr_name}.vert.spv",  f"{pbr_name}.frag.spv", f"{pbr_name}.map.json", name="DebugCubeTexture")
-        shader_pbr.uniforms.rstatic = {"light_color": (1,1,1), "light_direction": (-0.5,1,0.4), "camera_pos": (0,0,0)}
-        shader_pbr.uniforms.brdf =     CombinedImageSampler(image_id=brdf.id, view_name="default", sampler_id=sampler.id)
-        shader_pbr.uniforms.diff_env = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
+        shader_pbr.uniforms.rstatic      = {"light_color": (1,1,1), "light_direction": (-0.5,1,0.4), "camera_pos": (0,0,0)}
+        shader_pbr.uniforms.brdf         = CombinedImageSampler(image_id=brdf.id, view_name="default", sampler_id=sampler.id)
+        shader_pbr.uniforms.diff_env     = CombinedImageSampler(image_id=diffuse_env.id, view_name="default", sampler_id=sampler.id)
         shader_pbr.uniforms.specular_env = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
     
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_attributes_map, name="SphereMesh")
+        hex_nut_m = Mesh.from_gltf(GLBFile.open("hex_nut.glb"), "HexNutMesh", attributes_map=pbr_attributes_map, name="HexNutMesh")
 
         # Objects
         plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
@@ -153,12 +156,17 @@ class DebugTexturesScene(object):
         sphere_lod.model = Mat4()
         sphere_lod.uniforms.cube_texture = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
 
+        hex_nut = GameObject.from_components(shader = shader_pbr.id, mesh = hex_nut_m.id, name = "HexNut", hidden=True)
+        hex_nut.model = model = Mat4.from_rotation(radians(90), (0,0,1)).rotate(radians(90), (1,0,0))
+        hex_nut.uniforms.view = {"normal": Mat4().data, "model": model}
+        hex_nut.uniforms.texture_maps = CombinedImageSampler(image_id=hex_nut_img.id, view_name="default", sampler_id=sampler.id)
+
         # Add objects to scene
         scene.shaders.extend(shader_simple, shader_array, shader_cube, shader_pbr)
         scene.samplers.extend(sampler, sampler_lod)
-        scene.images.extend(brdf, array_texture, diffuse_env, specular_env)
-        scene.meshes.extend(plane_m, sphere_m)
-        scene.objects.extend(plane1, plane2, sphere_lod)
+        scene.images.extend(brdf, array_texture, diffuse_env, specular_env, hex_nut_img)
+        scene.meshes.extend(plane_m, sphere_m, hex_nut_m)
+        scene.objects.extend(plane1, plane2, sphere_lod, hex_nut)
 
         self.visible_index = 0
-        self.objects.extend((plane1, plane2, sphere_lod))
+        self.objects.extend((plane1, plane2, sphere_lod, hex_nut))

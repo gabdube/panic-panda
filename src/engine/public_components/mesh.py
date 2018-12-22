@@ -39,7 +39,8 @@ class Mesh(object):
         if isinstance(index_or_name, str):
             mesh = next((m for m in gltf_file.layout["meshes"] if m["name"] == index_or_name), None)
             if mesh is None:
-                raise ValueError(f"No mesh named {index_or_name} in gltf file")
+                names = [m["name"] for m in gltf_file.layout["meshes"]]
+                raise ValueError(f"No mesh named {index_or_name} in gltf file. Available meshes: {names}")
         else:
             mesh = gltf_file.layout["meshes"][index_or_name]
                 

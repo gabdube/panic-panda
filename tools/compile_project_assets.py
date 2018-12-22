@@ -64,6 +64,7 @@ images = (
     (IMAGES_PATH/"dev/papermill/diffuse", "*.png"),
     (IMAGES_PATH/"dev/papermill/specular", "*.png"),
     (MODELS_PATH/"dev/bunny", "bunny_*.jpg"),
+    (MODELS_PATH/"dev/hex_nut", "hexnut_*.png"),
 )
 
 
@@ -73,6 +74,15 @@ images_merge_copy = (
     ("MERGE_CUBE", IMAGES_PATH/"dev/papermill/diffuse/*", IMAGES_PATH/"papermill_diffuse.ktx"),
     ("MERGE_CUBE_MIPS", IMAGES_PATH/"dev/papermill/specular/*", IMAGES_PATH/"papermill_specular.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/bunny/bunny_*", IMAGES_PATH/"bunny.ktx"),
+    ("MERGE_ARRAY", MODELS_PATH/"dev/hex_nut/hex_nut_*", IMAGES_PATH/"hex_nut.ktx"),
+)
+
+clean = (
+    (IMAGES_PATH/"dev/array_test/", "*.ktx"),
+    (IMAGES_PATH/"dev/papermill/diffuse", "*.ktx"),
+    (IMAGES_PATH/"dev/papermill/specular", "*.ktx"),
+    (MODELS_PATH/"dev/bunny/", "*.ktx"),
+    (MODELS_PATH/"dev/hex_nut/", "*.ktx"),
 )
 
 
@@ -131,11 +141,6 @@ wait_subprocesses(merge_outputs)
 #
 # IMAGE CLEANING!
 #
-clean = (
-    (IMAGES_PATH/"dev/array_test/", "*.ktx"),
-    (IMAGES_PATH/"dev/papermill/diffuse", "*.ktx"),
-    (IMAGES_PATH/"dev/papermill/specular", "*.ktx"),
-)
 
 if not ONLY_COMMANDS:
     for path, pattern in clean:
