@@ -5,6 +5,7 @@ from vulkan import vk, helpers as hvk
 from ctypes import Structure, c_ubyte, c_uint32, sizeof, memmove
 from collections import namedtuple
 from pathlib import Path
+from io import BytesIO
 import struct
 
 KTX_ID = hvk.array(c_ubyte, 12, (0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A))
@@ -66,14 +67,27 @@ class KtxHeader(Structure):
 
 class KTXFile(object):
     """
-    Warning: This class only implements loading functions for the images formats used in this project.
-    Any other usage will most likely not work.
+    A class that opens KTX files. Support simple texture, array texture and cubemaps.
+    Only support compressed format, for the actual list see `GL_TO_VK_FORMATS`.
 
-    Texture arrays and cubic texture are not supported and the texture endianess must match the system endianess.
+    Usage:
+        `KTXFile.open(file_path, **options)`
+
+    Options:
+        mipmaps_range / (int, int)
+           A tuple of (start, end) to load a subset of the texture mipmaps. 
+           If `end` is `None`, the mipmaps will be read until the end is reached.
+
     """
 
     def __init__(self, fname, header, data):
         self.file_name = fname
+        self.header = header
+
+        if header.endianness != 0x04030201:
+            raise ValueError("The endianess of this file do not match your system")
+        elif not self.compressed:
+            raise ValueError("This tool only works with compressed file format")
 
         self.width = header.pixel_width
         self.height = max(header.pixel_height, 1)
@@ -81,14 +95,7 @@ class KTXFile(object):
         self.mips_level = max(header.number_of_mipmap_levels, 1)
         self.array_element = max(header.number_of_array_elements, 1)
         self.faces = max(header.number_of_faces, 1)
-        self.header = header
-
-        if header.endianness != 0x04030201:
-            raise ValueError("The endianess of this file do not match your system")
-
-        if not self.compressed:
-            raise ValueError("This tool only works with compressed file format")
-
+        
         self.data = data
         self.mipmaps = []
 
@@ -96,7 +103,7 @@ class KTXFile(object):
         data_offset = 0
         mip_extent_width, mip_extent_height = self.width, self.height
 
-        for mipmap_index in range(self.mips_level):
+        for mipmap_index in range(0, self.mips_level):
             mipmap_size_bytes = data[data_offset:data_offset+4].cast("I")[0]
             data_offset += 4
 
@@ -104,7 +111,7 @@ class KTXFile(object):
                 for face_index in range(self.faces):
                     mipmap = MipmapData(mipmap_index, layer_index, face_index, data_offset, mipmap_size_bytes, mip_extent_width, mip_extent_height)
                     self.mipmaps.append(mipmap)
-
+                    
                     data_offset += mipmap_size_bytes
 
             mip_extent_width //= 2
@@ -220,7 +227,61 @@ class KTXFile(object):
         size = mipmap.size
         return self.data[offset:offset+size]
 
+    def slice_mipmaps(self, mips_slice):
+        header = self.header
+        
+        header_copy = KtxHeader()
+        for key, _ in KtxHeader._fields_:
+            v = getattr(header, key)
+            setattr(header_copy, key, v)
+
+        start, stop = mips_slice.start, mips_slice.stop
+        mips_length = stop-start
+
+        width, height = self.width, self.height
+        for _ in range(start):
+            width //= 2
+            height //= 2
+
+        header.pixel_width = width
+        header.pixel_height = height
+        header.number_of_mipmap_levels = mips_length
+
+        data = BytesIO()
+        for mipmap_level in range(start, stop):
+            for layer_index in range(self.array_element):
+                for face_index in range(self.faces):
+                    mipmap = self.find_mipmap(mipmap_level, layer_index, face_index)
+                    if layer_index == 0 and face_index == 0:
+                        print(mipmap_level)
+                        data.write(c_uint32(mipmap.size))
+                    data.write(self.mipmap_data(mipmap))
+
+        return KTXFile(self.file_name, header, memoryview(data.getvalue()))
+        
+
     def save(self, outfile):
         outfile.write(self.header)
         outfile.write(self.data)
 
+    def __len__(self):
+        return self.mipmaps_levels
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            mips_slice = slice(key, key+1)
+        elif isinstance(key, slice):
+            start = key.start
+            stop = key.stop
+            if key.start is None:
+                start = 0
+            if key.stop is None:
+                stop = self.mips_level
+            if key.step is not None and key.step > 1:
+                raise ValueError("KTXImage mipmap step must be 1")
+            
+            mips_slice = slice(start, stop)
+        else:
+            raise ValueError("KTXImage mipmap index must be int or slice")
+
+        return self.slice_mipmaps(mips_slice)        

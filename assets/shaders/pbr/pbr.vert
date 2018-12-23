@@ -5,31 +5,27 @@
 
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
-layout (location = 2) in vec4 inTangent;
-layout (location = 3) in vec2 inUv;
+layout (location = 2) in vec2 inUv;
+layout (location = 3) in vec4 inTangent;
 
 layout (location = 0) out vec3 outPos;
-layout (location = 1) out vec2 outUv;
-layout (location = 2) out mat3 outTbn;
+layout (location = 1) out vec3 outNormal;
+layout (location = 2) out vec4 outTangent;
+layout (location = 3) out vec2 outUv;
 
-layout (set=1, binding=1) uniform View {
-    mat4 mvp;
-    mat4 normal;
-    mat4 model;
+layout (set=1, binding=0) uniform View {
+    mat4 modelView;
+    mat4 projection;
+    mat3 modelViewNormal;
 } view;
 
 
-void main() 
-{
-    vec4 pos = view.model * vec4(inPos, 1.0);
-  
-    vec3 normalW = normalize(vec3(view.normal * vec4(inNormal.xyz, 0.0)));
-    vec3 tangentW = normalize(vec3(view.model * vec4(inTangent.xyz, 0.0)));
-    vec3 bitangentW = cross(normalW, tangentW) * inTangent.w;
+void main(void) {
 
-    outPos = vec3(pos.xyz) / pos.w;
-    outTbn = mat3(tangentW, bitangentW, normalW);
-    outUv = vec2(inUv.x, inUv.y);
+    outPos = vec3(view.modelView * vec4(inPos, 1.0));
+    outNormal = view.modelViewNormal * inNormal;
+    outTangent = vec4(view.modelViewNormal * inTangent.xyz, inTangent.w);
+    outUv = inUv;
 
-    gl_Position = view.mvp * vec4(inPos, 1.0);
+    gl_Position = view.projection * view.modelView * vec4(inPos, 1.0);
 }

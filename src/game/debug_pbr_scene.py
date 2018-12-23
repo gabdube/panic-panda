@@ -12,7 +12,7 @@ class DebugPBRScene(object):
     def __init__(self, app, engine):
         self.app = app
         self.engine = engine
-        self.scene = s = Scene.empty()
+        self.scene = Scene.empty()
         
         # Global state stuff
         self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
@@ -29,6 +29,7 @@ class DebugPBRScene(object):
         self._setup_assets()
 
         # Callbacks
+        s = self.scene
         s.on_initialized = self.init_scene
         s.on_window_resized = self.update_perspective
         s.on_key_pressed = self.handle_keypress
@@ -42,7 +43,15 @@ class DebugPBRScene(object):
         pass
 
     def update_object(self):
-        pass
+        cam = self.camera
+        helmet = self.render_object
+        view = helmet.uniforms.view
+
+        view.model_view = (cam.view * helmet.model).data
+        view.projection = cam.projection.data
+        view.model_view_normal = Mat4().data
+        
+        self.scene.update_objects(helmet)
 
     def update_perspective(self, event, data):
         self.camera.update_perspective(60, data.width, data.height)
@@ -59,4 +68,27 @@ class DebugPBRScene(object):
             self.update_object()
 
     def _setup_assets(self):
-        pass
+        scene = self.scene
+
+        helmet_maps = Image.from_ktx(KTXFile.open("damaged_helmet.ktx"), name="HelmetTextureMaps")
+        helmet_maps = helmet_maps[3:]   # Cut the first two mipmap levels in debug mode to speed up load times
+
+        helmet_sampler = Sampler.new()
+
+        pbr_attributes_map = {"POSITION": "pos", "NORMAL": "normal", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
+        pbr = Shader.from_files(f"pbr/pbr.vert.spv",  f"pbr/pbr.frag.spv", f"pbr/pbr.map.json", name="PBR")
+
+        helmet_mesh = Mesh.from_gltf(GLBFile.open("damaged_helmet.glb"), "HelmetMesh", attributes_map=pbr_attributes_map, name="HelmetMesh")
+
+        helmet = GameObject.from_components(shader = pbr.id, mesh = helmet_mesh.id, name = "Helmet")
+        helmet.model = Mat4()
+        helmet.uniforms.texture_maps = CombinedImageSampler(image_id=helmet_maps.id, view_name="default", sampler_id=helmet_sampler.id)
+
+        scene.images.extend(helmet_maps)
+        scene.samplers.extend(helmet_sampler)
+        scene.shaders.extend(pbr)
+        scene.meshes.extend(helmet_mesh)
+        scene.objects.extend(helmet)
+
+        self.pbr_shader = pbr
+        self.render_object = helmet

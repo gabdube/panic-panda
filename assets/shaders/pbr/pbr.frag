@@ -3,188 +3,138 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
+#define PI 3.1415926535897932384626433832795
+#define PI_2 (2.0*3.1415926535897932384626433832795)
+#define INV_PI 1.0/PI
+#define INV_LOG2 1.4426950408889634073599246810019
+#define DefaultGamma 2.4
+
 layout (location = 0) in vec3 inPos;
-layout (location = 1) in vec2 inUv;
-layout (location = 2) in mat3 inTbn;
+layout (location = 1) in vec3 inNormal;
+layout (location = 2) in vec4 inTangent;
+layout (location = 3) in vec2 inUv;
 
-layout (location = 0) out vec4 outColor;
+layout (location = 0) out vec4 outFragColor;
 
-layout (set=0, binding=1) uniform sampler2D brdfLUT;
-layout (set=0, binding=2) uniform samplerCube diffuseEnvSampler;
-layout (set=0, binding=3) uniform samplerCube specularEnvSampler;
-layout (set=1, binding=0) uniform sampler2DArray textureMaps;
+layout (set=0, binding=0) uniform Render {
+    vec4 tmp;
+} render;
 
-// Render data that won't change much (if at all) during a scene draw
-layout (set=0, binding=0) uniform RenderStatic {
-    vec4 lightColor;
-    vec4 lightDirection;
-    vec4 cameraPos;
-} rstatic;
+layout (set=1, binding=1) uniform sampler2DArray textureMaps;
 
+const int diffuseIndex = 0;
+const int metallicRoughnessIndex = 1;
+const int normalIndex = 2;
+const int aoIndex = 3;
+const int emissiveIndex = 4;
 
-struct PBRInfo
+//
+// colorSpace.glsl BEGIN
+//
+
+float linearrgb_to_srgb1(const in float c, const in float gamma)
 {
-    float NdotL;                  // cos angle between normal and light direction
-    float NdotV;                  // cos angle between normal and view direction
-    float NdotH;                  // cos angle between normal and half vector
-    float LdotH;                  // cos angle between light direction and half vector
-    float VdotH;                  // cos angle between view direction and half vector
-    float perceptualRoughness;    // roughness value, as authored by the model creator (input to shader)
-    float metalness;              // metallic value at the surface
-    vec3 reflectance0;            // full reflectance color (normal incidence angle)
-    vec3 reflectance90;           // reflectance color at grazing angle
-    float alphaRoughness;         // roughness mapped to a more linear change in the roughness (proposed by [2])
-    vec3 diffuseColor;            // color contribution from diffuse lighting
-    vec3 specularColor;           // color contribution from specular lighting
-};
-
-
-// Other constants
-const float M_PI = 3.141592653589793;
-const float minRoughness = 0.04;
-const vec3 F0 = vec3(0.04);
-const vec3 F1 = vec3(0.96);
-
-const int DIFFUSE_INDEX = 0;
-const int METALLIC_ROUGHNESS_INDEX = 1;
-const int NORMALS_INDEX = 2;
-
-
-vec4 SRGBtoLINEAR(vec4 srgbIn) {
-    vec3 linOut = pow(srgbIn.xyz,vec3(2.2));
-    return vec4(linOut,srgbIn.w);
+    float v = 0.0;
+    if(c < 0.0031308) {
+        if ( c > 0.0)
+            v = c * 12.92;
+    } else {
+        v = 1.055 * pow(c, 1.0/ gamma) - 0.055;
+    }
+    return v;
 }
 
-vec4 baseColorValues() {
-    return SRGBtoLINEAR(texture(textureMaps, vec3(inUv, DIFFUSE_INDEX), 0.0));
-}
 
-vec3 metallicRoughnessValues() {
-    vec4 packedMetallicRougness = texture(textureMaps, vec3(inUv, METALLIC_ROUGHNESS_INDEX), 0.0);
-    float metallic = packedMetallicRougness.b;
-    float perceptualRoughness = packedMetallicRougness.g;
-    float alphaRoughness = perceptualRoughness * perceptualRoughness;
-    return vec3(perceptualRoughness, alphaRoughness, metallic);
-}
-
-vec3 getNormal() {
-    float normalScale = 1.0;
-    mat3 tbn = inTbn;
-    vec3 n = texture(textureMaps, vec3(inUv, NORMALS_INDEX) ).rgb;
-    n = normalize(tbn * ((2.0 * n - 1.0) * vec3(normalScale, normalScale, 1.0)));
-
-    //vec3 n = normalize(tbn[2].xyz);
-
-    return n;
-}
-
-vec3 specularReflection(PBRInfo pbrInputs)
+vec4 linearTosRGB(const in vec4 col_from, const in float gamma)
 {
-    return pbrInputs.reflectance0 + (pbrInputs.reflectance90 - pbrInputs.reflectance0) * pow(clamp(1.0 - pbrInputs.VdotH, 0.0, 1.0), 5.0);
+    vec4 col_to;
+    col_to.r = linearrgb_to_srgb1(col_from.r, gamma);
+    col_to.g = linearrgb_to_srgb1(col_from.g, gamma);
+    col_to.b = linearrgb_to_srgb1(col_from.b, gamma);
+    col_to.a = col_from.a;
+    return col_to;
 }
 
-float microfacetDistribution(PBRInfo pbrInputs)
+vec3 linearTosRGB(const in vec3 col_from, const in float gamma)
 {
-    float roughnessSq = pbrInputs.alphaRoughness * pbrInputs.alphaRoughness;
-    float f = (pbrInputs.NdotH * roughnessSq - pbrInputs.NdotH) * pbrInputs.NdotH + 1.0;
-    return roughnessSq / (M_PI * f * f);
+    vec3 col_to;
+    col_to.r = linearrgb_to_srgb1(col_from.r, gamma);
+    col_to.g = linearrgb_to_srgb1(col_from.g, gamma);
+    col_to.b = linearrgb_to_srgb1(col_from.b, gamma);
+    return col_to;
 }
 
-float geometricOcclusion(PBRInfo pbrInputs)
+float sRGBToLinear(const in float c, const in float gamma)
 {
-    float NdotL = pbrInputs.NdotL;
-    float NdotV = pbrInputs.NdotV;
-    float r = pbrInputs.alphaRoughness;
-
-    float attenuationL = 2.0 * NdotL / (NdotL + sqrt(r * r + (1.0 - r * r) * (NdotL * NdotL)));
-    float attenuationV = 2.0 * NdotV / (NdotV + sqrt(r * r + (1.0 - r * r) * (NdotV * NdotV)));
-    return attenuationL * attenuationV;
+    float v = 0.0;
+    if ( c < 0.04045 ) {
+        if ( c >= 0.0 )
+            v = c * ( 1.0 / 12.92 );
+    } else {
+        v = pow( ( c + 0.055 ) * ( 1.0 / 1.055 ), gamma );
+    }
+    return v;
 }
 
-vec3 diffuse(PBRInfo pbrInputs)
+vec4 sRGBToLinear(const in vec4 col_from, const in float gamma)
 {
-    return pbrInputs.diffuseColor / M_PI;
+    vec4 col_to;
+    col_to.r = sRGBToLinear(col_from.r, gamma);
+    col_to.g = sRGBToLinear(col_from.g, gamma);
+    col_to.b = sRGBToLinear(col_from.b, gamma);
+    col_to.a = col_from.a;
+    return col_to;
 }
 
-vec3 getIBLContribution(PBRInfo pbrInputs, vec3 n, vec3 reflection)
+vec3 sRGBToLinear(const in vec3 col_from, const in float gamma)
 {
-    float mipCount = 9.0; // resolution of 512x512
-    float lod = (pbrInputs.perceptualRoughness * mipCount);
-
-    vec3 brdf = SRGBtoLINEAR(texture(brdfLUT, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness))).rgb;
-    vec3 diffuseLight = SRGBtoLINEAR(texture(diffuseEnvSampler, n)).rgb;
-    vec3 specularLight = SRGBtoLINEAR(textureLod(specularEnvSampler, reflection, lod)).rgb;
-
-    vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;
-    vec3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
-
-    return diffuse + specular;
+    vec3 col_to;
+    col_to.r = sRGBToLinear(col_from.r, gamma);
+    col_to.g = sRGBToLinear(col_from.g, gamma);
+    col_to.b = sRGBToLinear(col_from.b, gamma);
+    return col_to;
 }
 
-void main() {
-    // Unpack uniforms
-    vec3 lightColor = rstatic.lightColor.rgb;
-    vec3 lightDirection = rstatic.lightDirection.xyz;
-    vec3 cameraPos = rstatic.cameraPos.xyz;
+vec3 RGBEToRGB( const in vec4 rgba )
+{
+    float f = pow(2.0, rgba.w * 255.0 - (128.0 + 8.0));
+    return rgba.rgb * (255.0 * f);
+}
 
-    // Color
-    vec4 baseColor = baseColorValues();
-    
-    // MetallicRoughness
-    vec3 mrValues = metallicRoughnessValues();
-    float perceptualRoughness = mrValues.r;
-    float alphaRoughness = mrValues.g;
-    float metallic = mrValues.b;
+vec3 RGBMToRGB( const in vec4 rgba )
+{
+    const float maxRange = 8.0;
+    return rgba.rgb * maxRange * rgba.a;
+}
 
-    // PBR compute
-    vec3 diffuseColor = (baseColor.rgb * F1) * (1.0 - metallic);
-    vec3 specularColor = mix(F0, baseColor.rgb, metallic);
+//
+// colorSpace.glsl END
+//
 
-    float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
-    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
-    vec3 specularEnvironmentR0 = specularColor.rgb;
-    vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
+const mat3 LUVInverse = mat3( 6.0013,    -2.700,   -1.7995,
+                              -1.332,    3.1029,   -5.7720,
+                              0.3007,    -1.088,    5.6268 );
 
-    vec3 n = getNormal();                           // normal at surface point
-    vec3 v = normalize(cameraPos - inPos);     // Vector from surface point to camera
-    vec3 l = normalize(lightDirection);             // Vector from surface point to light
-    vec3 h = normalize(l+v);                        // Half vector between both l and v
-    vec3 reflection = -normalize(reflect(v, n));
+vec3 LUVToRGB( const in vec4 vLogLuv )
+{
+    float Le = vLogLuv.z * 255.0 + vLogLuv.w;
+    vec3 Xp_Y_XYZp;
+    Xp_Y_XYZp.y = exp2((Le - 127.0) / 2.0);
+    Xp_Y_XYZp.z = Xp_Y_XYZp.y / vLogLuv.y;
+    Xp_Y_XYZp.x = vLogLuv.x * Xp_Y_XYZp.z;
+    vec3 vRGB = LUVInverse * Xp_Y_XYZp;
+    return max(vRGB, 0.0);
+}
 
-    float NdotL = clamp(dot(n, l), 0.001, 1.0);
-    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
-    float NdotH = clamp(dot(n, h), 0.0, 1.0);
-    float LdotH = clamp(dot(l, h), 0.0, 1.0);
-    float VdotH = clamp(dot(v, h), 0.0, 1.0);
 
-    PBRInfo pbrInputs = PBRInfo(
-        NdotL,
-        NdotV,
-        NdotH,
-        LdotH,
-        VdotH,
-        perceptualRoughness,
-        metallic,
-        specularEnvironmentR0,
-        specularEnvironmentR90,
-        alphaRoughness,
-        diffuseColor,
-        specularColor
-    );
+void main(void) {
 
-    // Calculate the shading terms for the microfacet specular shading model
-    vec3 F = specularReflection(pbrInputs);
-    float G = geometricOcclusion(pbrInputs);
-    float D = microfacetDistribution(pbrInputs);
+    vec3 normal = normalize(inNormal);
+    vec3 eye = normalize(inPos);
+    vec4 tangent = inTangent;
+    vec2 uv = inUv.xy;
 
-    // Calculation of analytical lighting contribution
-    vec3 diffuseContrib = (1.0 - F) * diffuse(pbrInputs);
-    vec3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
+    vec4 result = texture(textureMaps, vec3(uv, diffuseIndex), 0.0);
 
-    // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
-    vec3 color = NdotL * lightColor * (diffuseContrib + specContrib);
-
-    color += getIBLContribution(pbrInputs, n, reflection);
-
-    outColor = vec4(pow(color,vec3(1.0/2.2)), baseColor.a);
+    outFragColor = linearTosRGB(result, DefaultGamma);
 }

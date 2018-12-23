@@ -42,6 +42,13 @@ class ImageView(object):
 
 
 class Image(object):
+    """
+        A user interface over an image.
+        Images must be created with the appropriate constructor (ex: `from_ktx`) and not using the constructor
+
+        Image are subscriptable if the underlying source file is too. Each index in the image correspond to a mipmap level.
+        Indexing or slicing an image copy the data and returns another Image that can be used just like the original.
+    """
 
     def __init__(self, **kwargs):
         self._id = Id()
@@ -62,6 +69,8 @@ class Image(object):
     @classmethod
     def from_ktx(cls, ktx_file, **kwargs):
         f = ktx_file
+        if not isinstance(f, KTXFile):
+            raise RuntimeError(f"File must be KTXFile, got {type(f).__qualname__}")
 
         image = super().__new__(cls)
         image.__init__(**kwargs)
@@ -122,3 +131,17 @@ class Image(object):
 
     def size(self):
         return self.texture_size
+
+    def __len__(self):
+        return self.mipmaps_levels
+
+    def __getitem__(self, key):
+        if not isinstance(key, int) and not isinstance(key, slice):
+            raise ValueError("Image mipmap index must be int or slice")
+
+        src, st = self.source, self.source_type
+        if st is ImageSource.Ktx:
+            return Image.from_ktx(src[key])
+        else:
+            raise NotImplementedError(f"Indexing is not implemented for image of type {st}")
+        

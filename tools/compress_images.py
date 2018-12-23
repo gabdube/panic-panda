@@ -18,7 +18,7 @@ import sys, subprocess
 argv = sys.argv
 
 CLI_PATH = "C:/Program Files/Compressonator 3.1.4064/bin/CLI/CompressonatorCLI.exe"
-MAX_SUBPROCESS = 5
+MAX_SUBPROCESS = 3
 OUTPUT = ""
 
 help = "--help" in argv or "-h" in argv

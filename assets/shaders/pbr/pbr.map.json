@@ -4,31 +4,26 @@
         {"id": 1, "scope": 1}
     ],
     "uniforms": [
-        {"name": "rstatic", "set": 0, "binding": 0, "count": 1, "stage": 16, "type": 6, "fields": [
-            {"name": "light_color", "type": 5, "count": 1},
-            {"name": "light_direction", "type": 5, "count": 1},
-            {"name": "camera_pos", "type": 5, "count": 1}
+        {"name": "render", "set": 0, "binding": 0, "count": 1, "stage": 16, "type": 6, "fields": [
+            {"name": "tmp", "type": 2, "count": 1}
         ]},
-        {"name": "brdf", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
-        {"name": "diff_env", "set": 0, "binding": 2, "count": 1, "stage": 16, "type": 1},
-        {"name": "specular_env", "set": 0, "binding": 3, "count": 1, "stage": 16, "type": 1},
-        {"name": "view", "set": 1, "binding": 1, "count": 1, "stage": 1, "type": 6, "fields": [
-            {"name": "mvp", "type": 2, "count": 1},
-            {"name": "normal", "type": 2, "count": 1},
-            {"name": "model", "type": 2, "count": 1}
+        {"name": "view", "set": 1, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
+            {"name": "model_view", "type": 2, "count": 1},
+            {"name": "projection", "type": 2, "count": 1},
+            {"name": "model_view_normal", "type": 2, "count": 1}
         ]},
-        {"name": "texture_maps", "set": 1, "binding": 0, "count": 1, "stage": 16, "type": 1}
+        {"name": "texture_maps", "set": 1, "binding": 1, "count": 1, "stage": 16, "type": 1}
     ],
     "bindings": [
         {"id": 0, "stride": 12},
         {"id": 1, "stride": 12},
-        {"id": 2, "stride": 16},
-        {"id": 3, "stride": 8}
+        {"id": 2, "stride": 8},
+        {"id": 3, "stride": 16}
     ],
     "attributes": [
         {"name": "pos", "location": 0, "binding": 0, "format": 106},
-        {"name": "norm", "location": 1, "binding": 1, "format": 106},
-        {"name": "tangent", "location": 2, "binding": 2, "format": 109},
-        {"name": "uv", "location": 3, "binding": 3, "format": 103}
+        {"name": "normal", "location": 1, "binding": 1, "format": 106},
+        {"name": "uv", "location": 2, "binding": 2, "format": 103},
+        {"name": "tangent", "location": 3, "binding": 3, "format": 109}
     ]
 }

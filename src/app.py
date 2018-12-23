@@ -8,10 +8,10 @@ class PanicPanda(object):
     
     def __init__(self):
         self.engine = Engine()
-        self.main = MainScene(self, self.engine)
-        self.debug_texture = DebugTexturesScene(self, self.engine)
+        #self.main = MainScene(self, self.engine)
+        #self.debug_texture = DebugTexturesScene(self, self.engine)
         self.debug_pbr = DebugPBRScene(self, self.engine)
-        self.debug_skeleton = DebugSkeletonScene(self, self.engine)
+        #self.debug_skeleton = DebugSkeletonScene(self, self.engine)
 
     def switch_scene(self, data):
         """Called from the scenes on keypress"""
@@ -28,6 +28,8 @@ class PanicPanda(object):
             engine.load(self.debug_pbr.scene)
             engine.activate(self.debug_pbr.scene)
         elif data.key is keys._4:
+            print("Debug animations disabled while working on PBR")
+            return
             engine.load(self.debug_skeleton.scene)
             engine.activate(self.debug_skeleton.scene)
 

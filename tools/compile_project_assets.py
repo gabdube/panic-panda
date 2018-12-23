@@ -63,6 +63,7 @@ images = (
     (IMAGES_PATH/"dev/papermill/diffuse", "*.png"),
     (IMAGES_PATH/"dev/papermill/specular", "*.png"),
     (MODELS_PATH/"dev/bunny", "bunny_*.jpg"),
+    (MODELS_PATH/"dev/damaged_helmet", "damaged_helmet_*.jpg", "--miplevels", "100"),
 )
 
 
@@ -72,6 +73,7 @@ images_merge_copy = (
     ("MERGE_CUBE", IMAGES_PATH/"dev/papermill/diffuse/*", IMAGES_PATH/"papermill_diffuse.ktx"),
     ("MERGE_CUBE_MIPS", IMAGES_PATH/"dev/papermill/specular/*", IMAGES_PATH/"papermill_specular.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/bunny/bunny_*", IMAGES_PATH/"bunny.ktx"),
+    ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
 )
 
 clean = (
@@ -79,6 +81,7 @@ clean = (
     (IMAGES_PATH/"dev/papermill/diffuse", "*.ktx"),
     (IMAGES_PATH/"dev/papermill/specular", "*.ktx"),
     (MODELS_PATH/"dev/bunny/", "*.ktx"),
+    (MODELS_PATH/"dev/damaged_helmet/", "*.ktx"),
 )
 
 
@@ -100,8 +103,8 @@ wait_subprocesses(shaders_outputs)
 # IMAGES!
 #
 images_outputs = {}
-for image_path, image_name in images:
-    p = process("python", COMPRESS_IMAGES_PATH, "--path", str(image_path), "--input", image_name)
+for image_path, image_name , *extra in images:
+    p = process("python", COMPRESS_IMAGES_PATH, "--path", str(image_path), "--input", image_name, *extra)
     if p is not None:
         images_outputs[f"[IMAGE {image_path}/{image_name}]"] = p 
 

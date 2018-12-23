@@ -1,4 +1,5 @@
 # Attributions
 
-* "Hex Nut" by j-conrad: https://sketchfab.com/models/ad975a4b143246919951f52dddbbd0ae
-* "Little Bot Bunny" by Harumaki: https://sketchfab.com/models/9ffab3dce12b4a398c742ec98cdf9647
+* Battle Damaged Sci-fi Helmet - PBR by theblueturtle_, published under a Creative Commons Attribution-NonCommercial license
+  * https://sketchfab.com/models/b81008d513954189a063ff901f7abfe4
+  * https://sketchfab.com/theblueturtle_
