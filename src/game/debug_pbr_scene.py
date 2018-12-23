@@ -12,7 +12,11 @@ class DebugPBRScene(object):
     def __init__(self, app, engine):
         self.app = app
         self.engine = engine
+<<<<<<< HEAD
         self.scene = Scene.empty()
+=======
+        self.scene = s = Scene.empty()
+>>>>>>> e4ed679a23cdc3172e31a7d5fafc11bad4461144
         
         # Global state stuff
         self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
@@ -29,7 +33,10 @@ class DebugPBRScene(object):
         self._setup_assets()
 
         # Callbacks
+<<<<<<< HEAD
         s = self.scene
+=======
+>>>>>>> e4ed679a23cdc3172e31a7d5fafc11bad4461144
         s.on_initialized = self.init_scene
         s.on_window_resized = self.update_perspective
         s.on_key_pressed = self.handle_keypress
@@ -43,6 +50,7 @@ class DebugPBRScene(object):
         pass
 
     def update_object(self):
+<<<<<<< HEAD
         cam = self.camera
         helmet = self.render_object
         view = helmet.uniforms.view
@@ -52,6 +60,9 @@ class DebugPBRScene(object):
         view.model_view_normal = Mat4().data
         
         self.scene.update_objects(helmet)
+=======
+        pass
+>>>>>>> e4ed679a23cdc3172e31a7d5fafc11bad4461144
 
     def update_perspective(self, event, data):
         self.camera.update_perspective(60, data.width, data.height)
