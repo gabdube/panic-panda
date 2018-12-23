@@ -253,7 +253,6 @@ class KTXFile(object):
                 for face_index in range(self.faces):
                     mipmap = self.find_mipmap(mipmap_level, layer_index, face_index)
                     if layer_index == 0 and face_index == 0:
-                        print(mipmap_level)
                         data.write(c_uint32(mipmap.size))
                     data.write(self.mipmap_data(mipmap))
 
