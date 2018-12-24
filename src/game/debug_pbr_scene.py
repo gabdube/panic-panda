@@ -21,7 +21,7 @@ class DebugPBRScene(object):
         # Camera
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(60, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0,3.5], bounds_zoom=(0.2, 7.0))
+        self.camera_view = LookAtView(cam, position = [0,0,3.5], bounds_zoom=(1.6, 7.0))
 
         # Assets
         self.pbr_shader = None
@@ -38,6 +38,8 @@ class DebugPBRScene(object):
     def init_scene(self):
         self.update_camera()
         self.update_object()
+
+        self.scene.update_shaders(self.pbr_shader)
 
     def update_camera(self):
         pass
@@ -71,12 +73,19 @@ class DebugPBRScene(object):
         scene = self.scene
 
         helmet_maps = Image.from_ktx(KTXFile.open("damaged_helmet.ktx"), name="HelmetTextureMaps")
-        helmet_maps = helmet_maps[3:]   # Cut the first two mipmap levels in debug mode to speed up load times
+        if __debug__:
+            helmet_maps = helmet_maps[3:]   # Cut the first two mipmap levels in debug mode to speed up load times
 
-        helmet_sampler = Sampler.new()
+        helmet_sampler = Sampler.new(max_lod=helmet_maps.mipmaps_levels)
 
         pbr_attributes_map = {"POSITION": "pos", "NORMAL": "normal", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
         pbr = Shader.from_files(f"pbr/pbr.vert.spv",  f"pbr/pbr.frag.spv", f"pbr/pbr.map.json", name="PBR")
+        pbr.uniforms.render = {
+            "base_color_factor": (1.0, 1.0, 1.0, 0.0),
+            "emissive_factor": (1.0, 1.0, 1.0, 1.0),
+            "factors": (1.0, 1.0, 1.0, 1.0),
+            "env_spherical_harmonics": (0.0, 0.0, 0.0, 0.0)
+        }
 
         helmet_mesh = Mesh.from_gltf(GLBFile.open("damaged_helmet.glb"), "HelmetMesh", attributes_map=pbr_attributes_map, name="HelmetMesh")
 

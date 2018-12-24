@@ -17,10 +17,23 @@ layout (location = 3) in vec2 inUv;
 layout (location = 0) out vec4 outFragColor;
 
 layout (set=0, binding=0) uniform Render {
-    vec4 tmp;
+    vec4 baseColorFactor;
+    vec4 emissiveFactor;
+    vec4 factors;                    // r: roughness / g: metallic / b: IBL brightness / a: unused
+    vec4 envSphericalHarmonics[9];
+    mat4 envTransform;
 } render;
 
 layout (set=1, binding=1) uniform sampler2DArray textureMaps;
+
+struct PBR {
+    vec3 normal;
+    vec3 view;
+    vec3 albedo;
+    float roughness;
+    vec3 specular;
+    float ao;
+};
 
 const int diffuseIndex = 0;
 const int metallicRoughnessIndex = 1;
@@ -95,46 +108,142 @@ vec3 sRGBToLinear(const in vec3 col_from, const in float gamma)
     return col_to;
 }
 
-vec3 RGBEToRGB( const in vec4 rgba )
-{
-    float f = pow(2.0, rgba.w * 255.0 - (128.0 + 8.0));
-    return rgba.rgb * (255.0 * f);
-}
-
-vec3 RGBMToRGB( const in vec4 rgba )
-{
-    const float maxRange = 8.0;
-    return rgba.rgb * maxRange * rgba.a;
-}
 
 //
 // colorSpace.glsl END
 //
 
-const mat3 LUVInverse = mat3( 6.0013,    -2.700,   -1.7995,
-                              -1.332,    3.1029,   -5.7720,
-                              0.3007,    -1.088,    5.6268 );
+//
+// UE4 PBR begin
+//
 
-vec3 LUVToRGB( const in vec4 vLogLuv )
+vec3 sphericalHarmonics(const vec3 sph[9], const in vec3 normal)
 {
-    float Le = vLogLuv.z * 255.0 + vLogLuv.w;
-    vec3 Xp_Y_XYZp;
-    Xp_Y_XYZp.y = exp2((Le - 127.0) / 2.0);
-    Xp_Y_XYZp.z = Xp_Y_XYZp.y / vLogLuv.y;
-    Xp_Y_XYZp.x = vLogLuv.x * Xp_Y_XYZp.z;
-    vec3 vRGB = LUVInverse * Xp_Y_XYZp;
-    return max(vRGB, 0.0);
+    float x = normal.x;
+    float y = normal.y;
+    float z = normal.z;
+
+    vec3 result = (
+        sph[0] +
+
+        sph[1] * y +
+        sph[2] * z +
+        sph[3] * x +
+
+        sph[4] * y * x +
+        sph[5] * y * z +
+        sph[6] * (3.0 * z * z - 1.0) +
+        sph[7] * (z * x) +
+        sph[8] * (x*x - y*y)
+    );
+
+    return max(result, vec3(0.0));
 }
 
+mat3 getEnvironmentTransform( mat4 transform ) {
+    vec3 x = vec3(transform[0][0], transform[1][0], transform[2][0]);
+    vec3 y = vec3(transform[0][1], transform[1][1], transform[2][1]);
+    vec3 z = vec3(transform[0][2], transform[1][2], transform[2][2]);
+    mat3 m = mat3(x,y,z);
+    return m;
+}
+
+vec3 computeIBL(const in PBR pbr)
+{
+    float brightness = render.factors.b;
+    mat3 environmentTransform = getEnvironmentTransform(render.envTransform);
+
+    vec4 h[9] = render.envSphericalHarmonics;
+    vec3 sph[9] = vec3[9](h[0].xyz, h[1].xyz, h[2].xyz, h[3].xyz, h[4].xyz, h[5].xyz, h[6].xyz, h[7].xyz, h[8].xyz);
+    vec3 H = sphericalHarmonics(sph, environmentTransform * pbr.normal);
+
+    vec3 color = brightness * pbr.albedo * pbr.ao * H;
+    
+    /*color += approximateSpecularIBL(specular,
+                                    roughness,
+                                    normal,
+                                    view);*/
+
+    return color;
+}
+
+//
+// UE4 PBR end
+//
+
+vec3 computeNormalFromTangentSpaceNormalMap(const in vec4 tangent, const in vec3 normal, const in vec3 texnormal)
+{
+    vec3 tang = normalize(tangent.xyz);
+    vec3 B = tangent.w * cross(normal, tang);
+    vec3 outnormal = texnormal.x*tang + texnormal.y*B + texnormal.z*normal;
+    return normalize(outnormal);
+}
+
+vec3 textureNormal(const in vec3 rgb) {
+    vec3 n = normalize((rgb-vec3(0.5)));
+    return n;
+}
 
 void main(void) {
 
+    const vec3 dielectricColor = vec3(0.04);
+    const float minRoughness = 1.e-4;
+
+    // Fragment inputs
     vec3 normal = normalize(inNormal);
     vec3 eye = normalize(inPos);
     vec4 tangent = inTangent;
     vec2 uv = inUv.xy;
 
-    vec4 result = texture(textureMaps, vec3(uv, diffuseIndex), 0.0);
+    // Uniforms inputs
+    vec3 baseColorFactor = render.baseColorFactor.rgb,
+         emissiveFactor = render.emissiveFactor.rgb;
+    float roughnessFactor = render.factors.r,
+          metallicFactor = render.factors.g;
 
+    // Shaders locals
+    vec4 albedoSource, result;
+    vec3 albedo, albedoReduced, normalTexel, realNormal, specular, emissive, resultIBL;
+    float roughness, ao, metallic;
+    PBR pbr;
+    
+    // Diffuse
+    albedoSource = texture(textureMaps, vec3(uv, diffuseIndex), 0.0);
+    albedoSource.a *= render.baseColorFactor.a;
+    albedo = sRGBToLinear( albedoSource.rgb, DefaultGamma ) * render.baseColorFactor.rgb;
+
+    // Normals
+    normalTexel = texture(textureMaps, vec3(uv, normalIndex), 0.0).rgb;
+    realNormal = textureNormal( normalTexel );
+    normal = computeNormalFromTangentSpaceNormalMap( tangent, normal, realNormal );
+    
+    // Roughness
+    roughness = texture(textureMaps, vec3(uv, metallicRoughnessIndex), 0.0).g * roughnessFactor;
+    roughness = max( minRoughness , roughness );
+
+    // Metallic
+    metallic = texture(textureMaps, vec3(uv, metallicRoughnessIndex), 0.0).b * metallicFactor;
+    albedoReduced = albedo * (1.0 - metallic);
+    specular = mix(dielectricColor, albedo, metallic);
+    albedo = albedoReduced;
+
+    // Ambient occlusion (FIX: should be included in the metallicRoughness map r channel, not in a separate layer)
+    ao = texture(textureMaps, vec3(uv, aoIndex), 0.0).r;
+
+    // PBR
+    pbr.normal = normal;
+    pbr.view = -eye;
+    pbr.albedo = albedo;
+    pbr.roughness = roughness;
+    pbr.specular = specular;
+    pbr.ao = ao;
+    resultIBL = computeIBL(pbr);
+
+    // Emissive
+    emissive = texture(textureMaps, vec3(uv, emissiveIndex), 0.0).rgb * render.factors.b;
+    resultIBL = resultIBL + emissive;
+
+    // End result
+    result = vec4(resultIBL, albedoSource.a);
     outFragColor = linearTosRGB(result, DefaultGamma);
 }

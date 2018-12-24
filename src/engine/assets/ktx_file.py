@@ -258,7 +258,6 @@ class KTXFile(object):
 
         return KTXFile(self.file_name, header, memoryview(data.getvalue()))
         
-
     def save(self, outfile):
         outfile.write(self.header)
         outfile.write(self.data)
