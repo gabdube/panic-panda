@@ -1,6 +1,6 @@
 from engine import Engine 
 from system import events as evt
-from game import MainScene, DebugTexturesScene, DebugSkeletonScene, DebugPBRScene
+from game import MainScene, DebugTexturesScene, DebugPBRScene
 from time import sleep
 
 
@@ -8,10 +8,9 @@ class PanicPanda(object):
     
     def __init__(self):
         self.engine = Engine()
-        #self.main = MainScene(self, self.engine)
-        #self.debug_texture = DebugTexturesScene(self, self.engine)
-        self.debug_pbr = DebugPBRScene(self, self.engine)
-        #self.debug_skeleton = DebugSkeletonScene(self, self.engine)
+        self.main = MainScene(self, self.engine)
+        self.debug_texture = DebugTexturesScene(self, self.engine)
+        #self.debug_pbr = DebugPBRScene(self, self.engine)
 
     def switch_scene(self, data):
         """Called from the scenes on keypress"""
@@ -25,18 +24,14 @@ class PanicPanda(object):
             engine.load(self.debug_texture.scene)
             engine.activate(self.debug_texture.scene)
         elif data.key is keys._3:
+            raise RuntimeError("CLOSED FOR REPARATIONS. COME BACK LATER.")
             engine.load(self.debug_pbr.scene)
             engine.activate(self.debug_pbr.scene)
-        elif data.key is keys._4:
-            print("Debug animations disabled while working on PBR")
-            return
-            engine.load(self.debug_skeleton.scene)
-            engine.activate(self.debug_skeleton.scene)
 
     def run(self):
         engine = self.engine
-        engine.load(self.debug_pbr.scene)
-        engine.activate(self.debug_pbr.scene)
+        engine.load(self.debug_texture.scene)
+        engine.activate(self.debug_texture.scene)
 
         while engine.running:
             engine.events()

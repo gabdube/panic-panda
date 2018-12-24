@@ -10,5 +10,6 @@ assets/models/dev/*
 assets/images/**/*.png
 assets/images/**/*.jpg
 assets/images/**/*.ktx
+assets/images/dev/
 python/
 **/process_results.txt

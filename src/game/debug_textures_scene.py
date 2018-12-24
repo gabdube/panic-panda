@@ -24,7 +24,7 @@ class DebugTexturesScene(object):
         # Camera
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(60, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0,3.5], bounds_zoom=(0.2, 7.0))
+        self.camera_view = LookAtView(cam, position = [0,0,2.5], bounds_zoom=(0.2, 7.0))
 
         # Assets
         self._setup_assets()
@@ -105,18 +105,20 @@ class DebugTexturesScene(object):
         scene = self.scene
 
         # Textures
-        brdf = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="SimpleTexture")
+        texture = Image.from_ktx(KTXFile.open("vulkan_logo.ktx"), name="Texture")
         array_texture = Image.from_ktx(KTXFile.open("array_test.ktx"), name="ArrayTexture")
-        diffuse_env = Image.from_ktx(KTXFile.open("papermill_diffuse.ktx"), name="DiffuseTexture")
-        specular_env = Image.from_ktx(KTXFile.open("papermill_specular.ktx"), name="CubeTextureLod")
-        
+
         # Samplers
-        sampler = Sampler.from_params(address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-        sampler_lod = Sampler.from_params(
+        sampler = Sampler.from_params(
             address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            max_lod=specular_env.mipmaps_levels
+            address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
         )
+
+        #sampler_lod = Sampler.from_params(
+        #    address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        #    address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        #    max_lod=specular_env.mipmaps_levels
+        #)
 
         # Shaders
         simple_name = "debug_texture/debug_texture"
@@ -124,7 +126,6 @@ class DebugTexturesScene(object):
         cube_name = "debug_texture_cube/debug_texture_cube"
         
         shader_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
-        pbr_attributes_map = {"POSITION": "pos", "NORMAL": "norm", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
 
         shader_simple = Shader.from_files(f"{simple_name}.vert.spv",  f"{simple_name}.frag.spv", f"{simple_name}.map.json", name="DebugTexture")
         shader_array = Shader.from_files(f"{array_name}.vert.spv",  f"{array_name}.frag.spv", f"{array_name}.map.json", name="DebugArrayTexture")
@@ -137,22 +138,22 @@ class DebugTexturesScene(object):
         # Objects
         plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
         plane1.model = Mat4()
-        plane1.uniforms.color_texture = CombinedImageSampler(image_id=brdf.id, view_name="default", sampler_id=sampler.id)
+        plane1.uniforms.color_texture = CombinedImageSampler(image_id=texture.id, view_name="default", sampler_id=sampler.id)
 
         plane2 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
         plane2.model = Mat4()
         plane2.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
 
-        sphere_lod = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTextureLod", hidden=True)
-        sphere_lod.model = Mat4()
-        sphere_lod.uniforms.cube_texture = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
+        #sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTextureLod", hidden=True)
+        #sphere.model = Mat4()
+        #sphere.uniforms.cube_texture = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
         
         # Add objects to scene
         scene.shaders.extend(shader_simple, shader_array, shader_cube)
-        scene.samplers.extend(sampler, sampler_lod)
-        scene.images.extend(brdf, array_texture, diffuse_env, specular_env)
+        scene.samplers.extend(sampler)
+        scene.images.extend(texture, array_texture)
         scene.meshes.extend(plane_m, sphere_m)
-        scene.objects.extend(plane1, plane2, sphere_lod)
+        scene.objects.extend(plane1, plane2)
 
         self.visible_index = 0
-        self.objects.extend((plane1, plane2, sphere_lod))
+        self.objects.extend((plane1, plane2))

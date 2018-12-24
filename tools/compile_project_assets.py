@@ -58,23 +58,20 @@ shaders = (
 
 
 images = (
-    (IMAGES_PATH/"dev", "brdfLUT.png"),
+    (IMAGES_PATH/"dev/", "vulkan_logo.jpg"),
     (IMAGES_PATH/"dev/array_test", "*.png"),
-    (MODELS_PATH/"dev/bunny", "bunny_*.jpg"),
     (MODELS_PATH/"dev/damaged_helmet", "damaged_helmet_*.jpg", "--miplevels", "100"),
 )
 
 
 images_merge_copy = (
-    ("MOVE", IMAGES_PATH/"dev/brdfLUT.ktx", IMAGES_PATH/"brdfLUT.ktx"),
+    ("MOVE", IMAGES_PATH/"dev/vulkan_logo.ktx", IMAGES_PATH/"vulkan_logo.ktx"),
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
-    ("MERGE_ARRAY", MODELS_PATH/"dev/bunny/bunny_*", IMAGES_PATH/"bunny.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
 )
 
 clean = (
     (IMAGES_PATH/"dev/array_test/", "*.ktx"),
-    (MODELS_PATH/"dev/bunny/", "*.ktx"),
     (MODELS_PATH/"dev/damaged_helmet/", "*.ktx"),
 )
 
