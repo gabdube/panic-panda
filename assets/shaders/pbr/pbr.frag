@@ -20,10 +20,12 @@ layout (set=0, binding=0) uniform Render {
     vec4 baseColorFactor;
     vec4 emissiveFactor;
     vec4 factors;                    // r: roughness / g: metallic / b: IBL brightness / a: unused
-    vec4 envSphericalHarmonics[9];
+    vec4 envLod;                     // r: min LOD / g: max LOD / b & a: unused
     mat4 envTransform;
 } render;
 
+layout (set=0, binding=1) uniform samplerCube envCube;
+layout (set=0, binding=2) uniform sampler2D integrateBRDF;
 layout (set=1, binding=1) uniform sampler2DArray textureMaps;
 
 struct PBR {
@@ -117,29 +119,6 @@ vec3 sRGBToLinear(const in vec3 col_from, const in float gamma)
 // UE4 PBR begin
 //
 
-vec3 sphericalHarmonics(const vec3 sph[9], const in vec3 normal)
-{
-    float x = normal.x;
-    float y = normal.y;
-    float z = normal.z;
-
-    vec3 result = (
-        sph[0] +
-
-        sph[1] * y +
-        sph[2] * z +
-        sph[3] * x +
-
-        sph[4] * y * x +
-        sph[5] * y * z +
-        sph[6] * (3.0 * z * z - 1.0) +
-        sph[7] * (z * x) +
-        sph[8] * (x*x - y*y)
-    );
-
-    return max(result, vec3(0.0));
-}
-
 mat3 getEnvironmentTransform( mat4 transform ) {
     vec3 x = vec3(transform[0][0], transform[1][0], transform[2][0]);
     vec3 y = vec3(transform[0][1], transform[1][1], transform[2][1]);
@@ -148,22 +127,57 @@ mat3 getEnvironmentTransform( mat4 transform ) {
     return m;
 }
 
-vec3 computeIBL(const in PBR pbr)
+vec3 prefilterEnvMap(float roughnessLinear, const in vec3 R)
+{
+    float envMaxLod = render.envLod.g;
+    float lod = sqrt(roughnessLinear) * envMaxLod;
+    return textureLod(envCube, R, lod).rgb;
+}
+
+float occlusionHorizon(const in vec3 R, const in vec3 normal)
+{
+    float factor = clamp( 1.0 + dot(R, normal), 0.0, 1.0);
+    return factor * factor;
+}
+
+vec2 brdf(float r, float NoV)
+{
+    vec4 rgba = texture(integrateBRDF, vec2(NoV, r));
+
+    const float div = 1.0/65535.0;
+    float b = (rgba[3] * 65280.0 + rgba[2] * 255.0);
+    float a = (rgba[1] * 65280.0 + rgba[0] * 255.0);
+
+    return vec2( a, b ) * div;
+}
+
+vec3 approximateSpecularIBL( const in vec3 specularColor,
+                             const in float rLinear,
+                             const in vec3 N,
+                             const in vec3 V )
 {
     float brightness = render.factors.b;
     mat3 environmentTransform = getEnvironmentTransform(render.envTransform);
 
-    vec4 h[9] = render.envSphericalHarmonics;
-    vec3 sph[9] = vec3[9](h[0].xyz, h[1].xyz, h[2].xyz, h[3].xyz, h[4].xyz, h[5].xyz, h[6].xyz, h[7].xyz, h[8].xyz);
-    vec3 H = sphericalHarmonics(sph, environmentTransform * pbr.normal);
+    float roughnessLinear = max(rLinear, 0.0);
+    float NoV = dot(N, V);
+    vec3 R = normalize((2.0 * NoV ) * N - V);
 
-    vec3 color = brightness * pbr.albedo * pbr.ao * H;
-    
-    /*color += approximateSpecularIBL(specular,
-                                    roughness,
-                                    normal,
-                                    view);*/
+    vec3 dir = environmentTransform * R;
+    vec3 prefilteredColor = prefilterEnvMap(roughnessLinear, dir);
 
+    prefilteredColor *= occlusionHorizon(R, inNormal);
+
+    vec2 envBRDF = brdf(roughnessLinear, NoV);
+
+    return brightness * prefilteredColor * ( specularColor * envBRDF.x + envBRDF.y );
+}
+
+vec3 computeIBL(const in PBR pbr)
+{
+    float brightness = render.factors.b;
+    vec3 color = brightness * pbr.albedo * pbr.ao;
+    color += approximateSpecularIBL(pbr.specular, pbr.roughness, pbr.normal, pbr.view);
     return color;
 }
 

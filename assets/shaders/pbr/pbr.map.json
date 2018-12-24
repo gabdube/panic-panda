@@ -8,9 +8,11 @@
             {"name": "base_color_factor", "type": 5, "count": 1},
             {"name": "emissive_factor", "type": 5, "count": 1},
             {"name": "factors", "type": 5, "count": 1},
-            {"name": "env_spherical_harmonics", "type": 5, "count": 9},
-            {"name": "env_transform", "type": 5, "count": 1}
+            {"name": "env_lod", "type": 5, "count": 1},
+            {"name": "env_transform", "type": 2, "count": 1}
         ]},
+        {"name": "env_cube", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
+        {"name": "integrate_brdf", "set": 0, "binding": 2, "count": 1, "stage": 16, "type": 1},
         {"name": "view", "set": 1, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
             {"name": "model_view", "type": 2, "count": 1},
             {"name": "projection", "type": 2, "count": 1},

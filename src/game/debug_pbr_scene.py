@@ -72,19 +72,26 @@ class DebugPBRScene(object):
     def _setup_assets(self):
         scene = self.scene
 
+        env_img = Image.from_ktx(KTXFile.open("unity_gareout.ktx"), name="UnityGareout")
+        brdf_img = Image.from_ktx(KTXFile.open("brdfLUT.ktx"), name="BRDF")
         helmet_maps = Image.from_ktx(KTXFile.open("damaged_helmet.ktx"), name="HelmetTextureMaps")
         if __debug__:
             helmet_maps = helmet_maps[3:]   # Cut the first two mipmap levels in debug mode to speed up load times
 
-        helmet_sampler = Sampler.new(max_lod=helmet_maps.mipmaps_levels)
+        sampler = Sampler.new()
+        env_sampler = Sampler.from_params(max_lod=env_img.mipmaps_levels)
+        helmet_sampler = Sampler.from_params(max_lod=helmet_maps.mipmaps_levels)
 
         pbr_attributes_map = {"POSITION": "pos", "NORMAL": "normal", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
         pbr = Shader.from_files(f"pbr/pbr.vert.spv",  f"pbr/pbr.frag.spv", f"pbr/pbr.map.json", name="PBR")
+        pbr.uniforms.env_cube = CombinedImageSampler(image_id=env_img.id, view_name="default", sampler_id=env_sampler.id)
+        pbr.uniforms.integrate_brdf = CombinedImageSampler(image_id=brdf_img.id, view_name="default", sampler_id=sampler.id)
         pbr.uniforms.render = {
             "base_color_factor": (1.0, 1.0, 1.0, 0.0),
             "emissive_factor": (1.0, 1.0, 1.0, 1.0),
             "factors": (1.0, 1.0, 1.0, 1.0),
-            "env_spherical_harmonics": (0.0, 0.0, 0.0, 0.0)
+            "env_lod": (0.0, env.mipmaps_levels),
+            "env_transform": Mat4().data
         }
 
         helmet_mesh = Mesh.from_gltf(GLBFile.open("damaged_helmet.glb"), "HelmetMesh", attributes_map=pbr_attributes_map, name="HelmetMesh")

@@ -120,8 +120,6 @@ class DataShader(object):
             if len(bad_members) > 0:
                 print(f"WARNING: some unkown members were found when creating uniform \"{me_cls.__qualname__}\": {bad_members}")
 
-            defaults = {n: tuple(d) for n,d in defaults.items()}
-
             super(me_cls, me).__init__(**defaults)
 
         def repr_fn(me):
