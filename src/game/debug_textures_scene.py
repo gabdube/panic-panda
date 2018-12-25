@@ -1,5 +1,5 @@
 from engine import Shader, GameObject, Scene, Sampler, Image, CombinedImageSampler, Mesh, MeshPrefab
-from engine.assets import GLBFile, KTXFile, IMAGE_PATH
+from engine.assets import GLBFile, KTXFile, EnvCubemapFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
 from vulkan import vk
@@ -108,6 +108,7 @@ class DebugTexturesScene(object):
         # Textures
         texture = Image.from_ktx(KTXFile.open("vulkan_logo.ktx"), name="Texture")
         array_texture = Image.from_ktx(KTXFile.open("array_test.ktx"), name="ArrayTexture")
+        #cubemap_texture = Image.from_env_cubemap(EnvCubemapFile.open("unity_gareout/specular_luv.bin"), name="Cubemap texture")
 
         with (IMAGE_PATH/"unity_gareout/brdf_ue4.bin").open("rb") as f:
             texture_raw_data = f.read()
@@ -139,10 +140,11 @@ class DebugTexturesScene(object):
 
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
+        plane_m2 = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh2", invert_y=True)
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_attributes_map, name="SphereMesh")
 
         # Objects
-        plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
+        plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m2.id, name = "ObjTexture")
         plane1.model = Mat4()
         plane1.uniforms.color_texture = CombinedImageSampler(image_id=texture.id, view_name="default", sampler_id=sampler.id)
 
@@ -150,7 +152,7 @@ class DebugTexturesScene(object):
         plane2.model = Mat4()
         plane2.uniforms.color_texture = CombinedImageSampler(image_id=raw_texture.id, view_name="default", sampler_id=sampler.id)
 
-        plane3 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
+        plane3 = GameObject.from_components(shader = shader_array.id, mesh = plane_m2.id, name = "ObjArrayTexture", hidden=True)
         plane3.model = Mat4()
         plane3.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
 
@@ -162,7 +164,7 @@ class DebugTexturesScene(object):
         scene.shaders.extend(shader_simple, shader_array, shader_cube)
         scene.samplers.extend(sampler)
         scene.images.extend(texture, array_texture, raw_texture)
-        scene.meshes.extend(plane_m, sphere_m)
+        scene.meshes.extend(plane_m, plane_m2, sphere_m)
         scene.objects.extend(plane1, plane2, plane3)
 
         self.visible_index = 0

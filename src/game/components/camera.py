@@ -16,12 +16,23 @@ class Camera(object):
         
         self.camera = cam
         self.view = view = cam.clone().invert()
-        self.projection = Mat4.perspective(radians(fov), width/height, 0.001, 1000.0)
 
-        self.view_projection = self.projection * view
+        # Vulkan clip space has inverted Y and half Z.
+        self.clip = Mat4.from_data((
+            (1.0,  0.0, 0.0, 0.0),
+            (0.0, -1.0, 0.0, 0.0),
+            (0.0,  0.0, 0.5, 0.0),
+            (0.0,  0.0, 0.5, 1.0)
+        ))
+
+        self.projection = Mat4.perspective(radians(fov), width/height, 0.001, 1000.0)
+        self.projection = self.clip * self.projection
+
+        self.view_projection = self.clip * self.projection * view
 
     def update_perspective(self, fov, width, height):
         self.projection = Mat4.perspective(radians(fov), width/height, 0.001, 1000.0)
+        self.projection = self.clip * self.projection
         self.view_projection = self.projection * self.view
 
     def update_view(self, new_view):

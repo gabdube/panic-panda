@@ -1,5 +1,5 @@
 from ..base_types import name_generator, Id
-from ..assets import KTXFile, IMAGE_PATH
+from ..assets import KTXFile, EnvCubemapFile, IMAGE_PATH
 from vulkan import vk, helpers as hvk
 from collections import namedtuple
 from enum import Enum
@@ -14,6 +14,7 @@ image_name = name_generator("Image")
 class ImageSource(Enum):
     Ktx = 0
     Uncompressed = 1
+    EnvCubemap = 2
 
 
 class ImageCubemapFaces(Enum):
@@ -97,13 +98,25 @@ class Image(object):
         return image
 
     @classmethod
+    def from_env_cubemap(cls, env_file, **kwargs):
+        f = env_file
+        if not isinstance(f, EnvCubemapFile):
+            raise RuntimeError(f"File must be EnvCubemapFile, got {type(f).__qualname__}")
+
+        image = super().__new__(cls)
+        image.__init__(**kwargs)
+
+        image.source_type = ImageSource.EnvCubemap
+        #image.source = data
+
+        return image
+
+    @classmethod
     def from_uncompressed(cls, data, **kwargs):
         keys = tuple(kwargs.keys())
-        if kwargs.get('mipmaps_levels', 1) != 1 or kwargs.get('array_layers', 1) != 1:
-            raise NotImplementedError("Mipmaps & texture arrays are not supported for uncompressed textures")
-        elif ("format" not in keys) or ("extent" not in keys):
+        if ("format" not in keys) or ("extent" not in keys):
             raise ValueError("Image `format` and `extent` must be specified as keyword arguments")
-        elif kwargs.get("no_default_view", False) == False and ("default_view_type" not in keys):
+        if kwargs.get("no_default_view", False) == False and ("default_view_type" not in keys):
             raise ValueError("If a default image view is generated, `default_view_type` must be specified as a keyword argument")
 
         image = super().__new__(cls)
@@ -115,9 +128,9 @@ class Image(object):
         image.flags = kwargs.get('flags', 0)
         image.format = kwargs["format"]
         image.extent = kwargs["extent"]
-        image.mipmaps_levels = kwargs.get('mipmaps_levels', 1)
+        image.mipmaps_levels = 1
         image.texture_size = len(data)
-        image.array_layers = kwargs.get('array_layers', 1)
+        image.array_layers = 1
 
         if kwargs.get("no_default_view", False) != True:
             subs_range = hvk.image_subresource_range(level_count = image.mipmaps_levels, layer_count = image.array_layers)
