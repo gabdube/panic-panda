@@ -66,6 +66,7 @@ images = (
 
 images_merge_copy = (
     ("MOVE", IMAGES_PATH/"dev/vulkan_logo.ktx", IMAGES_PATH/"vulkan_logo.ktx"),
+    ("COPY", IMAGES_PATH/"dev/unity_gareout/brdf_ue4.bin", IMAGES_PATH/"unity_gareout/brdf_ue4.bin"),
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
 )
@@ -113,6 +114,8 @@ for action, target, output in images_merge_copy:
 
     if action == "MOVE" and not ONLY_COMMANDS:
         shutil.move(target, output)
+    elif action == "COPY" and not ONLY_COMMANDS:
+        shutil.copy(target, output)
     elif action == "MERGE_ARRAY":
         p = process("python", KTX_MERGE_PATH,  "--array", "--auto", "--output", str(output), "--input", str(target))
     elif action == "MERGE_CUBE":

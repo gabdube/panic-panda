@@ -13,6 +13,7 @@ image_name = name_generator("Image")
 
 class ImageSource(Enum):
     Ktx = 0
+    Uncompressed = 1
 
 
 class ImageCubemapFaces(Enum):
@@ -85,11 +86,44 @@ class Image(object):
         image.texture_size = f.texture_size
         image.array_layers = f.faces * f.array_element
 
-        if kwargs.get("nodefault", False) != True:
+        if kwargs.get("no_default_view", False) != True:
             subs_range = hvk.image_subresource_range(level_count = f.mips_level, layer_count=image.array_layers)
             image.views["default"] = ImageView.from_params(
                 view_type=f.vk_view_type,
                 format=f.vk_format,
+                subresource_range=subs_range
+            )
+
+        return image
+
+    @classmethod
+    def from_uncompressed(cls, data, **kwargs):
+        keys = tuple(kwargs.keys())
+        if kwargs.get('mipmaps_levels', 1) != 1 or kwargs.get('array_layers', 1) != 1:
+            raise NotImplementedError("Mipmaps & texture arrays are not supported for uncompressed textures")
+        elif ("format" not in keys) or ("extent" not in keys):
+            raise ValueError("Image `format` and `extent` must be specified as keyword arguments")
+        elif kwargs.get("no_default_view", False) == False and ("default_view_type" not in keys):
+            raise ValueError("If a default image view is generated, `default_view_type` must be specified as a keyword argument")
+
+        image = super().__new__(cls)
+        image.__init__(**kwargs)
+
+        image.source_type = ImageSource.Uncompressed
+        image.source = data
+
+        image.flags = kwargs.get('flags', 0)
+        image.format = kwargs["format"]
+        image.extent = kwargs["extent"]
+        image.mipmaps_levels = kwargs.get('mipmaps_levels', 1)
+        image.texture_size = len(data)
+        image.array_layers = kwargs.get('array_layers', 1)
+
+        if kwargs.get("no_default_view", False) != True:
+            subs_range = hvk.image_subresource_range(level_count = image.mipmaps_levels, layer_count = image.array_layers)
+            image.views["default"] = ImageView.from_params(
+                view_type=kwargs["default_view_type"],
+                format=image.format,
                 subresource_range=subs_range
             )
 
@@ -113,6 +147,10 @@ class Image(object):
                 offset += m.size
 
             return data
+
+        elif st is ImageSource.Uncompressed:
+            return src
+
         else:
             raise NotImplementedError(f"Texture data function not implemented for image of type {st}")
 
@@ -126,6 +164,11 @@ class Image(object):
                 layer = mipmap.layer + mipmap.face
                 yield MipmapData(mipmap.index, layer, offset, mipmap.size, mipmap.width, mipmap.height)
                 offset += mipmap.size
+
+        elif st is ImageSource.Uncompressed:
+            width, height, depth = self.extent
+            yield MipmapData(0, 0, offset, self.texture_size, width, height)
+
         else:
             raise NotImplementedError(f"Mipmaps function not implemented for image of type {st}")
 

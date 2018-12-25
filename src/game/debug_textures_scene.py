@@ -1,5 +1,5 @@
 from engine import Shader, GameObject, Scene, Sampler, Image, CombinedImageSampler, Mesh, MeshPrefab
-from engine.assets import GLBFile, KTXFile
+from engine.assets import GLBFile, KTXFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
 from vulkan import vk
@@ -69,19 +69,20 @@ class DebugTexturesScene(object):
             visible -= 1
         elif data.key is k.Right and visible+1 < len(objects):
             visible += 1
+
+        current_object = objects[visible]
         
-        if visible == 1:
+        if current_object.name == "ObjArrayTexture":
             # Change array texture layer
-            array_texture = objects[visible]
-            debug = array_texture.uniforms.debug_params
-            layer =  debug.layer[0]
+            debug = current_object.uniforms.debug_params
+            layer = debug.layer[0]
             if data.key == k.Up and layer < 3:
                 debug.layer[0] += 1
             elif data.key == k.Down and layer > 0:
                 debug.layer[0] -= 1
             
-            self.scene.update_objects(array_texture)
-        elif visible == 2:
+            self.scene.update_objects(current_object)
+        elif current_object.name == "TODO":
             # Change cubemap mipmap level
             cubemap_lod_texture = objects[visible]
             debug = cubemap_lod_texture.uniforms.debug_params
@@ -107,6 +108,11 @@ class DebugTexturesScene(object):
         # Textures
         texture = Image.from_ktx(KTXFile.open("vulkan_logo.ktx"), name="Texture")
         array_texture = Image.from_ktx(KTXFile.open("array_test.ktx"), name="ArrayTexture")
+
+        with (IMAGE_PATH/"unity_gareout/brdf_ue4.bin").open("rb") as f:
+            texture_raw_data = f.read()
+            texture_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}
+            raw_texture = Image.from_uncompressed(texture_raw_data, name="TextureRaw", **texture_args)
 
         # Samplers
         sampler = Sampler.from_params(
@@ -140,9 +146,13 @@ class DebugTexturesScene(object):
         plane1.model = Mat4()
         plane1.uniforms.color_texture = CombinedImageSampler(image_id=texture.id, view_name="default", sampler_id=sampler.id)
 
-        plane2 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
+        plane2 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjRawTexture", hidden=True)
         plane2.model = Mat4()
-        plane2.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
+        plane2.uniforms.color_texture = CombinedImageSampler(image_id=raw_texture.id, view_name="default", sampler_id=sampler.id)
+
+        plane3 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
+        plane3.model = Mat4()
+        plane3.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
 
         #sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTextureLod", hidden=True)
         #sphere.model = Mat4()
@@ -151,9 +161,9 @@ class DebugTexturesScene(object):
         # Add objects to scene
         scene.shaders.extend(shader_simple, shader_array, shader_cube)
         scene.samplers.extend(sampler)
-        scene.images.extend(texture, array_texture)
+        scene.images.extend(texture, array_texture, raw_texture)
         scene.meshes.extend(plane_m, sphere_m)
-        scene.objects.extend(plane1, plane2)
+        scene.objects.extend(plane1, plane2, plane3)
 
         self.visible_index = 0
-        self.objects.extend((plane1, plane2))
+        self.objects.extend((plane1, plane2, plane3))
