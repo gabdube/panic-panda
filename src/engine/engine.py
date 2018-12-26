@@ -24,8 +24,6 @@ class Engine(object):
 
     def __init__(self):
         self.window = w = Window(width=800, height=600)
-        w.translate_system_events()
-        w.events.clear()
 
         self.running = False
 
@@ -93,7 +91,12 @@ class Engine(object):
     def activate(self, scene):
         assert scene.id is not None, "Scene was not loaded in engine"
 
-        self.window.show()
+        # Skip any setup events in the system event queue
+        w = self.window
+        w.show()
+        w.translate_system_events()
+        w.events.clear()
+
         self.running = True
         self.current_scene_index = scene.id
 
