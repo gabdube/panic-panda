@@ -42,10 +42,10 @@ class DebugTexturesScene(object):
         objects, cam = self.objects, self.camera
         view_projection = self.camera.view_projection
 
-        for obj in objects:
-            obj.uniforms.view.mvp[::] = view_projection * obj.model
+        current_obj = objects[self.visible_index]
+        current_obj.uniforms.view.mvp[::] = view_projection * current_obj.model
 
-        self.scene.update_objects(*objects)
+        self.scene.update_objects(current_obj)
 
     def update_perspective(self, event, data):
         self.camera.update_perspective(60, data.width, data.height)
@@ -80,23 +80,18 @@ class DebugTexturesScene(object):
                 debug.layer[0] += 1
             elif data.key == k.Down and layer > 0:
                 debug.layer[0] -= 1
-            
-            self.scene.update_objects(current_object)
-        elif current_object.name == "TODO":
+        elif current_object.name == "ObjCubeTexture":
             # Change cubemap mipmap level
-            cubemap_lod_texture = objects[visible]
-            debug = cubemap_lod_texture.uniforms.debug_params
+            debug = current_object.uniforms.debug_params
             lod = debug.lod[0]
-            if data.key == k.Up and lod < 9:
+            if data.key == k.Up and lod < 8:
                 debug.lod[0] += 0.5
             elif data.key == k.Down and lod > 0:
                 debug.lod[0] -= 0.5
 
-
-            self.scene.update_objects(cubemap_lod_texture)
-
         objects[visible].hidden = False
         self.visible_index = visible
+        self.update_objects()
 
     def handle_mouse(self, event, event_data):
         if self.camera_view(event, event_data):
@@ -124,6 +119,13 @@ class DebugTexturesScene(object):
             address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
         )
 
+        sampler_lod = Sampler.from_params(
+            address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            max_lod=cubemap_texture.mipmaps_levels
+        )
+
+
         # Shaders
         simple_name = "debug_texture/debug_texture"
         array_name = "debug_texture_array/debug_texture_array"
@@ -141,25 +143,25 @@ class DebugTexturesScene(object):
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_attributes_map, name="SphereMesh")
 
         # Objects
-        plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m2.id, name = "ObjTexture")
+        plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
         plane1.model = Mat4()
         plane1.uniforms.color_texture = CombinedImageSampler(image_id=texture.id, view_name="default", sampler_id=sampler.id)
 
-        plane2 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjRawTexture", hidden=True)
+        plane2 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m2.id, name = "ObjRawTexture", hidden=True)
         plane2.model = Mat4()
         plane2.uniforms.color_texture = CombinedImageSampler(image_id=raw_texture.id, view_name="default", sampler_id=sampler.id)
 
-        plane3 = GameObject.from_components(shader = shader_array.id, mesh = plane_m2.id, name = "ObjArrayTexture", hidden=True)
+        plane3 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
         plane3.model = Mat4()
         plane3.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
 
         sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTexture", hidden=True)
         sphere.model = Mat4()
-        sphere.uniforms.cube_texture = CombinedImageSampler(image_id=cubemap_texture.id, view_name="default", sampler_id=sampler.id)
+        sphere.uniforms.cube_texture = CombinedImageSampler(image_id=cubemap_texture.id, view_name="default", sampler_id=sampler_lod.id)
         
         # Add objects to scene
         scene.shaders.extend(shader_simple, shader_array, shader_cube)
-        scene.samplers.extend(sampler)
+        scene.samplers.extend(sampler, sampler_lod)
         scene.images.extend(texture, array_texture, raw_texture, cubemap_texture)
         scene.meshes.extend(plane_m, plane_m2, sphere_m)
         scene.objects.extend(plane1, plane2, plane3, sphere)
