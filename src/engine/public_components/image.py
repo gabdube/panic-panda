@@ -107,7 +107,22 @@ class Image(object):
         image.__init__(**kwargs)
 
         image.source_type = ImageSource.EnvCubemap
-        #image.source = data
+        image.source = f
+
+        image.flags = vk.IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+        image.format = vk.FORMAT_R8G8B8A8_UNORM
+        image.extent = (f.width, f.height, 1)
+        image.mipmaps_levels = f.mips_level
+        image.texture_size = f.texture_size
+        image.array_layers = 6
+
+        if kwargs.get("no_default_view", False) != True:
+            subs_range = hvk.image_subresource_range(level_count = f.mips_level, layer_count = 6)
+            image.views["default"] = ImageView.from_params(
+                view_type=vk.IMAGE_VIEW_TYPE_CUBE,
+                format=vk.FORMAT_R8G8B8A8_UNORM,
+                subresource_range=subs_range
+            )
 
         return image
 
@@ -164,23 +179,32 @@ class Image(object):
         elif st is ImageSource.Uncompressed:
             return src
 
+        elif st is ImageSource.EnvCubemap:
+            return src.data_buffer
+
         else:
             raise NotImplementedError(f"Texture data function not implemented for image of type {st}")
 
     def iter_mipmaps(self):
         src, st = self.source, self.source_type
-        offset = 0
 
         if st is ImageSource.Ktx:
+            offset = 0
             for mipmap in src.mipmaps:
                 # Fix to work with cubemaps ( In Vulkan, cubemap faces are interpreted as array layers )
                 layer = mipmap.layer + mipmap.face
+
                 yield MipmapData(mipmap.index, layer, offset, mipmap.size, mipmap.width, mipmap.height)
                 offset += mipmap.size
 
         elif st is ImageSource.Uncompressed:
             width, height, depth = self.extent
-            yield MipmapData(0, 0, offset, self.texture_size, width, height)
+            yield MipmapData(0, 0, 0, self.texture_size, width, height)
+
+        elif st is ImageSource.EnvCubemap:
+            for mipmap in src.mipmaps:
+                layer = mipmap.face
+                yield MipmapData(mipmap.index, layer, mipmap.offset, mipmap.size, mipmap.width, mipmap.height)
 
         else:
             raise NotImplementedError(f"Mipmaps function not implemented for image of type {st}")

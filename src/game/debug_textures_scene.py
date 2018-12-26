@@ -24,7 +24,7 @@ class DebugTexturesScene(object):
         # Camera
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(60, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0,2.5], bounds_zoom=(0.2, 7.0))
+        self.camera_view = LookAtView(cam, position = [0,0,-2.5], bounds_zoom=(-7.0, -0.2))
 
         # Assets
         self._setup_assets()
@@ -108,7 +108,10 @@ class DebugTexturesScene(object):
         # Textures
         texture = Image.from_ktx(KTXFile.open("vulkan_logo.ktx"), name="Texture")
         array_texture = Image.from_ktx(KTXFile.open("array_test.ktx"), name="ArrayTexture")
-        #cubemap_texture = Image.from_env_cubemap(EnvCubemapFile.open("unity_gareout/specular_luv.bin"), name="Cubemap texture")
+
+        cubemap_args = {"width": 256, "height": 256, "encoding": "LUV", "format": "CUBE"}
+        env_cubemap = EnvCubemapFile.open("unity_gareout/specular_luv.bin", **cubemap_args)
+        cubemap_texture = Image.from_env_cubemap(env_cubemap, name="CubemapTexture")
 
         with (IMAGE_PATH/"unity_gareout/brdf_ue4.bin").open("rb") as f:
             texture_raw_data = f.read()
@@ -120,12 +123,6 @@ class DebugTexturesScene(object):
             address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
         )
-
-        #sampler_lod = Sampler.from_params(
-        #    address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        #    address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        #    max_lod=specular_env.mipmaps_levels
-        #)
 
         # Shaders
         simple_name = "debug_texture/debug_texture"
@@ -140,7 +137,7 @@ class DebugTexturesScene(object):
 
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
-        plane_m2 = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh2", invert_y=True)
+        plane_m2 = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, invert_y=True, name="PlaneMesh")
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_attributes_map, name="SphereMesh")
 
         # Objects
@@ -156,16 +153,16 @@ class DebugTexturesScene(object):
         plane3.model = Mat4()
         plane3.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
 
-        #sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTextureLod", hidden=True)
-        #sphere.model = Mat4()
-        #sphere.uniforms.cube_texture = CombinedImageSampler(image_id=specular_env.id, view_name="default", sampler_id=sampler_lod.id)
+        sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTexture", hidden=True)
+        sphere.model = Mat4()
+        sphere.uniforms.cube_texture = CombinedImageSampler(image_id=cubemap_texture.id, view_name="default", sampler_id=sampler.id)
         
         # Add objects to scene
         scene.shaders.extend(shader_simple, shader_array, shader_cube)
         scene.samplers.extend(sampler)
-        scene.images.extend(texture, array_texture, raw_texture)
+        scene.images.extend(texture, array_texture, raw_texture, cubemap_texture)
         scene.meshes.extend(plane_m, plane_m2, sphere_m)
-        scene.objects.extend(plane1, plane2, plane3)
+        scene.objects.extend(plane1, plane2, plane3, sphere)
 
         self.visible_index = 0
-        self.objects.extend((plane1, plane2, plane3))
+        self.objects.extend((plane1, plane2, plane3, sphere))

@@ -79,14 +79,13 @@ class Mesh(object):
             indices = TypedArray.from_array(fmt=AFmt.UInt16, array=(0, 1, 2,  0, 3, 2))
 
             if pname is not None:
-                if params.get("invert_y", False) == True:
-                    array=(-0.7, -0.7, 0,  0.7, -0.7, 0,  0.7, 0.7, 0,  -0.7, 0.7, 0)
-                else:
+                if params.get("invert_y", False):
                     array=(-0.7, 0.7, 0,  0.7, 0.7, 0,  0.7, -0.7, 0,  -0.7, -0.7, 0)
-                    
+                else:
+                    array=(-0.7, -0.7, 0,  0.7, -0.7, 0,  0.7, 0.7, 0,  -0.7, 0.7, 0)
                 attributes[pname] = TypedArray.from_array(fmt=AFmt.Float32, array=array)
             if tex00_name is not None:
-                attributes[tex00_name] = TypedArray.from_array(fmt=AFmt.Float32, array=(0,1, 1,1, 1,0, 0,0))
+                attributes[tex00_name] = TypedArray.from_array(fmt=AFmt.Float32, array=(1,0, 0,0, 0,1, 1,1))
         else:
             raise ValueError(f"Unknown built-in mesh: {builtin}")
 

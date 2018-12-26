@@ -73,11 +73,6 @@ class KTXFile(object):
     Usage:
         `KTXFile.open(file_path, **options)`
 
-    Options:
-        mipmaps_range / (int, int)
-           A tuple of (start, end) to load a subset of the texture mipmaps. 
-           If `end` is `None`, the mipmaps will be read until the end is reached.
-
     """
 
     def __init__(self, fname, header, data):

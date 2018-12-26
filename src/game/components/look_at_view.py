@@ -20,8 +20,8 @@ class LookAtView(object):
         self.mod_translate = kwargs.get('mod_translate', 0.005)
         self.mod_zoom = kwargs.get('mod_zoom', 0.09)
 
-        self.bounds_zoom = kwargs.get('bounds_zoom', (0.4, 3.0))
-        self.bounds_rot_y = kwargs.get('bounds_rot_y', (radians(-89), radians(89)))
+        self.bounds_zoom = kwargs.get('bounds_zoom', (-0.4, -3.0))
+        self.bounds_rot_y = kwargs.get('bounds_rot_y', (radians(-89.99), radians(89.99)))
 
         self.position = kwargs.get('position', [0.0, 0.0, 0.0])
         self.rotation = kwargs.get('rotation', [0.0, 0.0])
@@ -68,7 +68,7 @@ class LookAtView(object):
         min_y, max_y = self.bounds_rot_y
 
         rot[0] += x3
-        rot[1] -= y3
+        rot[1] += y3
         rot[1] = min(max(rot[1], min_y), max_y)
 
         self.mouse_pos = (x1, y1)
@@ -89,7 +89,7 @@ class LookAtView(object):
         min_z, max_z = self.bounds_zoom
         pos = self.position
 
-        pos[2] -= z * self.mod_zoom
+        pos[2] += z * self.mod_zoom
         pos[2] = min(max(pos[2], min_z), max_z)
 
         self.look()
