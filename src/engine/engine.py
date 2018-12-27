@@ -126,6 +126,11 @@ class Engine(object):
                 scene.on_key_pressed(event, data)
             elif event is e.WindowResized:
                 self._update_swapchain(data)
+                scene.on_window_resized(event, data)
+            elif event is e.RenderDisable:
+                self.renderer.disable()
+            elif event is e.RenderEnable:
+                self.renderer.enable()
 
         if self.debug_ui is not None:
             self.debug_ui.events()

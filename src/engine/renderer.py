@@ -11,6 +11,8 @@ class Renderer(object):
         self.render_fences = ()
         self.render_cache = {}
 
+        self.enabled = True
+
         self._setup_sync()
         self._setup_render_cache()
 
@@ -31,6 +33,9 @@ class Renderer(object):
         return engine, api, device
 
     def render(self, scene_data):
+        if not self.enabled:
+            return
+
         h = hvk
         engine, api, device = self.ctx
         render_queue = engine.render_queue.handle
@@ -51,6 +56,14 @@ class Renderer(object):
         present = rc["present_info"]
         present.image_indices[0] = image_index
         h.queue_present(api, render_queue, present)
+
+    def enable(self):
+        self.enabled = True
+
+    def disable(self):
+        _, api, device = self.ctx
+        hvk.device_wait_idle(api, device)
+        self.enabled = False
 
     def _setup_sync(self):
         engine, api, device = self.ctx
