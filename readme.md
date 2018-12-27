@@ -1,3 +1,5 @@
+source ~/Documents/vulkan_sdk/1.1.85.0/setup-env.sh
+
 # Attributions
 
 * Battle Damaged Sci-fi Helmet - PBR by theblueturtle_, published under a Creative Commons Attribution-NonCommercial license
