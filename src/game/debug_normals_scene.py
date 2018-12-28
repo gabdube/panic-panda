@@ -1,8 +1,9 @@
 from engine import Scene, Mesh, Shader, GameObject
 from engine.assets import GLBFile
 from system import events as evt
-from utils import Mat4
+from utils import Mat4, Mat3
 from .components import Camera, LookAtView
+from math import radians, pi
 
 
 class DebugNormalsScene(object):
@@ -19,8 +20,12 @@ class DebugNormalsScene(object):
 
         # Camera
         width, height = engine.window.dimensions()
-        self.camera = cam = Camera(60, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0,-2.5], bounds_zoom=(-7.0, -0.2))
+        self.projection = Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
+        self.roll = pi
+        self.pitch = 0.0
+        self.translate = 4.0
+        self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
+        self.mouse_pos = None
 
         # Assets
         self._setup_assets()
@@ -35,7 +40,8 @@ class DebugNormalsScene(object):
         self.update_objects()
 
     def update_perspective(self, event, data):
-        self.camera.update_perspective(60, data.width, data.height)
+        width, height = data
+        self.projection = Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
         self.update_objects()
 
     def handle_keypress(self, event, data):
@@ -44,11 +50,66 @@ class DebugNormalsScene(object):
             self.app.switch_scene(data) 
     
     def handle_mouse(self, event, event_data):
-        if self.camera_view(event, event_data):
+        processed = False
+
+        if event is evt.MouseClick:
+            self.mouse_pos = (event_data.x, event_data.y) 
+            self.mouse_state[event_data.button] = event_data.state
+            processed = True
+            
+        elif event is evt.MouseMove:
+            right, left, *_ = evt.MouseClickButton
+            down = evt.MouseClickState.Down
+
+            if self.mouse_state[right] is down:
+                last_x, last_y = self.mouse_pos
+                new_x, new_y = (event_data.x, event_data.y)
+
+                delta_x = new_x - last_x
+                self.roll += (delta_x / 100.0)
+
+                delta_y = new_y - last_y
+                self.pitch += (delta_y / 100.0)
+
+                self.mouse_pos = new_x, new_y
+
+                processed = True
+
+        if processed:
             self.update_objects()
 
     def update_objects(self):
-        pass
+        objects = self.objects
+        
+        clip = Mat4.from_data((
+            (1.0,  0.0, 0.0, 0.0),
+            (0.0, -1.0, 0.0, 0.0),
+            (0.0,  0.0, 0.5, 0.0),
+            (0.0,  0.0, 0.5, 1.0)
+        ))
+
+        projection = clip * self.projection
+
+        view_x = Mat4.from_rotation(self.roll, (0,1,0))
+        view_y = Mat4.from_rotation(self.pitch, (1,0,0))
+        view = view_y * view_x
+        view.data[14] = -self.translate
+
+        for obj in objects:
+            uview = obj.uniforms.view
+
+            model_view = view * obj.model
+            model_view_projection = projection * model_view
+
+            model_invert = obj.model.clone().invert()
+            model_transpose = model_invert.transpose()
+
+            uview.mvp = model_view_projection.data
+            uview.model = obj.model.data
+            uview.normal = model_transpose.data
+            
+
+        self.scene.update_objects(*objects)
 
     def _setup_assets(self):
         scene = self.scene
@@ -69,7 +130,7 @@ class DebugNormalsScene(object):
         sphere = GameObject.from_components(shader = shader_normals.id, mesh = sphere_m.id, name = "Sphere")
         sphere.model = Mat4()
 
-        
+        scene.shaders.extend(shader_normals)
         scene.meshes.extend(sphere_m)
         scene.objects.extend(sphere)
         self.objects.append(sphere)
