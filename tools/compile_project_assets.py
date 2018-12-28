@@ -53,6 +53,7 @@ shaders = (
     (SHADERS_PATH/"debug_texture", "debug_texture"),
     (SHADERS_PATH/"debug_texture_array", "debug_texture_array"),
     (SHADERS_PATH/"debug_texture_cube", "debug_texture_cube"),
+    (SHADERS_PATH/"debug_normals", "debug_normals"),
     (SHADERS_PATH/"pbr", "pbr"),
 )
 

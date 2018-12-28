@@ -21,6 +21,7 @@ layout (set=0, binding=0) uniform Render {
     vec4 emissiveFactor;
     vec4 factors;                    // r: roughness / g: metallic / b: IBL brightness / a: unused
     vec4 envLod;                     // r: min LOD / g: max LOD / b & a: unused
+    vec4 envSize;                    // r: env width / g: env height
     mat4 envTransform;
 } render;
 
@@ -110,6 +111,21 @@ vec3 sRGBToLinear(const in vec3 col_from, const in float gamma)
     return col_to;
 }
 
+vec3 LUVToRGB( const in vec4 vLogLuv )
+{
+    const mat3 LUVInverse = mat3( 6.0013,    -2.700,   -1.7995,
+                              -1.332,    3.1029,   -5.7720,
+                              0.3007,    -1.088,    5.6268 );
+
+    float Le = vLogLuv.z * 255.0 + vLogLuv.w;
+    vec3 Xp_Y_XYZp;
+    Xp_Y_XYZp.y = exp2((Le - 127.0) / 2.0);
+    Xp_Y_XYZp.z = Xp_Y_XYZp.y / vLogLuv.y;
+    Xp_Y_XYZp.x = vLogLuv.x * Xp_Y_XYZp.z;
+    vec3 vRGB = LUVInverse * Xp_Y_XYZp;
+    return max(vRGB, 0.0);
+}
+
 
 //
 // colorSpace.glsl END
@@ -127,11 +143,28 @@ mat3 getEnvironmentTransform( mat4 transform ) {
     return m;
 }
 
+vec3 cubemapSeamlessFixDirection(const in vec3 direction, const in float scale )
+{
+    vec3 dir = direction;
+    float M = max(max(abs(dir.x), abs(dir.y)), abs(dir.z));
+
+    if (abs(dir.x) != M) dir.x *= scale;
+    if (abs(dir.y) != M) dir.y *= scale;
+    if (abs(dir.z) != M) dir.z *= scale;
+
+    return dir;
+}
+
 vec3 prefilterEnvMap(float roughnessLinear, const in vec3 R)
 {
     float envMaxLod = render.envLod.g;
     float lod = sqrt(roughnessLinear) * envMaxLod;
-    return textureLod(envCube, R, lod).rgb;
+
+    float scale = 1.0 - exp2(lod) / render.envSize.r;
+    vec3 dir = cubemapSeamlessFixDirection(R, scale);
+
+    vec4 env = textureLod(envCube, R, lod);
+    return LUVToRGB(env);
 }
 
 float occlusionHorizon(const in vec3 R, const in vec3 normal)
@@ -246,7 +279,7 @@ void main(void) {
 
     // PBR
     pbr.normal = normal;
-    pbr.view = -eye;
+    pbr.view = eye;
     pbr.albedo = albedo;
     pbr.roughness = roughness;
     pbr.specular = specular;

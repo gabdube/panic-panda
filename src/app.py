@@ -1,6 +1,6 @@
 from engine import Engine 
 from system import events as evt
-from game import MainScene, DebugTexturesScene, DebugPBRScene
+from game import MainScene, DebugTexturesScene, DebugNormalsScene, DebugPBRScene
 from time import sleep
 
 
@@ -9,7 +9,8 @@ class PanicPanda(object):
     def __init__(self):
         self.engine = Engine()
         self.main = MainScene(self, self.engine)
-        self.debug_texture = DebugTexturesScene(self, self.engine)
+        #self.debug_texture = DebugTexturesScene(self, self.engine)
+        self.debug_normals = DebugNormalsScene(self, self.engine)
         #self.debug_pbr = DebugPBRScene(self, self.engine)
 
     def switch_scene(self, data):
@@ -21,17 +22,21 @@ class PanicPanda(object):
             engine.load(self.main.scene)
             engine.activate(self.main.scene) 
         elif data.key is keys._2:
+            return
             engine.load(self.debug_texture.scene)
             engine.activate(self.debug_texture.scene)
         elif data.key is keys._3:
-            raise RuntimeError("CLOSED FOR REPARATIONS. COME BACK LATER.")
+            engine.load(self.debug_normals.scene)
+            engine.activate(self.debug_normals.scene)
+        elif data.key is keys._4:
+            return
             engine.load(self.debug_pbr.scene)
             engine.activate(self.debug_pbr.scene)
 
     def run(self):
         engine = self.engine
-        engine.load(self.debug_texture.scene)
-        engine.activate(self.debug_texture.scene)
+        engine.load(self.debug_normals.scene)
+        engine.activate(self.debug_normals.scene)
 
         while engine.running:
             engine.events()

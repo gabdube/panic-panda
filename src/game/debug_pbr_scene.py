@@ -1,7 +1,7 @@
 from engine import Shader, GameObject, Scene, Sampler, Image, CombinedImageSampler, Mesh, MeshPrefab
-from engine.assets import GLBFile, KTXFile
+from engine.assets import GLBFile, KTXFile, EnvCubemapFile, IMAGE_PATH
 from system import events as evt
-from utils import Mat4
+from utils import Mat4, Mat3
 from vulkan import vk
 from .components import Camera, LookAtView
 from math import radians
@@ -21,7 +21,7 @@ class DebugPBRScene(object):
         # Camera
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(60, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0,3.5], bounds_zoom=(1.6, 7.0))
+        self.camera_view = LookAtView(cam, position = [0,0,-2.5], bounds_zoom=(-7.0, -0.2))
 
         # Assets
         self.pbr_shader = None
@@ -49,9 +49,11 @@ class DebugPBRScene(object):
         helmet = self.render_object
         view = helmet.uniforms.view
 
-        view.model_view = (cam.view * helmet.model).data
+        model_view = cam.view * helmet.model
+
+        view.model_view = model_view.data
         view.projection = cam.projection.data
-        view.model_view_normal = Mat4().data
+        view.model_view_normal = Mat3.normal_from_mat4(model_view).data
         
         self.scene.update_objects(helmet)
 
@@ -76,19 +78,31 @@ class DebugPBRScene(object):
         if __debug__:
             helmet_maps = helmet_maps[3:]   # Cut the first two mipmap levels in debug mode to speed up load times
 
+        # Cubemaps
+        cubemap_args = {"width": 256, "height": 256, "encoding": "LUV", "format": "CUBE"}
+        env_cubemap = EnvCubemapFile.open("unity_gareout/specular_luv.bin", **cubemap_args)
+        env_img = Image.from_env_cubemap(env_cubemap, name="CubemapTexture")
+
+        # BRDF
+        with (IMAGE_PATH/"unity_gareout/brdf_ue4.bin").open("rb") as f:
+            texture_raw_data = f.read()
+            texture_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}
+            brdf_img = Image.from_uncompressed(texture_raw_data, name="BRDF", **texture_args)
+
         sampler = Sampler.new()
         env_sampler = Sampler.from_params(max_lod=env_img.mipmaps_levels)
         helmet_sampler = Sampler.from_params(max_lod=helmet_maps.mipmaps_levels)
 
         pbr_attributes_map = {"POSITION": "pos", "NORMAL": "normal", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
         pbr = Shader.from_files(f"pbr/pbr.vert.spv",  f"pbr/pbr.frag.spv", f"pbr/pbr.map.json", name="PBR")
-        #pbr.uniforms.env_cube = CombinedImageSampler(image_id=env_img.id, view_name="default", sampler_id=env_sampler.id)
-        #pbr.uniforms.integrate_brdf = CombinedImageSampler(image_id=brdf_img.id, view_name="default", sampler_id=sampler.id)
+        pbr.uniforms.env_cube = CombinedImageSampler(image_id=env_img.id, view_name="default", sampler_id=env_sampler.id)
+        pbr.uniforms.integrate_brdf = CombinedImageSampler(image_id=brdf_img.id, view_name="default", sampler_id=sampler.id)
         pbr.uniforms.render = {
-            "base_color_factor": (1.0, 1.0, 1.0, 0.0),
+            "base_color_factor": (0.8, 0.8, 0.8, 0.8),
             "emissive_factor": (1.0, 1.0, 1.0, 1.0),
             "factors": (1.0, 1.0, 1.0, 1.0),
-            "env_lod": (0.0, env.mipmaps_levels),
+            "env_lod": (0.0, env_img.mipmaps_levels - 3),
+            "env_size": (env_img.extent[0], env_img.extent[1]),
             "env_transform": Mat4().data
         }
 

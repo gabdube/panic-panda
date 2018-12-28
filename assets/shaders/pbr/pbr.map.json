@@ -9,6 +9,7 @@
             {"name": "emissive_factor", "type": 5, "count": 1},
             {"name": "factors", "type": 5, "count": 1},
             {"name": "env_lod", "type": 5, "count": 1},
+            {"name": "env_size", "type": 5, "count": 1},
             {"name": "env_transform", "type": 2, "count": 1}
         ]},
         {"name": "env_cube", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
@@ -16,7 +17,7 @@
         {"name": "view", "set": 1, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
             {"name": "model_view", "type": 2, "count": 1},
             {"name": "projection", "type": 2, "count": 1},
-            {"name": "model_view_normal", "type": 2, "count": 1}
+            {"name": "model_view_normal", "type": 1, "count": 1}
         ]},
         {"name": "texture_maps", "set": 1, "binding": 1, "count": 1, "stage": 16, "type": 1}
     ],
