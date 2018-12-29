@@ -1,5 +1,5 @@
-from engine import Scene, Mesh, Shader, GameObject
-from engine.assets import GLBFile
+from engine import Scene, Mesh, Shader, GameObject, Image, Sampler
+from engine.assets import GLBFile, KTXFile
 from system import events as evt
 from utils import Mat4, Mat3
 from .components import Camera, LookAtView
@@ -114,6 +114,15 @@ class DebugNormalsScene(object):
     def _setup_assets(self):
         scene = self.scene
 
+        # Images
+        helmet_f = KTXFile.open("damaged_helmet.ktx")
+        helmet_f = helmet_f.slice_array(slice(2, 3))                        # Only keep the normal maps
+        helmet_f.cast_single()                                              # Interpret the image as a single texture (not an array)
+        helmet_maps = Image.from_ktx(helmet_f, name="HelmetTextureMaps")
+
+        # Sampler
+        helmet_sampler = Sampler.from_params(max_lod=helmet_maps.mipmaps_levels)
+
         # Shaders
         shader_normals_map = {"POSITION": "pos", "NORMAL": "normal", "TANGENT": "tangent"}
         shader_normals = Shader.from_files(
@@ -125,12 +134,16 @@ class DebugNormalsScene(object):
 
         # Meshes
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_normals_map, name="SphereMesh")
+        helmet_m = Mesh.from_gltf(GLBFile.open("damaged_helmet.glb"), "HelmetMesh", attributes_map=shader_normals_map, name="HelmetMesh")
 
         # Objects
-        sphere = GameObject.from_components(shader = shader_normals.id, mesh = sphere_m.id, name = "Sphere")
+        sphere = GameObject.from_components(shader = shader_normals.id, mesh = sphere_m.id, name = "Sphere", hidden=True)
         sphere.model = Mat4()
 
+        helmet = GameObject.from_components(shader = shader_normals.id, mesh = helmet_m.id, name = "Sphere")
+        helmet.model = Mat4.from_rotation(radians(180), (1, 0, 0))
+
         scene.shaders.extend(shader_normals)
-        scene.meshes.extend(sphere_m)
-        scene.objects.extend(sphere)
-        self.objects.append(sphere)
+        scene.meshes.extend(sphere_m, helmet_m)
+        scene.objects.extend(sphere, helmet)
+        self.objects.extend((sphere, helmet))

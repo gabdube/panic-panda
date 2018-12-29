@@ -210,6 +210,13 @@ class KTXFile(object):
 
         return flags
 
+    def cast_single(self):
+        if self.header.number_of_array_elements > 1:
+            raise ValueError("Can only cast array texture with one layer")
+        
+        self.header.number_of_array_elements = 0
+        self.array_element = 1
+
     def find_mipmap(self, index, layer=0, face=0):
         for m in self.mipmaps:
             if m.index == index  and m.layer == layer and m.face == face:
@@ -253,6 +260,30 @@ class KTXFile(object):
 
         return KTXFile(self.file_name, header, memoryview(data.getvalue()))
         
+    def slice_array(self, array_slice):
+        header = self.header
+        
+        header_copy = KtxHeader()
+        for key, _ in KtxHeader._fields_:
+            v = getattr(header, key)
+            setattr(header_copy, key, v)
+
+        start, stop = array_slice.start, array_slice.stop
+        array_length = stop-start
+
+        header.number_of_array_elements = array_length
+        
+        data = BytesIO()
+        for mipmap_level in range(self.mips_level):
+            for layer_index in range(start, stop):
+                for face_index in range(self.faces):
+                    mipmap = self.find_mipmap(mipmap_level, layer_index, face_index)
+                    if (layer_index-start) == 0 and face_index == 0:
+                        data.write(c_uint32(mipmap.size))
+                    data.write(self.mipmap_data(mipmap))
+
+        return KTXFile(self.file_name, header, memoryview(data.getvalue()))
+
     def save(self, outfile):
         outfile.write(self.header)
         outfile.write(self.data)
