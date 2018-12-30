@@ -26,6 +26,7 @@ class Engine(object):
         self.window = w = Window(width=800, height=600)
 
         self.running = False
+        self.debug = False
 
         self.api = self.instance = self.device = self.physical_device = None
         self.debugger = self.debug_ui = self.surface = self.render_queue = None
@@ -163,7 +164,10 @@ class Engine(object):
         layers = []
         extensions = ["VK_KHR_surface", hvk.SYSTEM_SURFACE_EXTENSION]
 
-        if DEBUG:
+        available_layers = hvk.enumerate_layers()
+
+        if DEBUG and "VK_LAYER_LUNARG_standard_validation" in available_layers:
+            self.debug = True
             extensions.append("VK_EXT_debug_utils")
             layers.append("VK_LAYER_LUNARG_standard_validation")
 
@@ -172,7 +176,7 @@ class Engine(object):
     def _setup_debugger(self):
         from vulkan.debugger import Debugger
 
-        if not DEBUG:
+        if not self.debug:
             self.debugger = None
             return
 
