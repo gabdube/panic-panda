@@ -5,12 +5,14 @@
 
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
-layout (location = 2) in vec4 inTangent;
+layout (location = 2) in vec2 inUv;
+layout (location = 3) in vec4 inTangent;
 
 layout (location = 0) out vec3 outPos;
-layout (location = 1) out mat3 outTangent;
+layout (location = 1) out vec2 outUv;
+layout (location = 2) out mat3 outTangent;
 
-layout (set=0, binding=0) uniform View {
+layout (set=1, binding=0) uniform View {
     mat4 mvp;
     mat4 model;
     mat4 normal;
@@ -26,6 +28,8 @@ void main(void)
     vec3 tangentW = normalize(vec3(view.model * vec4(inTangent.xyz, 0.0)));
     vec3 bitangentW = cross(normalW, tangentW) * inTangent.w;
     outTangent = mat3(tangentW, bitangentW, normalW);
+
+    outUv = inUv;
 
     gl_Position = view.mvp * vec4(inPos, 1.0);
 }

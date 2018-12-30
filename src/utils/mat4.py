@@ -24,7 +24,7 @@ class Mat4(Structure):
     @classmethod
     def from_data(cls, data):
         obj = super(Mat4, cls).__new__(cls)
-        obj.data[::] = buffer_type(*chain(*data))
+        obj.data[::] = data
         return obj
 
     @classmethod
@@ -323,13 +323,13 @@ class Mat4(Structure):
             )
         )
 
-        self.data[::] = buffer_type(*chain(*staging))
+        self.data = buffer_type(*chain(*staging))
         
         return self
 
     def transpose(self):
         d = self.data
-        a01, a02, a03 = d[0:3]
+        a01, a02, a03 = d[1:4]
         a12, a13 = d[6:8]
         a23 = d[11]
 
@@ -380,7 +380,10 @@ class Mat4(Structure):
             b0*a03 + b1*a13 + b2*a23 + b3*a33
         ))
 
-        return Mat4.from_data(staging)
+        mat = Mat4()
+        mat.data = buffer_type(*chain(*staging))
+        
+        return mat
 
     def __getitem__(self, key):
         return self.data[key]

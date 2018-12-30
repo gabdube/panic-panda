@@ -164,7 +164,7 @@ class Engine(object):
         layers = []
         extensions = ["VK_KHR_surface", hvk.SYSTEM_SURFACE_EXTENSION]
 
-        available_layers = hvk.enumerate_layers()
+        available_layers = [l[0] for l in hvk.enumerate_layers()]
 
         if DEBUG and "VK_LAYER_LUNARG_standard_validation" in available_layers:
             self.debug = True

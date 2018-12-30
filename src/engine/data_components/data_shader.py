@@ -1,5 +1,5 @@
 from vulkan import vk, helpers as hvk
-from ctypes import Structure, c_float, sizeof
+from ctypes import Structure, c_float, c_int32, sizeof
 from functools import lru_cache
 from enum import Enum
 
@@ -248,7 +248,16 @@ class UniformMemberType(Enum):
     FLOAT_VEC3 = 4
     FLOAT_VEC4 = 5
 
-    FLOAT = 6
+    INT_MAT2 = 6
+    INT_MAT3 = 7
+    INT_MAT4 = 8
+
+    INT_VEC2 = 9
+    INT_VEC3 = 10
+    INT_VEC4 = 11
+
+    FLOAT = 12
+    INT = 13
 
 
 class ShaderScope(Enum):
@@ -264,15 +273,17 @@ def uniform_member_as_ctype(value, count1):
 
     if value in (mt.FLOAT_MAT2, mt.FLOAT_MAT3, mt.FLOAT_MAT4, mt.FLOAT_VEC4, mt.FLOAT_VEC2, mt.FLOAT_VEC3, mt.FLOAT):
         t = c_float
+    elif value in (mt.INT_MAT2, mt.INT_MAT3, mt.INT_MAT4, mt.INT_VEC4, mt.INT_VEC2, mt.INT_VEC3, mt.INT):
+        t = c_int32
     else:
         raise ValueError("Invalid uniform member type")
 
-    if value is mt.FLOAT_MAT2 or value is mt.FLOAT_VEC4: count2 = 4
-    elif value is mt.FLOAT_MAT3: count2 = 9
-    elif value is mt.FLOAT_MAT4: count2 = 16
-    elif value is mt.FLOAT_VEC2: count2 = 2
-    elif value is mt.FLOAT_VEC3: count2 = 3
-    elif value is mt.FLOAT: count2 = 1
+    if value in (mt.FLOAT_MAT2 , mt.INT_MAT2, mt.FLOAT_VEC4, mt.INT_VEC4): count2 = 4
+    elif value in (mt.FLOAT_MAT3, mt.INT_MAT3): count2 = 9
+    elif value in (mt.FLOAT_MAT4, mt.INT_MAT4): count2 = 16
+    elif value in (mt.FLOAT_VEC2, mt.INT_VEC2): count2 = 2
+    elif value in (mt.FLOAT_VEC3, mt.INT_VEC3): count2 = 3
+    elif value in (mt.FLOAT, mt.INT): count2 = 1
     else:
         raise ValueError("Invalid uniform member type")
     

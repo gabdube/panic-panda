@@ -1,0 +1,25 @@
+{
+    "rdocCaptureSettings": 1,
+    "settings": {
+        "autoStart": false,
+        "commandLine": "-O src",
+        "environment": [
+        ],
+        "executable": "/home/gab/.pyenv/versions/3.7.1/bin/python3.7",
+        "inject": false,
+        "options": {
+            "allowFullscreen": true,
+            "allowVSync": true,
+            "apiValidation": false,
+            "captureAllCmdLists": false,
+            "captureCallstacks": false,
+            "captureCallstacksOnlyDraws": false,
+            "debugOutputMute": true,
+            "delayForDebugger": 0,
+            "hookIntoChildren": false,
+            "refAllResources": false,
+            "verifyBufferAccess": false
+        },
+        "workingDir": "/home/gab/Documents/projects/panic_panda"
+    }
+}
