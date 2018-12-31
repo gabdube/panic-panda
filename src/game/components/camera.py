@@ -19,10 +19,10 @@ class Camera(object):
 
         # Vulkan clip space has inverted Y and half Z.
         self.clip = Mat4.from_data((
-            (1.0,  0.0, 0.0, 0.0),
-            (0.0,  1.0, 0.0, 0.0),
-            (0.0,  0.0, 0.5, 0.0),
-            (0.0,  0.0, 0.5, 1.0)
+            1.0,  0.0, 0.0, 0.0,
+            0.0,  1.0, 0.0, 0.0,
+            0.0,  0.0, 0.5, 0.0,
+            0.0,  0.0, 0.5, 1.0
         ))
 
         self.projection = Mat4.perspective(radians(fov), width/height, 0.001, 1000.0)

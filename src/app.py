@@ -9,7 +9,7 @@ class PanicPanda(object):
     def __init__(self):
         self.engine = Engine()
         self.main = MainScene(self, self.engine)
-        #self.debug_texture = DebugTexturesScene(self, self.engine)
+        self.debug_texture = DebugTexturesScene(self, self.engine)
         self.debug_normals = DebugNormalsScene(self, self.engine)
         #self.debug_pbr = DebugPBRScene(self, self.engine)
 
@@ -22,7 +22,6 @@ class PanicPanda(object):
             engine.load(self.main.scene)
             engine.activate(self.main.scene) 
         elif data.key is keys._2:
-            return
             engine.load(self.debug_texture.scene)
             engine.activate(self.debug_texture.scene)
         elif data.key is keys._3:
