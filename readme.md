@@ -1,5 +1,5 @@
 source ~/Documents/vulkan_sdk/1.1.85.0/setup-env.sh
-sudo ../../vulkan_sdk/renderdoc_1.2/bin/qrenderdoc debug.cap
+../../vulkan_sdk/renderdoc_1.2/bin/qrenderdoc debug.cap
 
 # Attributions
 

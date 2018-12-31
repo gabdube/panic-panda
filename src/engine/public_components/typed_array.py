@@ -43,6 +43,18 @@ class TypedArray(object):
         return arr
 
     @classmethod
+    def from_byte_array(cls, fmt, bytes_array):
+        arr = super().__new__(cls)
+        arr.__init__()
+        arr.fmt = fmt
+        arr.size = dl = len(bytes_array) // sizeof(fmt)
+        arr.size_bytes = len(bytes_array)
+        arr.data = (fmt*dl).from_buffer_copy(bytes_array)
+        arr.source = TypedArraySource.Array
+
+        return arr
+
+    @classmethod
     def from_memory_view(cls, fmt, size, mem):
         arr = super().__new__(cls)
         arr.fmt = fmt
@@ -53,3 +65,5 @@ class TypedArray(object):
 
         return arr
 
+    def __repr__(self):
+        return f"TypedArray(fmt={self.fmt.__qualname__}, size={self.size_bytes}, size_bytes={self.size_bytes}, source={self.source})"

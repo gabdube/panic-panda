@@ -1,5 +1,5 @@
 from engine import Scene, Mesh, Shader, GameObject, Image, Sampler, CombinedImageSampler
-from engine.assets import GLBFile, KTXFile
+from engine.assets import GLBFile, GLTFFile, KTXFile
 from system import events as evt
 from utils import Mat4, Mat3
 from .components import Camera, LookAtView
@@ -21,10 +21,10 @@ class DebugNormalsScene(object):
 
         # Camera
         width, height = engine.window.dimensions()
-        self.projection = Mat4.perspective(radians(45), width/height, 0.01, 100.0)
+        self.projection = Mat4.perspective(radians(60), width/height, 0.01, 100.0)
         self.roll = pi
         self.pitch = 0.0
-        self.translate = 2.8
+        self.translate = 4.0
         self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
         self.mouse_pos = None
 
@@ -39,7 +39,7 @@ class DebugNormalsScene(object):
 
     def init_scene(self):
         self.update_objects()
-        self.scene.update_shaders(self.shader)
+        self.scene.update_shaders(*self.shaders)
 
     def update_perspective(self, event, data):
         width, height = data
@@ -127,6 +127,8 @@ class DebugNormalsScene(object):
 
         # Shaders
         shader_normals_map = {"POSITION": "pos", "NORMAL": "normal", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
+        shader2_normals_map = {"POSITION": "pos", "NORMAL": "normal", "TEXCOORD_0": "uv"}
+        
         shader_normals = Shader.from_files(
             f"debug_normals/debug_normals.vert.spv",  
             f"debug_normals/debug_normals.frag.spv",
@@ -134,23 +136,33 @@ class DebugNormalsScene(object):
             name="DebugNormals"
         )
 
-        shader_normals.uniforms.debug = {
-            "debug1": (0, 1, 0, 0)
-        }
+        shader2_normals = Shader.from_files( 
+            f"debug_normals2/debug_normals2.vert.spv",  
+            f"debug_normals2/debug_normals2.frag.spv",
+            f"debug_normals2/debug_normals2.map.json",
+            name="DebugNormalsNoTangent"
+        )
+
+        shader_normals.uniforms.debug = { "debug1": (0, 1, 0, 0) }
+        shader2_normals.uniforms.debug = { "debug1": (0, 1, 0, 0) }
 
         # Meshes
-        sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_normals_map, name="SphereMesh")
         helmet_m = Mesh.from_gltf(GLBFile.open("damaged_helmet.glb"), "HelmetMesh", attributes_map=shader_normals_map, name="HelmetMesh")
+        helmet_m2 = Mesh.from_gltf(GLTFFile.open("DamagedHelmet.gltf"), "HelmetMesh", attributes_map=shader2_normals_map, name="HelmetMesh2")
 
         # Objects
         helmet = GameObject.from_components(shader = shader_normals.id, mesh = helmet_m.id, name = "Helmet")
-        helmet.model = Mat4.from_rotation(radians(180), (1, 0, 0))
+        helmet.model = Mat4.from_rotation(radians(360), (0, 1, 0)).translate(-1, 0, 0)
         helmet.uniforms.normal_maps = CombinedImageSampler(image_id=helmet_maps.id, view_name="default", sampler_id=helmet_sampler.id)
 
-        scene.shaders.extend(shader_normals)
-        scene.meshes.extend(sphere_m, helmet_m)
+        helmet2 = GameObject.from_components(shader = shader2_normals.id, mesh = helmet_m2.id, name = "Helmet")
+        helmet2.model = Mat4().from_rotation(radians(90), (1, 0, 0)).translate(1, 0, 0)
+        helmet2.uniforms.normal_maps = CombinedImageSampler(image_id=helmet_maps.id, view_name="default", sampler_id=helmet_sampler.id)
+
+        scene.shaders.extend(shader_normals, shader2_normals)
+        scene.meshes.extend(helmet_m, helmet_m2)
         scene.images.extend(helmet_maps)
         scene.samplers.extend(helmet_sampler)
-        scene.objects.extend(helmet)
-        self.objects.extend((helmet,))
-        self.shader = shader_normals
+        scene.objects.extend(helmet, helmet2)
+        self.objects = (helmet, helmet2,)
+        self.shaders = (shader_normals, shader2_normals)

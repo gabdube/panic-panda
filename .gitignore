@@ -6,6 +6,8 @@ Settings.cap
 .vscode
 assets/shaders/*.spv
 assets/models/*.glb
+assets/models/*.bin
+assets/models/*.gltf
 assets/models/dev/*
 assets/images/**/*.png
 assets/images/**/*.jpg

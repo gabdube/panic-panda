@@ -1,5 +1,5 @@
 from enum import Enum
-from engine.assets import GLBFile
+from engine.assets import GLBFile, GLTFFile
 from . import TypedArray, TypedArrayFormat as AFmt
 from ..base_types import name_generator, Id
 
@@ -34,8 +34,13 @@ class Mesh(object):
         
         return mesh
 
-    @staticmethod
-    def from_gltf(gltf_file, index_or_name, **kwargs):
+    @classmethod
+    def from_gltf(cls, gltf_file, index_or_name, **kwargs):
+
+        if not (isinstance(gltf_file, GLBFile) or isinstance(gltf_file, GLTFFile)):
+            raise TypeError(f"Unknown/Unsupported type: {type(gltf_file).__qualname__}") 
+
+        mesh = None
         if isinstance(index_or_name, str):
             mesh = next((m for m in gltf_file.layout["meshes"] if m["name"] == index_or_name), None)
             if mesh is None:
@@ -43,29 +48,22 @@ class Mesh(object):
                 raise ValueError(f"No mesh named {index_or_name} in gltf file. Available meshes: {names}")
         else:
             mesh = gltf_file.layout["meshes"][index_or_name]
-                
-        if isinstance(gltf_file, GLBFile):
-            return Mesh.from_glb(gltf_file, mesh, **kwargs)
-        else:
-            raise TypeError(f"Unknown/Unsupported type: {type(gltf_file).__qualname__}") 
 
-    @classmethod
-    def from_glb(cls, glb, mesh, **kwargs):
         mesh0 = mesh['primitives'][0]
         attributes_map = kwargs.get('attributes_map', DEFAULT_ATTRIBUTES_MAP)
 
-        indices_data = glb.accessor_data(mesh0["indices"])
+        indices_data = gltf_file.accessor_data(mesh0["indices"])
         
         attributes = {}
         for attr_name, acc_index in mesh0["attributes"].items():
             mapped_name = attributes_map.get(attr_name)
             if mapped_name is not None:
-                attributes[mapped_name] = glb.accessor_data(acc_index)
+                attributes[mapped_name] = gltf_file.accessor_data(acc_index)
 
         mesh = super().__new__(cls)
         mesh.__init__(**kwargs)
-        mesh.indices = TypedArray.from_memory_view(*indices_data)
-        mesh.attributes = { name: TypedArray.from_memory_view(*data) for name, data in attributes.items()}
+        mesh.indices = indices_data
+        mesh.attributes = attributes
         return mesh
 
     @classmethod

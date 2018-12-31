@@ -1,5 +1,5 @@
 from . import bytes_to_cstruct, MODEL_PATH
-from ..public_components import TypedArrayFormat as AFmt
+from ..public_components import TypedArray, TypedArrayFormat as AFmt
 from ctypes import Structure, c_uint32, sizeof
 import json
 
@@ -49,7 +49,7 @@ class GLBFile(object):
         acc_length = GLBFile.accessor_length(accessor)
         acc_format = GLBFile.accessor_format(accessor)
 
-        return acc_format, acc_length, self.buffer[start:end] 
+        return TypedArray.from_memory_view(acc_format, acc_length, self.buffer[start:end] )
 
     @staticmethod
     def accessor_size(acc):

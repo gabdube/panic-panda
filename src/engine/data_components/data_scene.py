@@ -435,10 +435,9 @@ class DataScene(object):
         rt = engine.render_target
         
         assembly = hvk.pipeline_input_assembly_state_create_info()
-        raster = hvk.pipeline_rasterization_state_create_info()
         multisample = hvk.pipeline_multisample_state_create_info()
         viewport = hvk.pipeline_viewport_state_create_info(viewport_count=1, scissor_count=1)
-
+        raster = hvk.pipeline_rasterization_state_create_info()
         depth_stencil = hvk.pipeline_depth_stencil_state_create_info(
             depth_test_enable = vk.TRUE,
             depth_write_enable  = vk.TRUE,
