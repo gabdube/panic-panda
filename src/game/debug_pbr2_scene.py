@@ -1,5 +1,5 @@
 from engine import Scene, Shader, Mesh, Image, Sampler, GameObject, CombinedImageSampler
-from engine.assets import KTXFile, GLBFile, EnvCubemapFile, IMAGE_PATH
+from engine.assets import KTXFile, GLTFFile, EnvCubemapFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
 from vulkan import vk
@@ -135,7 +135,7 @@ class DebugPBRScene(object):
 
         # Shaders
         n = "pbr2/pbr2"
-        shader_map = {"POSITION": "pos", "NORMAL": "normal", "TANGENT": "tangent", "TEXCOORD_0": "uv"}
+        shader_map = {"POSITION": "pos", "NORMAL": "normal", "TEXCOORD_0": "uv"}
         shader = Shader.from_files(f"{n}.vert.spv", f"{n}.frag.spv", f"{n}.map.json", name="PBRShader")
         shader.uniforms.render = {
             "light_color": (1.0, 1.0, 1.0),
@@ -147,11 +147,11 @@ class DebugPBRScene(object):
         shader.uniforms.env_specular = CombinedImageSampler(image_id=env_i.id, view_name="default", sampler_id=env_s.id)
 
         # Meshes
-        helmet_m = Mesh.from_gltf(GLBFile.open("damaged_helmet.glb"), "HelmetMesh", attributes_map=shader_map, name="HelmetMesh")
+        helmet_m = Mesh.from_gltf(GLTFFile.open("DamagedHelmet.gltf"), "HelmetMesh", attributes_map=shader_map, name="HelmetMesh")
 
         # Objects
         helmet = GameObject.from_components(shader = shader.id, mesh = helmet_m.id, name = "Helmet")
-        helmet.model = Mat4.from_rotation(radians(360), (0, 1, 0))
+        helmet.model = Mat4().from_rotation(radians(90), (1, 0, 0))
         helmet.uniforms.texture_maps = CombinedImageSampler(image_id=helmet_i.id, view_name="default", sampler_id=helmet_s.id)
 
         # Packing

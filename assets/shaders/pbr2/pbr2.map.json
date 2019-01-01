@@ -24,13 +24,11 @@
     "bindings": [
         {"id": 0, "stride": 12},
         {"id": 1, "stride": 12},
-        {"id": 2, "stride": 8},
-        {"id": 3, "stride": 16}
+        {"id": 2, "stride": 8}
     ],
     "attributes": [
         {"name": "pos", "location": 0, "binding": 0, "format": 106},
         {"name": "normal", "location": 1, "binding": 1, "format": 106},
-        {"name": "uv", "location": 2, "binding": 2, "format": 103},
-        {"name": "tangent", "location": 3, "binding": 3, "format": 109}
+        {"name": "uv", "location": 2, "binding": 2, "format": 103}
     ]
 }
