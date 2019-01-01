@@ -7,7 +7,7 @@ class EventsMap(dict):
     def __iter__(self):
         events = tuple(self.keys())
         for e in events:
-            data = self[e]
+            data = self.get(e)
             del self[e]
             yield e, data
 

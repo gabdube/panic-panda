@@ -36,4 +36,5 @@ class Camera(object):
     def update_view(self, new_view):
         self.view = new_view
         self.camera = cam = new_view.clone().invert()
+        self.position = cam.get_translation()
         self.view_projection = self.projection * self.view

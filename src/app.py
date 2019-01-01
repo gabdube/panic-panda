@@ -11,7 +11,7 @@ class PanicPanda(object):
         self.main = MainScene(self, self.engine)
         self.debug_texture = DebugTexturesScene(self, self.engine)
         self.debug_normals = DebugNormalsScene(self, self.engine)
-        #self.debug_pbr = DebugPBRScene(self, self.engine)
+        self.debug_pbr = DebugPBRScene(self, self.engine)
 
     def switch_scene(self, data):
         """Called from the scenes on keypress"""
@@ -28,14 +28,13 @@ class PanicPanda(object):
             engine.load(self.debug_normals.scene)
             engine.activate(self.debug_normals.scene)
         elif data.key is keys._4:
-            return
             engine.load(self.debug_pbr.scene)
             engine.activate(self.debug_pbr.scene)
 
     def run(self):
         engine = self.engine
-        engine.load(self.debug_normals.scene)
-        engine.activate(self.debug_normals.scene)
+        engine.load(self.debug_pbr.scene)
+        engine.activate(self.debug_pbr.scene)
 
         while engine.running:
             engine.events()

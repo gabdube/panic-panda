@@ -14,10 +14,8 @@ class DebugNormalsScene(object):
         self.scene = s = Scene.empty()
 
         # Global state stuff
-        self.shader = None
-        self.objects = []
-        self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
-        self.mouse_state["pos"] = (0,0)
+        self.shaders = ()
+        self.objects = ()
 
         # Camera
         width, height = engine.window.dimensions()
@@ -52,20 +50,6 @@ class DebugNormalsScene(object):
 
     def update_objects(self):
         objects = self.objects
-        
-        """  clip = Mat4.from_data((
-            1.0,  0.0, 0.0, 0.0,
-            0.0, -1.0, 0.0, 0.0,
-            0.0,  0.0, 0.5, 0.0,
-            0.0,  0.0, 0.5, 1.0
-        ))
-
-        projection = clip * self.projection
-
-        view_x = Mat4.from_rotation(self.roll, (0,1,0))
-        view_y = Mat4.from_rotation(self.pitch, (1,0,0))
-        view = view_y * view_x
-        view.data[14] = -self.translate """
         view = self.camera.view
         projection = self.camera.projection
 
