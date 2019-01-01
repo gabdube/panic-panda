@@ -68,7 +68,7 @@ class LookAtView(object):
         min_y, max_y = self.bounds_rot_y
 
         rot[0] += x3
-        rot[1] -= y3
+        rot[1] += y3
         rot[1] = min(max(rot[1], min_y), max_y)
 
         self.mouse_pos = (x1, y1)

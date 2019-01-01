@@ -138,8 +138,8 @@ class DebugTexturesScene(object):
         shader_cube = Shader.from_files(f"{cube_name}.vert.spv",  f"{cube_name}.frag.spv", f"{cube_name}.map.json", name="DebugCubeTexture")
 
         # Meshes
-        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
-        plane_m2 = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, invert_y=True, name="PlaneMesh")
+        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, invert_y=True, name="PlaneMesh")
+        plane_m2 = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=shader_attributes_map, name="PlaneMesh")
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_attributes_map, name="SphereMesh")
 
         # Objects
@@ -156,7 +156,7 @@ class DebugTexturesScene(object):
         plane3.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
 
         sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTexture", hidden=True)
-        sphere.model = Mat4()
+        sphere.model = Mat4.from_rotation(radians(180), (1, 0, 0))
         sphere.uniforms.cube_texture = CombinedImageSampler(image_id=cubemap_texture.id, view_name="default", sampler_id=sampler_lod.id)
         
         # Add objects to scene

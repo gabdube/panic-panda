@@ -21,12 +21,8 @@ class DebugNormalsScene(object):
 
         # Camera
         width, height = engine.window.dimensions()
-        self.projection = Mat4.perspective(radians(60), width/height, 0.01, 100.0)
-        self.roll = pi
-        self.pitch = 0.0
-        self.translate = 4.0
-        self.mouse_state = { btn: evt.MouseClickState.Up for btn in evt.MouseClickButton }
-        self.mouse_pos = None
+        self.camera = cam = Camera(60, width, height)
+        self.camera_view = LookAtView(cam, position = [0,0,-2.5], bounds_zoom=(-7.0, -0.2))
 
         # Assets
         self._setup_assets()
@@ -43,8 +39,7 @@ class DebugNormalsScene(object):
 
     def update_perspective(self, event, data):
         width, height = data
-        self.projection = Mat4.perspective(radians(60), width/height, 0.001, 1000.0)
-    
+        self.camera.update_perspective(60, width, height)
         self.update_objects()
 
     def handle_keypress(self, event, data):
@@ -52,38 +47,13 @@ class DebugNormalsScene(object):
             self.app.switch_scene(data) 
     
     def handle_mouse(self, event, event_data):
-        processed = False
-
-        if event is evt.MouseClick:
-            self.mouse_pos = (event_data.x, event_data.y) 
-            self.mouse_state[event_data.button] = event_data.state
-            processed = True
-            
-        elif event is evt.MouseMove:
-            right, left, *_ = evt.MouseClickButton
-            down = evt.MouseClickState.Down
-
-            if self.mouse_state[right] is down:
-                last_x, last_y = self.mouse_pos
-                new_x, new_y = (event_data.x, event_data.y)
-
-                delta_x = new_x - last_x
-                self.roll += (delta_x / 100.0)
-
-                delta_y = new_y - last_y
-                self.pitch += (delta_y / 100.0)
-
-                self.mouse_pos = new_x, new_y
-
-                processed = True
-
-        if processed:
+        if self.camera_view(event, event_data):
             self.update_objects()
 
     def update_objects(self):
         objects = self.objects
         
-        clip = Mat4.from_data((
+        """  clip = Mat4.from_data((
             1.0,  0.0, 0.0, 0.0,
             0.0, -1.0, 0.0, 0.0,
             0.0,  0.0, 0.5, 0.0,
@@ -95,14 +65,15 @@ class DebugNormalsScene(object):
         view_x = Mat4.from_rotation(self.roll, (0,1,0))
         view_y = Mat4.from_rotation(self.pitch, (1,0,0))
         view = view_y * view_x
-        view.data[14] = -self.translate
+        view.data[14] = -self.translate """
+        view = self.camera.view
+        projection = self.camera.projection
 
         for obj in objects:
             uview = obj.uniforms.view
 
             model_view = view * obj.model
             model_view_projection = projection * model_view
-
             model_transpose = obj.model.clone().invert().transpose()
 
             uview.mvp = model_view_projection.data
@@ -164,5 +135,6 @@ class DebugNormalsScene(object):
         scene.images.extend(helmet_maps)
         scene.samplers.extend(helmet_sampler)
         scene.objects.extend(helmet, helmet2)
+        
         self.objects = (helmet, helmet2,)
         self.shaders = (shader_normals, shader2_normals)
