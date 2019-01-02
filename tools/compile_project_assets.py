@@ -68,8 +68,8 @@ images = (
 
 images_merge_copy = (
     ("MOVE", IMAGES_PATH/"dev/vulkan_logo.ktx", IMAGES_PATH/"vulkan_logo.ktx"),
-    ("COPY", IMAGES_PATH/"dev/unity_gareout/brdf_ue4.bin", IMAGES_PATH/"unity_gareout/brdf_ue4.bin"),
-    ("COPY", IMAGES_PATH/"dev/unity_gareout/specular_cubemap_ue4_256_luv.bin", IMAGES_PATH/"unity_gareout/specular_luv.bin"),
+    ("COPY", IMAGES_PATH/"dev/storm/brdf_ue4.bin", IMAGES_PATH/"storm/brdf.bin"),
+    ("COPY", IMAGES_PATH/"dev/storm/specular_cubemap_ue4_256_rgbm.bin", IMAGES_PATH/"storm/specular_cubemap_256_rgbm.bin"),
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
 )

@@ -117,12 +117,12 @@ class DebugPBRScene(object):
         if __debug__:
             helmet_f = helmet_f[2:3]   # Speed up load time by only keeping a low res mipmap in debug mode
         
-        with (IMAGE_PATH/"unity_muirwood/brdf_ue4.bin").open("rb") as f:
+        with (IMAGE_PATH/"storm/brdf.bin").open("rb") as f:
             brdf_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}
             brdf_f = f.read()
 
         env_args = {"width": 256, "height": 256, "encoding": "LUV", "format": "CUBE"}
-        env_f = EnvCubemapFile.open("unity_muirwood/specular_luv.bin", **env_args)
+        env_f = EnvCubemapFile.open("storm/specular_cubemap_256_rgbm.bin", **env_args)
             
         helmet_i = Image.from_ktx(helmet_f, name="HelmetTextureMaps")
         brdf_i = Image.from_uncompressed(brdf_f, name="BRDF", **brdf_args)
@@ -137,10 +137,21 @@ class DebugPBRScene(object):
         n = "pbr2/pbr2"
         shader_map = {"POSITION": "pos", "NORMAL": "normal", "TEXCOORD_0": "uv"}
         shader = Shader.from_files(f"{n}.vert.spv", f"{n}.frag.spv", f"{n}.map.json", name="PBRShader")
+        
+        color_factor = 1.0
+        emissive_factor = 1.0
+        exposure = 1.8
+        gamma = 0.8
+
         shader.uniforms.render = {
             "light_color": (1.0, 1.0, 1.0),
             "env_lod": (0, env_i.mipmaps_levels),
-            "factors": (1.0, 1.0, 1.0)
+            "factors": (
+                color_factor,
+                emissive_factor,
+                exposure,
+                gamma
+            )
         }
 
         shader.uniforms.brdf = CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=brdf_s.id)

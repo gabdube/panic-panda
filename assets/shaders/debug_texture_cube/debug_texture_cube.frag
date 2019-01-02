@@ -13,19 +13,10 @@ layout (set=0, binding=2) uniform DebugParam {
     vec4 lod;
 } params;
 
-vec3 LUVToRGB( const in vec4 vLogLuv )
+vec3 RGBMToRGB( const in vec4 rgba )
 {
-    const mat3 LUVInverse = mat3( 6.0013,    -2.700,   -1.7995,
-                              -1.332,    3.1029,   -5.7720,
-                              0.3007,    -1.088,    5.6268 );
-
-    float Le = vLogLuv.z * 255.0 + vLogLuv.w;
-    vec3 Xp_Y_XYZp;
-    Xp_Y_XYZp.y = exp2((Le - 127.0) / 2.0);
-    Xp_Y_XYZp.z = Xp_Y_XYZp.y / vLogLuv.y;
-    Xp_Y_XYZp.x = vLogLuv.x * Xp_Y_XYZp.z;
-    vec3 vRGB = LUVInverse * Xp_Y_XYZp;
-    return max(vRGB, 0.0);
+    const float maxRange = 8.0;
+    return rgba.rgb * maxRange * rgba.a;
 }
 
 void main() 
@@ -39,7 +30,7 @@ void main()
     cubmapTexCoords.z = -cos(inUv.x * PI * 2.0) * sin(inUv.y * PI);
 
     vec4 color = textureLod(cubeTexture, cubmapTexCoords, lod);
-    vec3 rgbColor = LUVToRGB(color);
+    vec3 rgbColor = RGBMToRGB(color);
 
     outColor = vec4(rgbColor, color.a);
 }

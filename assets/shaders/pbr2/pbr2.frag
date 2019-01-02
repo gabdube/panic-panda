@@ -13,6 +13,7 @@ layout (location = 0) out vec4 outFragColor;
 
 layout (set=0, binding=1) uniform sampler2D brdfLUT;
 layout (set=0, binding=2) uniform samplerCube envSpecular;
+//layout (set=0, binding=3) uniform samplerCube envIrradiance;
 layout (set=1, binding=1) uniform sampler2DArray maps;
 
 layout (set=0, binding=0) uniform Render {
@@ -20,7 +21,7 @@ layout (set=0, binding=0) uniform Render {
     vec4 lightColor;
     vec4 camera;
     vec4 envLod;   // 0: Min LOD / 1: Max LOD
-    vec4 factors;  // 0: Base color / 1: occlusion strength / 2: Emissive
+    vec4 factors;  // 0: Base color / 1: Emissive / 2: Exposure / 3: Gamma
     ivec4 debug;
 } render;
 
@@ -47,6 +48,28 @@ struct PBRInfo
     vec3 specularColor;
 };
 
+vec3 Uncharted2Tonemap(vec3 color)
+{
+	float A = 0.15;
+	float B = 0.50;
+	float C = 0.10;
+	float D = 0.20;
+	float E = 0.02;
+	float F = 0.30;
+	float W = 11.2;
+	return ((color*(A*color+C*B)+D*E)/(color*(A*color+B)+D*F))-E/F;
+}
+
+vec4 tonemap(vec3 color)
+{
+    float exposure = render.factors[2];
+    float gamma = render.factors[3];
+
+	vec3 outcol = Uncharted2Tonemap(color.rgb * exposure);
+	outcol = outcol * (1.0f / Uncharted2Tonemap(vec3(11.2f)));	
+	return vec4(pow(outcol, vec3(1.0f / gamma)), 1.0);
+}
+
 
 vec4 SRGBtoLINEAR(vec4 srgbIn)
 {
@@ -55,23 +78,14 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
     return vec4(linOut,srgbIn.w);
 }
 
-vec3 LUVToRGB( const in vec4 vLogLuv )
+vec3 RGBMToRGB( const in vec4 rgba )
 {
-    const mat3 LUVInverse = mat3( 6.0013,    -2.700,   -1.7995,
-                              -1.332,    3.1029,   -5.7720,
-                              0.3007,    -1.088,    5.6268 );
-
-    float Le = vLogLuv.z * 255.0 + vLogLuv.w;
-    vec3 Xp_Y_XYZp;
-    Xp_Y_XYZp.y = exp2((Le - 127.0) / 2.0);
-    Xp_Y_XYZp.z = Xp_Y_XYZp.y / vLogLuv.y;
-    Xp_Y_XYZp.x = vLogLuv.x * Xp_Y_XYZp.z;
-    vec3 vRGB = LUVInverse * Xp_Y_XYZp;
-    return max(vRGB, 0.0);
+    const float maxRange = 8.0;
+    return rgba.rgb * maxRange * rgba.a;
 }
 
 vec4 getBaseColor() {
-    vec4 color = texture(maps, vec3(inUv, DIFFUSE_INDEX)) * render.factors.x;
+    vec4 color = texture(maps, vec3(inUv, DIFFUSE_INDEX)) * render.factors[0];
     return SRGBtoLINEAR(color);
 }
 
@@ -87,21 +101,19 @@ vec3 getMetallicRoughness() {
 }
 
 vec3 getNormals() {
-    vec3 pos_dx = dFdx(inPos);
-    vec3 pos_dy = dFdy(inPos);
-    vec3 tex_dx = dFdx(vec3(inUv, 0.0));
-    vec3 tex_dy = dFdy(vec3(inUv, 0.0));
-    vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
-    vec3 ng = inNormal;
-    
-    t = normalize(t - ng * dot(ng, t));
-    vec3 b = normalize(cross(ng, t));
-    mat3 tbn = mat3(t, b, ng);
+    vec3 tangentNormal = texture(maps, vec3(inUv, NORMALS_INDEX) ).xyz * 2.0 - 1.0;
 
-    vec3 n = texture(maps, vec3(inUv, NORMALS_INDEX)).rgb;
-    n = normalize(tbn * ((2.0 * n - 1.0) * vec3(0.5, 0.5, 1.0)));
+	vec3 q1 = dFdx(inPos);
+	vec3 q2 = dFdy(inPos);
+	vec2 st1 = dFdx(inUv);
+	vec2 st2 = dFdy(inUv);
 
-    return n;
+	vec3 N = normalize(inNormal);
+	vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+	vec3 B = -normalize(cross(N, T));
+	mat3 TBN = mat3(T, B, N);
+
+	return normalize(TBN * tangentNormal);
 }
 
 vec3 specularReflection(PBRInfo pbrInputs)
@@ -137,11 +149,15 @@ vec3 getIBLContribution(PBRInfo pbrInputs, vec3 n, vec3 reflection)
     float mipCount = render.envLod[1]; 
     float lod = (pbrInputs.perceptualRoughness * mipCount);
 
-    vec3 brdf = SRGBtoLINEAR(texture(brdfLUT, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness))).rgb;
-    vec3 specularLight = LUVToRGB(texture(envSpecular, reflection, lod));
+    vec3 brdf = texture(brdfLUT, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness)).rgb;
+
+    /*vec3 diffuseLight = SRGBtoLINEAR(tonemap(texture(envIrradiance, n))).rgb;
+    vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;*/
+
+    vec3 specularLight = tonemap(RGBMToRGB(texture(envSpecular, reflection, lod))).rgb;
     vec3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
 
-    return specular;
+    return /*diffuse +*/ specular;
 }
 
 void main() 
@@ -201,9 +217,10 @@ void main()
     vec3 colorFinal = color + getIBLContribution(pbrInputs, n, reflection);
 
     float ao = texture(maps, vec3(inUv, AO_INDEX)).r;
-    colorFinal = mix(colorFinal, colorFinal * ao, render.factors.y);
+    const float occlusion_strength = 1.0;
+    colorFinal = mix(colorFinal, colorFinal * ao, occlusion_strength);
 
-    vec3 emissive = SRGBtoLINEAR(texture(maps, vec3(inUv, EMISSIVE_INDEX))).rgb * render.factors.z;
+    vec3 emissive = SRGBtoLINEAR(texture(maps, vec3(inUv, EMISSIVE_INDEX))).rgb * render.factors[1];
     colorFinal += emissive;
 
     int debug = render.debug[0];

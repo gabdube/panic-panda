@@ -79,12 +79,12 @@ class DebugPBRScene(object):
             helmet_maps = helmet_maps[3:]   # Cut the first two mipmap levels in debug mode to speed up load times
 
         # Cubemaps
-        cubemap_args = {"width": 256, "height": 256, "encoding": "LUV", "format": "CUBE"}
-        env_cubemap = EnvCubemapFile.open("unity_gareout/specular_luv.bin", **cubemap_args)
+        cubemap_args = {"width": 256, "height": 256, "encoding": "RGBM", "format": "CUBE"}
+        env_cubemap = EnvCubemapFile.open("storm/specular_cubemap_256_rgbm.bin", **cubemap_args)
         env_img = Image.from_env_cubemap(env_cubemap, name="CubemapTexture")
 
         # BRDF
-        with (IMAGE_PATH/"unity_gareout/brdf_ue4.bin").open("rb") as f:
+        with (IMAGE_PATH/"storm/brdf.bin").open("rb") as f:
             texture_raw_data = f.read()
             texture_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}
             brdf_img = Image.from_uncompressed(texture_raw_data, name="BRDF", **texture_args)

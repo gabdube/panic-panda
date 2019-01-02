@@ -9,12 +9,13 @@ MipmapData = namedtuple('MipmapData', ('index', 'face', 'offset', 'size', 'width
 class EnvCubemapFile(object):
     """
         Load cubemap files exported using https://github.com/cedricpinson/envtools
-        Only support the LUV encoding using a CUBE format.
+        Only support the CUBE format.
     """
 
-    def __init__(self, path, size, data):
+    def __init__(self, path, size, encoding, data):
         self.file_name = path
         self.width, self.height = size
+        self.encoding = encoding
         self.mips_level = int(log(self.width, 2))
         self.data_buffer = bytearray()
         self.mipmaps = []
@@ -49,10 +50,10 @@ class EnvCubemapFile(object):
             raise ValueError("The image `width` and `height` must be specified as keyword arguments")
         if "format" not in keys:
             raise ValueError("The image `format` must be specified as a keyword argument ")
+        if "encoding" not in keys:
+            raise ValueError("The image `encoding` must be specified as a keyword argument ")
 
         encoding = params["encoding"].lower()
-        if encoding != "luv":
-            raise ValueError("The only supported encoding is LUV")
 
         fmt = params["format"].lower()
         if fmt != "cube":
@@ -65,7 +66,7 @@ class EnvCubemapFile(object):
         with (IMAGE_PATH/path).open('rb') as f:
             data = f.read()
 
-        return EnvCubemapFile(path, (params["width"], params["height"]), data)
+        return EnvCubemapFile(path, (params["width"], params["height"]), encoding, data)
         
     @staticmethod
     def deinterleaveImage4(size, src, dst):
