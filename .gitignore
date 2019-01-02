@@ -2,6 +2,7 @@
 *.spv
 build
 Settings.cap
+cmd
 .idea
 .vscode
 assets/shaders/*.spv
