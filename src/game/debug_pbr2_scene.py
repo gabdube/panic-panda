@@ -117,11 +117,11 @@ class DebugPBRScene(object):
         if __debug__:
             helmet_f = helmet_f[2:3]   # Speed up load time by only keeping a low res mipmap in debug mode
         
-        with (IMAGE_PATH/"storm/brdf.bin").open("rb") as f:
+        with (IMAGE_PATH/"brdf.bin").open("rb") as f:
             brdf_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}
             brdf_f = f.read()
 
-        env_args = {"width": 256, "height": 256, "encoding": "LUV", "format": "CUBE"}
+        env_args = {"width": 256, "height": 256, "encoding": "RGBM", "format": "CUBE"}
         env_f = EnvCubemapFile.open("storm/specular_cubemap_256_rgbm.bin", **env_args)
             
         helmet_i = Image.from_ktx(helmet_f, name="HelmetTextureMaps")
@@ -130,7 +130,7 @@ class DebugPBRScene(object):
 
         # Sampler
         brdf_s = Sampler.new()
-        env_s = Sampler.from_params(max_lod=env_i.mipmaps_levels-3)
+        env_s = Sampler.from_params(max_lod=env_i.mipmaps_levels)
         helmet_s = Sampler.from_params(max_lod=helmet_i.mipmaps_levels)              
 
         # Shaders

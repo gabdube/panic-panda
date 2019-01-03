@@ -16,15 +16,19 @@ class EnvCubemapFile(object):
         self.file_name = path
         self.width, self.height = size
         self.encoding = encoding
-        self.mips_level = int(log(self.width, 2))
+        self.mips_level = int(log(self.width, 2)) - 2  # cut the last two mipmap because the tool don't seem to export them correctly
         self.data_buffer = bytearray()
         self.mipmaps = []
 
         data_offset = 0
+        data_length = len(data)
         data_view = memoryview(data)
         mip_extent_width, mip_extent_height = size
 
         for mipmap_index in range(self.mips_level):
+            if data_offset >= data_length:
+                break
+
             for face_index in range(6):
                 mipmap_size_bytes = mip_extent_width * mip_extent_height * 4
                 

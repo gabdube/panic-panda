@@ -84,10 +84,10 @@ class DebugTexturesScene(object):
             # Change cubemap mipmap level
             debug = current_object.uniforms.debug_params
             lod = debug.lod[0]
-            if data.key == k.Up and lod < 8:
-                debug.lod[0] += 0.5
+            if data.key == k.Up and lod < self.cubemap_max_mipmap:
+                debug.lod[0] += 1.0
             elif data.key == k.Down and lod > 0:
-                debug.lod[0] -= 0.5
+                debug.lod[0] -= 1.0
 
         objects[visible].hidden = False
         self.visible_index = visible
@@ -108,7 +108,7 @@ class DebugTexturesScene(object):
         env_cubemap = EnvCubemapFile.open("storm/specular_cubemap_256_rgbm.bin", **cubemap_args)
         cubemap_texture = Image.from_env_cubemap(env_cubemap, name="CubemapTexture")
 
-        with (IMAGE_PATH/"storm/brdf.bin").open("rb") as f:
+        with (IMAGE_PATH/"brdf.bin").open("rb") as f:
             texture_raw_data = f.read()
             texture_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}
             raw_texture = Image.from_uncompressed(texture_raw_data, name="TextureRaw", **texture_args)
@@ -166,5 +166,6 @@ class DebugTexturesScene(object):
         scene.meshes.extend(plane_m, plane_m2, sphere_m)
         scene.objects.extend(plane1, plane2, plane3, sphere)
 
+        self.cubemap_max_mipmap = cubemap_texture.mipmaps_levels
         self.visible_index = 0
         self.objects.extend((plane1, plane2, plane3, sphere))

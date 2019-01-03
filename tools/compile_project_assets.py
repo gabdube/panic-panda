@@ -68,7 +68,7 @@ images = (
 
 images_merge_copy = (
     ("MOVE", IMAGES_PATH/"dev/vulkan_logo.ktx", IMAGES_PATH/"vulkan_logo.ktx"),
-    ("COPY", IMAGES_PATH/"dev/storm/brdf_ue4.bin", IMAGES_PATH/"storm/brdf.bin"),
+    ("COPY", IMAGES_PATH/"dev/brdf.bin", IMAGES_PATH/"brdf.bin"),
     ("COPY", IMAGES_PATH/"dev/storm/specular_cubemap_ue4_256_rgbm.bin", IMAGES_PATH/"storm/specular_cubemap_256_rgbm.bin"),
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
@@ -115,10 +115,16 @@ merge_outputs = {}
 for action, target, output in images_merge_copy:
     p = None
 
-    if action == "MOVE" and not ONLY_COMMANDS:
-        shutil.move(target, output)
-    elif action == "COPY" and not ONLY_COMMANDS:
-        shutil.copy(target, output)
+    if action == "MOVE":
+        if ONLY_COMMANDS:
+            print(f"mv {target}, {output}")
+        else:
+            shutil.move(target, output)
+    elif action == "COPY":
+        if ONLY_COMMANDS:
+            print(f"cp {target}, {output}")
+        else:
+            shutil.copy(target, output)
     elif action == "MERGE_ARRAY":
         p = process("python", KTX_MERGE_PATH,  "--array", "--auto", "--output", str(output), "--input", str(target))
     elif action == "MERGE_CUBE":
@@ -142,6 +148,10 @@ if not ONLY_COMMANDS:
     for path, pattern in clean:
         for path in path.glob(pattern):
             path.unlink()
+else:
+    for path, pattern in clean:
+        for path in path.glob(pattern):
+            print(f"rm {path}")
 
 #
 # Printing outputs
