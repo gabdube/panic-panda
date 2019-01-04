@@ -78,12 +78,6 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
     return vec4(linOut,srgbIn.w);
 }
 
-vec3 RGBMToRGB( const in vec4 rgba )
-{
-    const float maxRange = 8.0;
-    return rgba.rgb * maxRange * rgba.a;
-}
-
 vec4 getBaseColor() {
     vec4 color = texture(maps, vec3(inUv, DIFFUSE_INDEX)) * render.factors[0];
     return SRGBtoLINEAR(color);
@@ -154,7 +148,7 @@ vec3 getIBLContribution(PBRInfo pbrInputs, vec3 n, vec3 reflection)
     /*vec3 diffuseLight = SRGBtoLINEAR(tonemap(texture(envIrradiance, n))).rgb;
     vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;*/
 
-    vec3 specularLight = tonemap(RGBMToRGB(texture(envSpecular, reflection, lod))).rgb;
+    vec3 specularLight = tonemap(SRGBtoLINEAR(texture(envSpecular, reflection, lod)).rgb).rgb;
     vec3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
 
     return /*diffuse +*/ specular;

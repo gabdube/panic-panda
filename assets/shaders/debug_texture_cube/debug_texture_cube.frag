@@ -13,12 +13,6 @@ layout (set=0, binding=2) uniform DebugParam {
     vec4 lod;
 } params;
 
-vec3 RGBMToRGB( const in vec4 rgba )
-{
-    const float maxRange = 8.0;
-    return rgba.rgb * maxRange * rgba.a;
-}
-
 void main() 
 {
     const float PI = 3.141592653589793238462643383;
@@ -30,7 +24,7 @@ void main()
     cubmapTexCoords.z = -cos(inUv.x * PI * 2.0) * sin(inUv.y * PI);
 
     vec4 color = textureLod(cubeTexture, cubmapTexCoords, lod);
-    vec3 rgbColor = RGBMToRGB(color);
+    vec3 rgbColor = color.rgb;
 
     outColor = vec4(rgbColor, color.a);
 }

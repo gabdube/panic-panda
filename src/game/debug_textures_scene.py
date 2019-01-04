@@ -1,5 +1,5 @@
 from engine import Shader, GameObject, Scene, Sampler, Image, CombinedImageSampler, Mesh, MeshPrefab
-from engine.assets import GLBFile, KTXFile, EnvCubemapFile, IMAGE_PATH
+from engine.assets import GLBFile, KTXFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
 from vulkan import vk
@@ -103,11 +103,8 @@ class DebugTexturesScene(object):
         # Textures
         texture = Image.from_ktx(KTXFile.open("vulkan_logo.ktx"), name="Texture")
         array_texture = Image.from_ktx(KTXFile.open("array_test.ktx"), name="ArrayTexture")
-
-        cubemap_args = {"width": 256, "height": 256, "encoding": "RGBM", "format": "CUBE"}
-        env_cubemap = EnvCubemapFile.open("storm/specular_cubemap_256_rgbm.bin", **cubemap_args)
-        cubemap_texture = Image.from_env_cubemap(env_cubemap, name="CubemapTexture")
-
+        cubemap_texture = Image.from_ktx(KTXFile.open("storm/specular_cubemap.ktx"), name="CubemapTexture")
+        
         with (IMAGE_PATH/"brdf.bin").open("rb") as f:
             texture_raw_data = f.read()
             texture_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}

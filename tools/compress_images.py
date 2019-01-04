@@ -17,7 +17,7 @@ import sys, subprocess
 
 argv = sys.argv
 
-CLI_PATH = "C:/Program Files/Compressonator 3.1.4064/bin/CLI/CompressonatorCLI.exe"
+CLI_PATH = "CompressonatorCLI-bin"
 MAX_SUBPROCESS = 3
 OUTPUT = ""
 

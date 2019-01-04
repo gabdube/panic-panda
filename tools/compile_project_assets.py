@@ -15,6 +15,7 @@ if not Path('./assets/').is_dir():
     raise ValueError("This script must be started from the project root dir")
 
 COMPILE_SHADER_PATH = "./tools/compile_shaders.py"
+COMPILE_ENV_PATH = "./tools/compile_environment.py"
 COMPRESS_IMAGES_PATH = "./tools/compress_images.py"
 KTX_MERGE_PATH = "./tools/ktxmerge.py"
 
@@ -58,10 +59,15 @@ shaders = (
     (SHADERS_PATH/"pbr2", "pbr2"),
 )
 
+environments = (
+    (IMAGES_PATH/"dev/storm/", "storm.hdr"),
+)
 
 images = (
     (IMAGES_PATH/"dev/", "vulkan_logo.jpg"),
     (IMAGES_PATH/"dev/array_test", "*.png"),
+    (IMAGES_PATH/"dev/storm/out/", "irr_*.png"),
+    (IMAGES_PATH/"dev/storm/out/", "highres_*.png"),
     (MODELS_PATH/"dev/damaged_helmet", "damaged_helmet_*.jpg", "--miplevels", "100"),
 )
 
@@ -72,10 +78,13 @@ images_merge_copy = (
     ("COPY", IMAGES_PATH/"dev/storm/specular_cubemap_ue4_256_rgbm.bin", IMAGES_PATH/"storm/specular_cubemap_256_rgbm.bin"),
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
+    ("MERGE_CUBE", IMAGES_PATH/"dev/storm/out/irr_*", IMAGES_PATH/"storm/irr_cubemap.ktx"),
+    ("MERGE_CUBE", IMAGES_PATH/"dev/storm/out/highres_*", IMAGES_PATH/"storm/specular_cubemap.ktx"),
 )
 
 clean = (
     (IMAGES_PATH/"dev/array_test/", "*.ktx"),
+    (IMAGES_PATH/"dev/storm/out", "*"),
     (MODELS_PATH/"dev/damaged_helmet/", "*.ktx"),
 )
 
@@ -93,6 +102,19 @@ for shader_path, shader_name in shaders:
         wait_subprocesses(shaders_outputs)
 
 wait_subprocesses(shaders_outputs)
+
+#
+# Environments
+#
+env_outputs = {}
+for env_path, env_name in environments:
+    p = process("python", COMPILE_ENV_PATH, "--path", str(env_path), "--input", env_name)
+    if p is not None:
+        shaders_outputs[f"[ENVIRONNEMENT {env_name}]"] = p 
+
+    if len(env_outputs) > MAX_SUBPROCESSES:
+        wait_subprocesses(shaders_outputs)
+
 
 #
 # IMAGES!
@@ -126,11 +148,11 @@ for action, target, output in images_merge_copy:
         else:
             shutil.copy(target, output)
     elif action == "MERGE_ARRAY":
-        p = process("python", KTX_MERGE_PATH,  "--array", "--auto", "--output", str(output), "--input", str(target))
+        p = process("python", KTX_MERGE_PATH,  "--array", "--auto", "--output", str(output), "--input", repr(str(target)))
     elif action == "MERGE_CUBE":
-        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--output", str(output), "--input", str(target))
+        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--output", str(output), "--input", repr(str(target)))
     elif action == "MERGE_CUBE_MIPS":
-        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--mipmaps", "--output", str(output), "--input", str(target))
+        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--mipmaps", "--output", str(output), "--input", repr(str(target)))
 
     if p is not None:
         merge_outputs[f"[{action} {target}]"] = p 

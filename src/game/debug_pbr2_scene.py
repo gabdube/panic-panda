@@ -1,5 +1,5 @@
 from engine import Scene, Shader, Mesh, Image, Sampler, GameObject, CombinedImageSampler
-from engine.assets import KTXFile, GLTFFile, EnvCubemapFile, IMAGE_PATH
+from engine.assets import KTXFile, GLTFFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
 from vulkan import vk
@@ -117,16 +117,17 @@ class DebugPBRScene(object):
         if __debug__:
             helmet_f = helmet_f[2:3]   # Speed up load time by only keeping a low res mipmap in debug mode
         
+        specular_env_f = KTXFile.open("storm/specular_cubemap.ktx")
+        irradiance_env_f = KTXFile.open("storm/irr_cubemap.ktx")
+
         with (IMAGE_PATH/"brdf.bin").open("rb") as f:
             brdf_args = {"format": vk.FORMAT_R16G16_UNORM, "extent": (128, 128, 1), "default_view_type": vk.IMAGE_VIEW_TYPE_2D}
             brdf_f = f.read()
 
-        env_args = {"width": 256, "height": 256, "encoding": "RGBM", "format": "CUBE"}
-        env_f = EnvCubemapFile.open("storm/specular_cubemap_256_rgbm.bin", **env_args)
-            
         helmet_i = Image.from_ktx(helmet_f, name="HelmetTextureMaps")
         brdf_i = Image.from_uncompressed(brdf_f, name="BRDF", **brdf_args)
-        env_i = Image.from_env_cubemap(env_f, name="CubemapTexture")
+        env_i = Image.from_ktx(specular_env_f, name="CubemapTexture")
+        env_irr_i = Image.from_ktx(irradiance_env_f, name="CubemapIrradianceTexture")
 
         # Sampler
         brdf_s = Sampler.new()
@@ -166,7 +167,7 @@ class DebugPBRScene(object):
         helmet.uniforms.texture_maps = CombinedImageSampler(image_id=helmet_i.id, view_name="default", sampler_id=helmet_s.id)
 
         # Packing
-        scene.images.extend(helmet_i, brdf_i, env_i)
+        scene.images.extend(helmet_i, brdf_i, env_i, env_irr_i)
         scene.samplers.extend(helmet_s, brdf_s, env_s)
         scene.shaders.extend(shader)
         scene.meshes.extend(helmet_m)

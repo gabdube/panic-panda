@@ -76,19 +76,20 @@ def unpack_cubemap(input_file, output_name):
 
     return face_names
 
-hires_faces = unpack_cubemap(hres_cubemap, "highres_cubemap")
+highres_faces = unpack_cubemap(hres_cubemap, "highres_cubemap")
 irr_faces = unpack_cubemap(irr_cubemap, "irr_cubemap")
 
 # 5. give ownership of the generated files. TODO: check how this works out on Windows
 if platform.system() != "Windows":
     print(f"\nGiving ownership...\n")
-    faces = hires_faces+irr_faces
+    faces = highres_faces + irr_faces + [hres_cubemap, irr_cubemap, original_panorama]
     args = env_tool_args + ('chown', str(getuid()), *faces)
     process = subprocess.Popen(args, stdout=subprocess.PIPE)
     process.communicate()
 
-# 6. Compress the images
+# 6. Generate the prefiltered environment map
+# TODO
 
-
-#env_files = unpack_cubemap(path / "out" / "highres_cubemap.tiff")
-#irr_files = unpack_cubemap(path / "out" / "irr_cubemap.tiff")
+#
+# Note: Compressing to ktx and repacking to cubemap are done by "compress_image.py" and "ktxmerge.py" respectively
+#
