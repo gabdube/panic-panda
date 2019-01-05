@@ -13,7 +13,7 @@ layout (location = 0) out vec4 outFragColor;
 
 layout (set=0, binding=1) uniform sampler2D brdfLUT;
 layout (set=0, binding=2) uniform samplerCube envSpecular;
-//layout (set=0, binding=3) uniform samplerCube envIrradiance;
+layout (set=0, binding=3) uniform samplerCube envIrradiance;
 layout (set=1, binding=1) uniform sampler2DArray maps;
 
 layout (set=0, binding=0) uniform Render {
@@ -60,7 +60,7 @@ vec3 Uncharted2Tonemap(vec3 color)
 	return ((color*(A*color+C*B)+D*E)/(color*(A*color+B)+D*F))-E/F;
 }
 
-vec4 tonemap(vec3 color)
+vec4 tonemap(vec4 color)
 {
     float exposure = render.factors[2];
     float gamma = render.factors[3];
@@ -69,7 +69,6 @@ vec4 tonemap(vec3 color)
 	outcol = outcol * (1.0f / Uncharted2Tonemap(vec3(11.2f)));	
 	return vec4(pow(outcol, vec3(1.0f / gamma)), 1.0);
 }
-
 
 vec4 SRGBtoLINEAR(vec4 srgbIn)
 {
@@ -145,13 +144,13 @@ vec3 getIBLContribution(PBRInfo pbrInputs, vec3 n, vec3 reflection)
 
     vec3 brdf = texture(brdfLUT, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness)).rgb;
 
-    /*vec3 diffuseLight = SRGBtoLINEAR(tonemap(texture(envIrradiance, n))).rgb;
-    vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;*/
+    vec3 diffuseLight = SRGBtoLINEAR(tonemap(texture(envIrradiance, n))).rgb;
+    vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;
 
-    vec3 specularLight = tonemap(SRGBtoLINEAR(texture(envSpecular, reflection, lod)).rgb).rgb;
+    vec3 specularLight = SRGBtoLINEAR(tonemap(texture(envSpecular, reflection, lod))).rgb;
     vec3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
 
-    return /*diffuse +*/ specular;
+    return diffuse + specular;
 }
 
 void main() 

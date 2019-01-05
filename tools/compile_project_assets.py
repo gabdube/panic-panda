@@ -110,11 +110,12 @@ env_outputs = {}
 for env_path, env_name in environments:
     p = process("python", COMPILE_ENV_PATH, "--path", str(env_path), "--input", env_name)
     if p is not None:
-        shaders_outputs[f"[ENVIRONNEMENT {env_name}]"] = p 
+        env_outputs[f"[ENVIRONNEMENT {env_name}]"] = p 
 
     if len(env_outputs) > MAX_SUBPROCESSES:
-        wait_subprocesses(shaders_outputs)
+        wait_subprocesses(env_outputs)
 
+wait_subprocesses(env_outputs)
 
 #
 # IMAGES!

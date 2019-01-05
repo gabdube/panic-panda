@@ -19,7 +19,7 @@ class DebugPBRScene(object):
         self.objects = ()
         self.debug = 0
 
-        self.light = {"rot": 75, "pitch": 40}
+        self.light = {"rot": -95, "pitch": 40}
 
         # Camera
         width, height = engine.window.dimensions()
@@ -141,8 +141,8 @@ class DebugPBRScene(object):
         
         color_factor = 1.0
         emissive_factor = 1.0
-        exposure = 1.8
-        gamma = 0.8
+        exposure = 2.2
+        gamma = 1.3
 
         shader.uniforms.render = {
             "light_color": (1.0, 1.0, 1.0),
@@ -157,6 +157,7 @@ class DebugPBRScene(object):
 
         shader.uniforms.brdf = CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=brdf_s.id)
         shader.uniforms.env_specular = CombinedImageSampler(image_id=env_i.id, view_name="default", sampler_id=env_s.id)
+        shader.uniforms.env_irradiance = CombinedImageSampler(image_id=env_irr_i.id, view_name="default", sampler_id=brdf_s.id)
 
         # Meshes
         helmet_m = Mesh.from_gltf(GLTFFile.open("DamagedHelmet.gltf"), "HelmetMesh", attributes_map=shader_map, name="HelmetMesh")
