@@ -66,8 +66,8 @@ environments = (
 images = (
     (IMAGES_PATH/"dev/", "vulkan_logo.jpg"),
     (IMAGES_PATH/"dev/array_test", "*.png"),
-    (IMAGES_PATH/"dev/storm/out/", "irr_*.png"),
-    (IMAGES_PATH/"dev/storm/out/", "highres_*.png"),
+    (IMAGES_PATH/"dev/storm/out/irr_faces", "irr_*.png"),
+    (IMAGES_PATH/"dev/storm/out/spec/faces", "specular_*.png"),
     (MODELS_PATH/"dev/damaged_helmet", "damaged_helmet_*.jpg", "--miplevels", "100"),
 )
 
@@ -79,12 +79,15 @@ images_merge_copy = (
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
     ("MERGE_CUBE", IMAGES_PATH/"dev/storm/out/irr_*", IMAGES_PATH/"storm/irr_cubemap.ktx"),
-    ("MERGE_CUBE", IMAGES_PATH/"dev/storm/out/highres_*", IMAGES_PATH/"storm/specular_cubemap.ktx"),
+    ("MERGE_CUBE_MIPS", IMAGES_PATH/"dev/storm/out/spec/faces/specular_*", IMAGES_PATH/"storm/specular_cubemap.ktx"),
 )
 
 clean = (
     (IMAGES_PATH/"dev/array_test/", "*.ktx"),
     (IMAGES_PATH/"dev/storm/out", "*"),
+    (IMAGES_PATH/"dev/storm/out/spec/", "*"),
+    (IMAGES_PATH/"dev/storm/out/spec/faces", "*.png"),
+    (IMAGES_PATH/"dev/storm/out/irr_faces", "*.png"),
     (MODELS_PATH/"dev/damaged_helmet/", "*.ktx"),
 )
 
