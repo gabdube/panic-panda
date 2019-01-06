@@ -17,3 +17,6 @@ assets/images/**/*.bin
 assets/images/dev/
 python/
 **/process_results.txt
+env/
+dist/
+panic-panda.spec
