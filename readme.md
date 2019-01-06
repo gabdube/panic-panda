@@ -15,7 +15,7 @@ See the "Documentation" section for a more detailed information on how everythin
 ## Dependencies
 
 * Python >= 3.6
-* The project compiled assets TODO LINK
+* The project compiled assets https://github.com/gabdube/panic-panda/releases
 * [Optional] PyQt5 https://pypi.org/project/PyQt5/
 * [Optional] The LunargG Vulkan SDK https://www.lunarg.com/vulkan-sdk/
 * [Optional] Compressonator https://github.com/GPUOpen-Tools/Compressonator
@@ -33,7 +33,8 @@ envtools is required to compile the environment maps.
 
 On Windows
 
-TODO: include binary link
+* Download and extract the contents of `panic-panda-x86_64-standalone.zip` from https://github.com/gabdube/panic-panda/releases
+* Execute `panic-panda.exe`
 
 On Linux
 
