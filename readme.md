@@ -1,4 +1,4 @@
-# PanicPanda - A 3D rendering demo powered by Python and Vulkan
+# PanicPanda - A 3D demo powered by Python and Vulkan
 
 ![A helmet renderer by panic panda](/demo.png "Image")  
 
