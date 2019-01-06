@@ -54,7 +54,7 @@ python -O src
 
 ## Commands & Controls
 
-The demo includes demo 3 scenes, accessible by pressing the key `2`, `3` and `4` (not the ones on the notepad)
+The demo includes demo 3 scenes, accessible by pressing the key `2`, `3` and `4` (not the ones on the keypad)
 
 * Scene `4` (the default), is a PBR demo. Use the mouse to move the model around and the `UP` and `DOWN` arrow keys to check out the different stages.
 
