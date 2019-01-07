@@ -60,13 +60,46 @@ The demo includes demo 3 scenes, accessible by pressing the key `2`, `3` and `4`
 
 * Scene `3` was used to debug a normals problem. It's kind of nice to look at so I left it here
 
-* Scene `2` is used for texture debugging. It includes normal textures, raw textures, array textures and mipmapped cubemaps. You can iterator over them with the array keys.
+* Scene `2` is used for texture debugging. It includes normal textures, raw textures, array textures and mipmapped cubemaps. You can iterate over them with the arrow keys.
 
 * Scene `1`. Is an empty scene.
 
 ## Documentation
 
-TODO
+### Project layout
+
+``` python
+.
+|-- assets                        # Project assets. Contains textures, 3D models and shaders
+
+|-- src
+|   |-- engine                    # Engine code where all the good stuff happens
+|   |   |-- assets                # Assets loader code
+|   |   |-- data_components       # Private components where the vulkan logic happens
+
+|   |   |   |-- data_scene.py     # Where most of the vulkan logic happens. From assets allocation to command buffer recording.
+
+|   |   |-- public_components     # Game components exposed to the end user
+
+|   |   |-- debug_ui.py           # Qt debugging UI
+
+|   |   |-- engine.py             # Base of the engine. Handles instance & device creation. Store everything else.
+
+|   |   |-- memory_manager.py     # A small (and dumb) vulkan memory manager
+
+|   |   |-- render_target.py      # Vulkan binding over the system window. Contains the renderpass and the framebuffers
+
+|   |   `-- renderer.py           # Renderer logic. Only execute the recorde command buffers and handle the presentation to the render target.
+
+|   |-- game                      # Demo code
+
+|   |-- system                    # System wrapper for windowing and managing the system events queue
+|   |-- utils                     # Random utilities. Just some math for now.
+|   `-- vulkan                    # A low level vulkan wrapper based on ctypes
+
+`-- tools                        # Tooling used by the project. Used to compile the assets
+
+```
 
 ## Attributions
 
@@ -77,7 +110,6 @@ TODO
 * Battle Damaged Sci-fi Helmet - PBR by theblueturtle_, published under a Creative Commons Attribution-NonCommercial license
   * https://sketchfab.com/models/b81008d513954189a063ff901f7abfe4
   * https://sketchfab.com/theblueturtle_
-
 
 ## Code sample
 
