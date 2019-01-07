@@ -2,6 +2,7 @@ from engine import Engine
 from system import events as evt
 from game import MainScene, DebugTexturesScene, DebugNormalsScene, DebugPBRScene
 from time import sleep
+import sys, traceback
 
 
 class PanicPanda(object):
@@ -47,8 +48,16 @@ class PanicPanda(object):
 
 
 def run():
-    app = PanicPanda()
-    app.run()
-    app.free()
+    try:
+
+        # If we are running on a freezed executable, log everything to an external file
+        if "python.exe" not in sys.executable:
+            sys.stdout = open('run_log.txt', 'w')
+        
+        app = PanicPanda()
+        app.run()
+        app.free()
+    except BaseException as e:
+        traceback.print_exc(file=sys.stdout)
 
 run()
