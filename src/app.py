@@ -1,17 +1,27 @@
-from engine import Engine 
+from engine import Engine, QueueConf, QueueType
 from system import events as evt
-from game import MainScene, DebugTexturesScene, DebugNormalsScene, DebugPBRScene
+from game import MainScene, DebugTexturesScene, DebugNormalsScene, DebugPBRScene, DebugComputeScene
 from time import sleep
 
 
 class PanicPanda(object):
     
     def __init__(self):
-        self.engine = Engine()
+        engine_configuration = {
+            "QUEUES": (
+                QueueConf.Default,
+                QueueConf(name="compute", type=QueueType.Compute, required=False),
+            )
+        }
+        
+        self.engine = Engine(engine_configuration)
+
+
         self.main = MainScene(self, self.engine)
         self.debug_texture = DebugTexturesScene(self, self.engine)
         self.debug_normals = DebugNormalsScene(self, self.engine)
         self.debug_pbr = DebugPBRScene(self, self.engine)
+        self.debug_compute = DebugComputeScene(self, self.engine)
 
     def switch_scene(self, data):
         """Called from the scenes on keypress"""
@@ -30,11 +40,14 @@ class PanicPanda(object):
         elif data.key is keys._4:
             engine.load(self.debug_pbr.scene)
             engine.activate(self.debug_pbr.scene)
+        elif data.key is keys._5:
+            engine.load(self.debug_compute.scene)
+            engine.activate(self.debug_compute.scene)
 
     def run(self):
         engine = self.engine
-        engine.load(self.debug_pbr.scene)
-        engine.activate(self.debug_pbr.scene)
+        engine.load(self.debug_compute.scene)
+        engine.activate(self.debug_compute.scene)
 
         while engine.running:
             engine.events()
