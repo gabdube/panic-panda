@@ -10,11 +10,14 @@
             {"name": "camera", "type": 5, "count": 1},
             {"name": "env_lod", "type": 5, "count": 1},
             {"name": "factors", "type": 5, "count": 1},
-            {"name": "debug", "type": 11, "count": 1}
+            {"name": "debug", "type": 13, "count": 1}
         ]},
         {"name": "brdf", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
         {"name": "env_specular", "set": 0, "binding": 2, "count": 1, "stage": 16, "type": 1},
         {"name": "env_irradiance", "set": 0, "binding": 3, "count": 1, "stage": 16, "type": 1},
+        {"name": "test", "set": 0, "binding": 4, "count": 1, "stage": 16, "type": 6, "fields": [
+            {"name": "test", "type": 13, "count": 1}
+        ]},
         {"name": "texture_maps", "set": 1, "binding": 1, "count": 1, "stage": 16, "type": 1},
         {"name": "view", "set": 1, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
             {"name": "mvp", "type": 2, "count": 1},

@@ -22,8 +22,12 @@ layout (set=0, binding=0) uniform Render {
     vec4 camera;
     vec4 envLod;   // 0: Min LOD / 1: Max LOD
     vec4 factors;  // 0: Base color / 1: Emissive / 2: Exposure / 3: Gamma
-    ivec4 debug;
+    int debug;
 } render;
+
+layout (set=0, binding=4) uniform Test {
+    int test;
+}
 
 const float M_PI = 3.141592653589793;
 const int DIFFUSE_INDEX = 0;

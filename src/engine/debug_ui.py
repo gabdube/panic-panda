@@ -431,6 +431,9 @@ class UniformInspector(QTableWidget):
         count = 0
         for name, fields in uniforms.items():
             for fname, value in fields.items():
+                if fname == "PADDING":
+                    continue
+
                 self.setItem(count, 0, QTableWidgetItem(name))
                 self.setItem(count, 1, QTableWidgetItem(fname))
                 self.setItem(count, 2, QTableWidgetItem(repr([round(x, 4) for x in value])))
@@ -439,7 +442,9 @@ class UniformInspector(QTableWidget):
     def set_rows(self, uniforms):
         count = 0
         for name, fields in uniforms.items():
-            count += len(fields)
+            for fname, value in fields.items():
+                if fname != "PADDING":
+                    count += 1
         
         self.setRowCount(count)
 
