@@ -1,5 +1,5 @@
 from vulkan import vk, helpers as hvk
-from ctypes import Structure, c_float, c_int32, sizeof
+from ctypes import Structure, c_float, c_int32, c_uint8, sizeof
 from functools import lru_cache
 from enum import Enum
 
@@ -106,10 +106,17 @@ class DataShader(object):
         )
 
     def _setup_descriptor_layouts(self):
-        _, api, device = self.ctx
+        engine, api, device = self.ctx
 
         if len(self.shader.mapping["uniforms"]) == 0:
             return
+         
+        # Uniform buffers offsets MUST absolutly be aligned to minUniformBufferOffsetAlignment 
+        # On AMD: 16 bytes
+        # On INTEL: 32 bytes
+        # On NVDIA, 256 bits
+        limits = engine.info["limits"]
+        uniform_buffer_align = limits.min_uniform_buffer_offset_alignment 
 
         layouts = []
 
@@ -149,11 +156,17 @@ class DataShader(object):
                 # ctypes Struct used when allocating uniforms buffers
                 struct_size = None
                 if dtype in (vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER, vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC):
+                    size_of = 0
                     args = []
                     for field in uniform["fields"]:
                         field_name = field["name"]
                         field_ctype = uniform_member_as_ctype(field["type"], field["count"])
+                        size_of += sizeof(field_ctype)
                         args.append((field_name, field_ctype))
+
+                    padding = (-size_of & (uniform_buffer_align - 1))
+                    if padding > 0:
+                        args.append(("PADDING", c_uint8*padding))
 
                     struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args,  '__init__': init_fn, '__repr__': repr_fn})
                     struct_size = sizeof(struct)

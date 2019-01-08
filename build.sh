@@ -4,3 +4,4 @@ python -O -m PyInstaller \
  -n panic-panda \
  --windowed \
  src/app.py 
+ 

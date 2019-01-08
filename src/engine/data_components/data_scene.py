@@ -534,7 +534,7 @@ class DataScene(object):
         shaders = self.shaders
         descriptor_pool = self.descriptor_pool
         mem = engine.memory_manager
-
+       
         uniforms_buffer_size = 0
 
         for data_shader in shaders:
