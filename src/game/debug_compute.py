@@ -1,4 +1,4 @@
-from engine import Scene, Shader, Mesh, Image, Sampler, GameObject, CombinedImageSampler
+from engine import Scene, Shader, Mesh, MeshPrefab, Image, Sampler, GameObject, CombinedImageSampler
 from engine.assets import KTXFile, GLTFFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
@@ -76,5 +76,39 @@ class DebugComputeScene(object):
     def _setup_assets(self):
         scene = self.scene
 
-        self.objects = ()
+        # Images
+        heightmap_i = Image.empty(
+            extent=(1024, 1024, 1),
+            format=vk.FORMAT_R32_SFLOAT,
+            default_view_type=vk.IMAGE_VIEW_TYPE_2D
+        )
+
+        # Samplers
+        heightmap_s = Sampler.from_params(
+            address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            mag_filter=vk.FILTER_NEAREST,
+            min_filter=vk.FILTER_NEAREST
+        )
+
+        # Shaders
+        dt = "debug_texture/debug_texture"
+        debug_texture_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
+        debug_texture_s = Shader.from_files(f"{dt}.vert.spv",  f"{dt}.frag.spv", f"{dt}.map.json", name="DebugTexture")
+
+        # Meshes
+        plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=debug_texture_attributes_map, name="PlaneMesh")
+        
+        # Game objects
+        preview_heightmap_o = GameObject.from_components(shader = debug_texture_s.id, mesh = plane_m.id, name = "ObjTexture")
+        preview_heightmap_o.model = Mat4()
+        preview_heightmap_o.uniforms.color_texture = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=heightmap_s.id)
+
+        scene.images.extend(heightmap_i)
+        scene.samplers.extend(heightmap_s)
+        scene.shaders.extend(debug_texture_s)
+        scene.meshes.extend(plane_m)
+        scene.objects.extend(preview_heightmap_o)
+
+        self.objects = (preview_heightmap_o,)
         self.shaders = ()

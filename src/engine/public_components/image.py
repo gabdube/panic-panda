@@ -10,6 +10,11 @@ MipmapData = namedtuple('MipmapData', ('level', 'layer', 'offset', 'size', 'widt
 CombinedImageSampler = namedtuple("CombinedImageSampler", ("image_id", "view_name", "sampler_id"))
 image_name = name_generator("Image")
 
+IMAGE_FORMAT_PIXEL_SIZE = {
+    vk.FORMAT_R32_SFLOAT: 4,
+    vk.FORMAT_R32G32B32_SFLOAT: 12
+}
+
 
 class ImageSource(Enum):
     Ktx = 0
@@ -67,6 +72,18 @@ class Image(object):
         self.mipmaps_levels = None
         self.array_layers = 1
         self.texture_size = None
+
+    @classmethod
+    def empty(cls, **kwargs):
+        keys = tuple(kwargs.keys())
+        if ("format" not in keys) or ("extent" not in keys):
+            raise ValueError("Image `format` and `extent` must be specified as keyword arguments")
+        if kwargs.get("no_default_view", False) == False and ("default_view_type" not in keys):
+            raise ValueError("If a default image view is generated, `default_view_type` must be specified as a keyword argument")
+
+        size_bytes = Image._uncompressed_image_size(kwargs["extent"], kwargs["format"])
+        data = bytes(size_bytes)
+        return cls.from_uncompressed(data, **kwargs)
 
     @classmethod
     def from_ktx(cls, ktx_file, **kwargs):
@@ -225,3 +242,13 @@ class Image(object):
         else:
             raise NotImplementedError(f"Indexing is not implemented for image of type {st}")
         
+    @staticmethod
+    def _uncompressed_image_size(extent, fmt):
+        w, h, d = extent
+        pixel_count = w*h*d
+        pixel_size = IMAGE_FORMAT_PIXEL_SIZE.get(fmt)
+        if pixel_size is None:
+            raise ValueError(f"Pixel size for format {fmt} is not defined")
+
+        return pixel_count * pixel_size
+    
