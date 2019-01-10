@@ -10,7 +10,7 @@ The main purpose of this project was to create an environment that is both simpl
 
 In its current state, PanicPanda could be considered an framework embryo. You are free to take inspiration from it, but building another project around it would be foolish.
 
-A detailed write up under the "Documentation" section should be comming soon.
+A somewhat detailed write up can be found here: https://gabdube.github.io/python/vulkan/2019/01/10/python-and-vulkan-01.html
 
 ## Dependencies
 
