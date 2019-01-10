@@ -14,6 +14,7 @@ class Compute(object):
         self.src = src
         self.mapping = mapping
         self.uniforms = UniformsMaps()
+        self.queue = kwargs.get('queue')
 
     @classmethod
     def from_file(cls, src, mapping, **kwargs):

@@ -266,7 +266,7 @@ class Engine(object):
             raise RuntimeError(failure_reasons)
 
         if render_queue_data is None:
-            raise RuntimeError("No graphics queue was specified in the engine queues configuration")
+            raise RuntimeError("No graphics queue was specified in the engine queues configuration. Protip: use \"QueueConf.Default\" ")
 
         # Device creation
         queue_create_infos = [hvk.queue_create_info(**args) for args in queue_create_infos]

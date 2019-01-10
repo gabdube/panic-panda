@@ -3,7 +3,7 @@
         {"id": 0, "scope": 0}
     ],
     "constants": [
-        {"name": "workgroup_size", "id": 0, "type": 13}
+        {"name": "local_size", "id": 1, "type": 13}
     ],
     "uniforms": [
         {"name": "brdf", "set": 0, "binding": 1, "count": 1, "stage": 2048, "type": 1}

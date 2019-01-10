@@ -2,7 +2,7 @@ from engine import Engine, QueueConf, QueueType
 from system import events as evt
 from game import MainScene, DebugTexturesScene, DebugNormalsScene, DebugPBRScene, DebugComputeScene
 from time import sleep
-import sys, traceback
+import sys, traceback, platform
 
 
 class PanicPanda(object):
@@ -17,11 +17,10 @@ class PanicPanda(object):
         
         self.engine = Engine(engine_configuration)
 
-
-        self.main = MainScene(self, self.engine)
-        self.debug_texture = DebugTexturesScene(self, self.engine)
-        self.debug_normals = DebugNormalsScene(self, self.engine)
-        #self.debug_pbr = DebugPBRScene(self, self.engine)
+        self.main = None
+        self.debug_texture = None
+        self.debug_normals = None
+        self.debug_pbr = None
         self.debug_compute = DebugComputeScene(self, self.engine)
 
     def switch_scene(self, data):
@@ -30,19 +29,37 @@ class PanicPanda(object):
         engine = self.engine
 
         if data.key is keys._1:
+            if self.main is not None:
+                self.main = DebugPBRScene(self, self.engine)
+
             engine.load(self.main.scene)
             engine.activate(self.main.scene) 
+
         elif data.key is keys._2:
+            if self.debug_texture is not None:
+                self.debug_texture = DebugPBRScene(self, self.engine)
+
             engine.load(self.debug_texture.scene)
             engine.activate(self.debug_texture.scene)
+
         elif data.key is keys._3:
+            if self.debug_normals is not None:
+                self.debug_normals = DebugPBRScene(self, self.engine)
+
             engine.load(self.debug_normals.scene)
             engine.activate(self.debug_normals.scene)
+
         elif data.key is keys._4:
-            return
+            if self.debug_pbr is not None:
+                self.debug_pbr = DebugPBRScene(self, self.engine)
+
             engine.load(self.debug_pbr.scene)
             engine.activate(self.debug_pbr.scene)
+
         elif data.key is keys._5:
+            if self.debug_compute is not None:
+                self.debug_compute = DebugComputeScene(self, self.engine)
+                
             engine.load(self.debug_compute.scene)
             engine.activate(self.debug_compute.scene)
 
@@ -65,7 +82,7 @@ def run():
     try:
 
         # If we are running on a freezed executable, log everything to an external file
-        if "python.exe" not in sys.executable:
+        if platform.system() == "Windows" and "python.exe" not in sys.executable:
             sys.stdout = open('run_log.txt', 'w')
         
         app = PanicPanda()

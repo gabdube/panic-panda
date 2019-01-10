@@ -75,6 +75,7 @@ class DebugComputeScene(object):
 
     def _setup_assets(self):
         scene = self.scene
+        engine = self.engine
 
         # Images
         heightmap_i = Image.empty(
@@ -84,7 +85,7 @@ class DebugComputeScene(object):
         )
 
         # Samplers
-        heightmap_s = Sampler.from_params(
+        heightmap_sm = Sampler.from_params(
             address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             mag_filter=vk.FILTER_NEAREST,
@@ -97,8 +98,12 @@ class DebugComputeScene(object):
         debug_texture_s = Shader.from_files(f"{dt}.vert.spv",  f"{dt}.frag.spv", f"{dt}.map.json", name="DebugTexture")
 
         # Compute shaders
+        compute_queue = "render"
+        if "compute" in engine.queues:
+            compute_queue = "compute"
+
         ch = "compute_heightmap/compute_heightmap"
-        compute_heightmap_c = Compute.from_file(f"{ch}.comp", f"{ch}.map.json", name="ComputeHeightmap")
+        compute_heightmap_c = Compute.from_file(f"{ch}.comp.spv", f"{ch}.map.json", name="ComputeHeightmap", queue=compute_queue)
 
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=debug_texture_attributes_map, name="PlaneMesh")
@@ -106,10 +111,10 @@ class DebugComputeScene(object):
         # Game objects
         preview_heightmap_o = GameObject.from_components(shader = debug_texture_s.id, mesh = plane_m.id, name = "ObjTexture")
         preview_heightmap_o.model = Mat4()
-        preview_heightmap_o.uniforms.color_texture = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=heightmap_s.id)
+        preview_heightmap_o.uniforms.color_texture = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=heightmap_sm.id)
 
         scene.images.extend(heightmap_i)
-        scene.samplers.extend(heightmap_s)
+        scene.samplers.extend(heightmap_sm)
         scene.shaders.extend(debug_texture_s)
         scene.computes.extend(compute_heightmap_c)
         scene.meshes.extend(plane_m)

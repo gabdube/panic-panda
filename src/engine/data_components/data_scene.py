@@ -1,5 +1,6 @@
 from vulkan import vk, helpers as hvk
 from .data_shader import DataShader
+from .data_compute import DataCompute
 from .data_mesh import DataMesh
 from .data_sampler import DataSampler
 from .data_image import DataImage
@@ -19,6 +20,7 @@ class DataScene(object):
         self.render_cache = {}
 
         self.shaders = None
+        self.computes = None
         self.objects = None
         self.pipelines = None
         self.pipeline_cache = None
@@ -81,11 +83,15 @@ class DataScene(object):
         if self.images_alloc is not None:
             mem.free_alloc(self.images_alloc)
 
+        for compute in self.computes:
+            compute.free()
+
         for shader in self.shaders:
             shader.free()
 
         hvk.destroy_command_pool(api, device, self.command_pool)
 
+        # Make it easier for python to deal with the circular dependencies
         del self.engine
         del self.scene
         del self.shaders
@@ -194,6 +200,11 @@ class DataScene(object):
         for shader in self.scene.shaders:
             shaders.append(DataShader(e, shader))
 
+        computes = []
+        for compute in self.scene.computes:
+            computes.append(DataCompute(e, compute))
+
+        self.computes = computes
         self.shaders = shaders
 
     def _setup_objects(self):
