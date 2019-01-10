@@ -29,35 +29,35 @@ class PanicPanda(object):
         engine = self.engine
 
         if data.key is keys._1:
-            if self.main is not None:
-                self.main = DebugPBRScene(self, self.engine)
+            if self.main is None:
+                self.main = MainScene(self, self.engine)
 
             engine.load(self.main.scene)
             engine.activate(self.main.scene) 
 
         elif data.key is keys._2:
-            if self.debug_texture is not None:
-                self.debug_texture = DebugPBRScene(self, self.engine)
+            if self.debug_texture is None:
+                self.debug_texture = DebugTexturesScene(self, self.engine)
 
             engine.load(self.debug_texture.scene)
             engine.activate(self.debug_texture.scene)
 
         elif data.key is keys._3:
-            if self.debug_normals is not None:
-                self.debug_normals = DebugPBRScene(self, self.engine)
+            if self.debug_normals is None:
+                self.debug_normals = DebugNormalsScene(self, self.engine)
 
             engine.load(self.debug_normals.scene)
             engine.activate(self.debug_normals.scene)
 
         elif data.key is keys._4:
-            if self.debug_pbr is not None:
+            if self.debug_pbr is None:
                 self.debug_pbr = DebugPBRScene(self, self.engine)
 
             engine.load(self.debug_pbr.scene)
             engine.activate(self.debug_pbr.scene)
 
         elif data.key is keys._5:
-            if self.debug_compute is not None:
+            if self.debug_compute is None:
                 self.debug_compute = DebugComputeScene(self, self.engine)
                 
             engine.load(self.debug_compute.scene)
