@@ -1,4 +1,4 @@
-from engine import Scene, Shader, Mesh, MeshPrefab, Image, Sampler, GameObject, CombinedImageSampler
+from engine import Scene, Shader, Compute, Mesh, MeshPrefab, Image, Sampler, GameObject, CombinedImageSampler
 from engine.assets import KTXFile, GLTFFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
@@ -17,7 +17,7 @@ class DebugComputeScene(object):
         # Global state stuff
         self.shaders = ()
         self.objects = ()
-        self.debug = 0
+        self.compute_heightmap = None
 
         # Camera
         width, height = engine.window.dimensions()
@@ -96,6 +96,10 @@ class DebugComputeScene(object):
         debug_texture_attributes_map = {"POSITION": "pos", "TEXCOORD_0": "uv"}
         debug_texture_s = Shader.from_files(f"{dt}.vert.spv",  f"{dt}.frag.spv", f"{dt}.map.json", name="DebugTexture")
 
+        # Compute shaders
+        ch = "compute_heightmap/compute_heightmap"
+        compute_heightmap_c = Compute.from_file(f"{ch}.comp", f"{ch}.map.json", name="ComputeHeightmap")
+
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=debug_texture_attributes_map, name="PlaneMesh")
         
@@ -107,8 +111,10 @@ class DebugComputeScene(object):
         scene.images.extend(heightmap_i)
         scene.samplers.extend(heightmap_s)
         scene.shaders.extend(debug_texture_s)
+        scene.computes.extend(compute_heightmap_c)
         scene.meshes.extend(plane_m)
         scene.objects.extend(preview_heightmap_o)
 
         self.objects = (preview_heightmap_o,)
         self.shaders = ()
+        self.compute_heightmap = compute_heightmap_c

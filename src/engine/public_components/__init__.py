@@ -1,4 +1,5 @@
 from .shader import *
+from .compute import *
 from .typed_array import *
 from .mesh import *
 from .sampler import *

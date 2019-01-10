@@ -1,0 +1,15 @@
+#version 450
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+layout (constant_id = 0) const int LOCAL_SIZE = 16;
+
+layout(local_size_x_id = 0) in;               
+layout(local_size_y_id = 0) in;
+
+layout (set=0, binding=0, r32f) uniform image2D heightmap;
+
+void main() {
+    imageStore(heightmap, ivec2(gl_GlobalInvocationID.xy), vec4(1.0) );
+}
