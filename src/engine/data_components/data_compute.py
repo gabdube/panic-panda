@@ -1,5 +1,5 @@
 from vulkan import helpers as hvk
-
+from .shared import setup_descriptor_layouts
 
 class DataCompute(object):
 
@@ -11,11 +11,18 @@ class DataCompute(object):
         self.module = None
         self.queue = None
 
+        self.descriptor_set_layouts = None
+        self.pipeline_layout = None
+
         self._fetch_queue()
         self._compile_shader()
+        self._setup_descriptor_layouts()
 
     def free(self):
         engine, api, device = self.ctx
+
+        for dset_layout in self.descriptor_set_layouts:
+            hvk.destroy_descriptor_set_layout(api, device, dset_layout.set_layout)
 
         hvk.destroy_shader_module(api, device, self.module)
 
@@ -46,3 +53,8 @@ class DataCompute(object):
         module = hvk.create_shader_module(api, device, hvk.shader_module_create_info(code=compute.src))
 
         self.module = module
+
+    def _setup_descriptor_layouts(self):
+        engine, api, device = self.ctx
+        mappings = self.compute.mapping
+        self.descriptor_set_layouts = setup_descriptor_layouts(self, engine, api, device, mappings)

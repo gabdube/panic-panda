@@ -18,6 +18,7 @@ class DebugComputeScene(object):
         self.shaders = ()
         self.objects = ()
         self.compute_heightmap = None
+        self.heightmap_texture = None
 
         # Camera
         width, height = engine.window.dimensions()
@@ -26,6 +27,7 @@ class DebugComputeScene(object):
 
         # Assets
         self._setup_assets()
+        self._compute_heightmap()
 
         # Callbacks
         s.on_initialized = self.init_scene
@@ -84,6 +86,12 @@ class DebugComputeScene(object):
             default_view_type=vk.IMAGE_VIEW_TYPE_2D
         )
 
+        placeholder_i = Image.empty(
+            extent=(1,1,1),
+            format=vk.FORMAT_R8G8B8A8_SNORM,
+            default_view_type=vk.IMAGE_VIEW_TYPE_2D
+        )
+
         # Samplers
         heightmap_sm = Sampler.from_params(
             address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -111,9 +119,9 @@ class DebugComputeScene(object):
         # Game objects
         preview_heightmap_o = GameObject.from_components(shader = debug_texture_s.id, mesh = plane_m.id, name = "ObjTexture")
         preview_heightmap_o.model = Mat4()
-        preview_heightmap_o.uniforms.color_texture = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=heightmap_sm.id)
+        preview_heightmap_o.uniforms.color_texture = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=heightmap_sm.id)
 
-        scene.images.extend(heightmap_i)
+        scene.images.extend(heightmap_i, placeholder_i)
         scene.samplers.extend(heightmap_sm)
         scene.shaders.extend(debug_texture_s)
         scene.computes.extend(compute_heightmap_c)
@@ -123,3 +131,7 @@ class DebugComputeScene(object):
         self.objects = (preview_heightmap_o,)
         self.shaders = ()
         self.compute_heightmap = compute_heightmap_c
+        self.heightmap_texture = heightmap_i
+
+    def _compute_heightmap(self):
+        compute = self.compute_heightmap

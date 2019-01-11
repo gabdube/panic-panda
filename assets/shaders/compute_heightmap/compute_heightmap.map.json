@@ -6,6 +6,6 @@
         {"name": "local_size", "id": 1, "type": 13}
     ],
     "uniforms": [
-        {"name": "brdf", "set": 0, "binding": 1, "count": 1, "stage": 2048, "type": 1}
+        {"name": "heightmap", "set": 0, "binding": 0, "count": 1, "stage": 2048, "type": 1}
     ]
 }

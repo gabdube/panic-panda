@@ -11,6 +11,7 @@ CombinedImageSampler = namedtuple("CombinedImageSampler", ("image_id", "view_nam
 image_name = name_generator("Image")
 
 IMAGE_FORMAT_PIXEL_SIZE = {
+    vk.FORMAT_R8G8B8A8_SNORM: 4,
     vk.FORMAT_R32_SFLOAT: 4,
     vk.FORMAT_R32G32B32_SFLOAT: 12
 }
