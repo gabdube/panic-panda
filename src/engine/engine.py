@@ -102,8 +102,9 @@ class Engine(object):
 
         scene_data = DataScene(self, scene)
         scene.id = len(self.graph)
-        scene.on_initialized()
         self.graph.append(scene_data)
+
+        scene.on_initialized()
 
     def activate(self, scene):
         assert scene.id is not None, "Scene was not loaded in engine"
@@ -158,6 +159,14 @@ class Engine(object):
     def render(self):
         scene_data = self.graph[self.current_scene_index]
         self.renderer.render(scene_data)
+
+    def compute(self, scene, compute, sync=False, callback=None):
+        assert scene.id is not None, "Scene was not loaded in engine"
+        assert compute.id is not None, "Compute was not loaded in engine"
+
+        data_scene = self.graph[scene.id]
+        data_compute = data_scene.computes[compute.id]
+        data_compute.run(data_scene, sync=False, callback=None)
 
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device

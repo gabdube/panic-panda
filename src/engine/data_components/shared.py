@@ -2,6 +2,7 @@ from ctypes import Structure, sizeof, c_uint8, c_int32, c_float
 from vulkan import vk, helpers as hvk
 from functools import lru_cache
 from enum import Enum
+from io import BytesIO
 
 
 class DescriptorSetLayout(object):
@@ -108,7 +109,7 @@ def setup_descriptor_layouts(shader, engine, api, device, mappings):
                 struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args,  '__init__': init_fn, '__repr__': repr_fn})
                 struct_size = sizeof(struct)
                 structs[uniform_name] = struct
-            elif dtype in (vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,):
+            elif dtype in (vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vk.DESCRIPTOR_TYPE_STORAGE_IMAGE):
                 images.append(uniform_name)
             else:
                 raise NotImplementedError(f"Descriptor type {dtype} not implemented")
@@ -146,6 +147,7 @@ def setup_descriptor_layouts(shader, engine, api, device, mappings):
     
     return layouts
 
+
 def group_uniforms_by_sets(mappings):
     sets = mappings["sets"]
     uniforms = mappings["uniforms"]
@@ -164,6 +166,35 @@ def group_uniforms_by_sets(mappings):
         sets_uniforms.append((dset, uniforms))
 
     return sets_uniforms
+
+
+def setup_specialization_constants(stage, contants):
+    data = BytesIO()
+    offset = 0
+    entries = []
+
+    filtered_constants = (c for c in contants if c['stage'] == stage)
+    
+    for c in filtered_constants:
+        cdata = uniform_member_as_ctype(c["type"], 1)
+        size = sizeof(cdata)
+
+        default = c.get('value')
+        if default is not None:
+            data.write(cdata(default))
+        else:
+            data.write(cdata())
+
+        entries.append(vk.SpecializationMapEntry(
+            constant_ID = c["id"],
+            offset = offset,
+            size = size
+        ))
+
+        offset += size
+
+    return hvk.specialization_info(map_entries=entries, data=data.getbuffer()) 
+
 
 @lru_cache(maxsize=16)
 def uniform_member_as_ctype(value, count1):

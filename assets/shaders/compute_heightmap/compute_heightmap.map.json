@@ -3,9 +3,9 @@
         {"id": 0, "scope": 0}
     ],
     "constants": [
-        {"name": "local_size", "id": 1, "type": 13}
+        {"name": "local_size", "id": 1, "stage": 32, "type": 13, "value": 16}
     ],
     "uniforms": [
-        {"name": "heightmap", "set": 0, "binding": 0, "count": 1, "stage": 2048, "type": 1}
+        {"name": "heightmap", "set": 0, "binding": 0, "count": 1, "stage": 32, "type": 3}
     ]
 }

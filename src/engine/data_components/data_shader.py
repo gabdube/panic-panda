@@ -56,6 +56,7 @@ class DataShader(object):
     def _compile_shader(self):
         engine, api, device = self.ctx
         shader = self.shader
+        constants = shader.mapping.get('constants')
         modules = []
         stage_infos = []
 
@@ -68,9 +69,14 @@ class DataShader(object):
             module = hvk.create_shader_module(api, device, hvk.shader_module_create_info(code=code))
             modules.append(module)
 
+            spez = None
+            if constants is not None and len(constants) > 0:
+                spez = setup_specialization_constants(stage, constants)
+
             stage_infos.append(hvk.pipeline_shader_stage_create_info(
                 stage = stage,
                 module = module,
+                specialization_info = spez
             ))
 
         self.modules = modules

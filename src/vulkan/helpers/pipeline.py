@@ -63,6 +63,10 @@ def pipeline_shader_stage_create_info(**kwargs):
     name = bytes(kwargs.get('name', 'main'), 'utf-8') + b'\x00'
     name = c_char_p(name)
 
+    specialization_info = kwargs.get('specialization_info')
+    if specialization_info is not None and not hasattr(specialization_info, 'contents'):
+        specialization_info = pointer(specialization_info)
+
     return vk.PipelineShaderStageCreateInfo(
         type = vk.STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         next = None,
@@ -70,7 +74,7 @@ def pipeline_shader_stage_create_info(**kwargs):
         stage = kwargs['stage'],
         module = kwargs['module'],
         name = name,
-        specialization_info = kwargs.get('specialization_info')
+        specialization_info = specialization_info
     )
 
 

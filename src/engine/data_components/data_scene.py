@@ -23,6 +23,7 @@ class DataScene(object):
         self.computes = None
         self.objects = None
         self.pipelines = None
+        self.compute_pipelines = None
         self.pipeline_cache = None
         self.descriptor_pool = None
 
@@ -45,6 +46,7 @@ class DataScene(object):
         self._setup_objects()
         self._setup_uniforms()
         self._setup_pipelines()
+        self._setup_compute_pipelines()
         self._setup_descriptor_sets_pool()
         self._setup_descriptor_sets()
         self._setup_descriptor_write_sets()
@@ -65,6 +67,9 @@ class DataScene(object):
         for pipeline in self.pipelines:
             hvk.destroy_pipeline(api, device, pipeline)
         
+        for pipeline in self.compute_pipelines:
+            hvk.destroy_pipeline(api, device, pipeline)
+
         hvk.destroy_pipeline_cache(api, device, self.pipeline_cache)
 
         if self.meshes_buffer is not None:
@@ -485,13 +490,33 @@ class DataScene(object):
             )
 
             pipeline_infos.append(info)
-  
+
         self.pipeline_cache = hvk.create_pipeline_cache(api, device, hvk.pipeline_cache_create_info())
 
         if len(pipeline_infos) > 0:
             self.pipelines = hvk.create_graphics_pipelines(api, device, pipeline_infos, self.pipeline_cache)
         else:
             self.pipelines = []
+
+    def _setup_compute_pipelines(self):
+        engine, api, device = self.ctx
+
+        pipeline_infos = []
+        for compute_index, data_compute in enumerate(self.computes):
+            data_compute.pipeline = compute_index
+            
+            info = hvk.compute_pipeline_create_info(
+                flags = 0,
+                stage = data_compute.module_stage,
+                layout = data_compute.pipeline_layout
+            )
+
+            pipeline_infos.append(info)
+
+        if len(pipeline_infos) > 0:
+            self.compute_pipelines = hvk.create_compute_pipelines(api, device, pipeline_infos, self.pipeline_cache)
+        else:
+            self.compute_pipelines = []
 
     def _setup_descriptor_sets_pool(self):
         _, api, device = self.ctx

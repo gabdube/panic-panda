@@ -27,7 +27,6 @@ class DebugComputeScene(object):
 
         # Assets
         self._setup_assets()
-        self._compute_heightmap()
 
         # Callbacks
         s.on_initialized = self.init_scene
@@ -36,9 +35,20 @@ class DebugComputeScene(object):
         s.on_mouse_move = s.on_mouse_click = s.on_mouse_scroll = self.handle_mouse
 
     def init_scene(self):
+        engine = self.engine
+        engine.compute(
+            self.scene,
+            self.compute_heightmap,
+            sync = False,
+            callback = self.show_heightmap
+        )
+
         self.update_objects()
         self.update_view()
         
+    def show_heightmap(self):
+        print("TEST")
+
     def update_perspective(self, event, data):
         width, height = data
         self.camera.update_perspective(60, width, height)
@@ -81,7 +91,7 @@ class DebugComputeScene(object):
 
         # Images
         heightmap_i = Image.empty(
-            extent=(1024, 1024, 1),
+            extent=(256, 256, 1),
             format=vk.FORMAT_R32_SFLOAT,
             default_view_type=vk.IMAGE_VIEW_TYPE_2D
         )
@@ -132,6 +142,3 @@ class DebugComputeScene(object):
         self.shaders = ()
         self.compute_heightmap = compute_heightmap_c
         self.heightmap_texture = heightmap_i
-
-    def _compute_heightmap(self):
-        compute = self.compute_heightmap
