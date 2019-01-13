@@ -166,7 +166,7 @@ class Engine(object):
 
         data_scene = self.graph[scene.id]
         data_compute = data_scene.computes[compute.id]
-        data_compute.run(data_scene, sync=False, callback=None)
+        #data_compute.run(data_scene, sync=False, callback=None)
 
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device
@@ -333,7 +333,7 @@ class Engine(object):
 
         # Swapchain Format
         format_values = tuple(vkf.format for vkf in formats)
-        required_formats = [vk.FORMAT_B8G8R8A8_SRGB, vk.FORMAT_B8G8R8A8_UNORM]
+        required_formats = [vk.FORMAT_B8G8R8A8_UNORM, vk.FORMAT_B8G8R8A8_SRGB]
         for i, required_format in enumerate(required_formats):
             if required_format in format_values:
                 required_formats[i] = format_values.index(required_format)

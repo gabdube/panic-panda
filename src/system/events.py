@@ -8,8 +8,9 @@ class EventsMap(dict):
         events = tuple(self.keys())
         for e in events:
             data = self.get(e)
-            del self[e]
             yield e, data
+
+        self.clear()
 
     def __setitem__(self, event, event_data):
         if event in Events:
