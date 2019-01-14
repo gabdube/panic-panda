@@ -6,7 +6,9 @@ from . import Queue, ImageAndView
 from .memory_manager import MemoryManager
 from .render_target import RenderTarget
 from .renderer import Renderer
+from .compute_runner import ComputeRunner
 from .data_components import DataScene
+
 
 # Tells the engine to instantiate a Debugger object that will logs various vulkan information 
 DEBUG = __debug__
@@ -65,6 +67,7 @@ class Engine(object):
         self.render_target = RenderTarget(self)
 
         self.renderer = Renderer(self)
+        self.compute_runner = ComputeRunner(self)
 
     def free(self):
         api, i, d = self.api, self.instance, self.device
@@ -77,6 +80,7 @@ class Engine(object):
         for scene in self.graph:
             scene.free()
 
+        self.compute_runner.free()
         self.renderer.free()
         self.render_target.free()
         self.memory_manager.free()
@@ -166,7 +170,7 @@ class Engine(object):
 
         data_scene = self.graph[scene.id]
         data_compute = data_scene.computes[compute.id]
-        #data_compute.run(data_scene, sync=False, callback=None)
+        self.compute_runner.run(data_scene, data_compute, sync=False, callback=None)
 
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device

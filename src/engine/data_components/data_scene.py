@@ -17,6 +17,8 @@ class DataScene(object):
 
         self.command_pool = None
         self.render_commands = None
+        self.compute_pools = None
+        self.compute_commands = None
         self.render_cache = {}
 
         self.shaders = None
@@ -51,6 +53,7 @@ class DataScene(object):
         self._setup_descriptor_sets()
         self._setup_descriptor_write_sets()
         self._setup_render_commands()
+        self._setup_compute_commands()
         self._setup_render_cache()
 
     def free(self):
@@ -95,6 +98,9 @@ class DataScene(object):
             shader.free()
 
         hvk.destroy_command_pool(api, device, self.command_pool)
+
+        for _, pool in self.compute_pools:
+            hvk.destroy_command_pool(api, device, pool)
 
         # Make it easier for python to deal with the circular dependencies
         del self.engine
@@ -753,6 +759,58 @@ class DataScene(object):
         self.command_pool = command_pool
         self.render_commands = cmd_draw
 
+    def _setup_compute_commands(self):
+        engine, api, device = self.ctx
+        compute_shaders = self.computes
+
+        pool_create_info = hvk.command_pool_create_info(
+            queue_family_index = 0,
+            flags = vk.COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+        )
+
+        allocate_info = hvk.command_buffer_allocate_info(
+            command_pool = 0,
+            command_buffer_count = 0,
+            level = vk.COMMAND_BUFFER_LEVEL_PRIMARY
+        )
+        
+        # Count the number of compute command buffers that will be allocated per queue
+        queues = tuple(engine.queues.values())
+        command_buffers_per_queues = [0 for q in queues]
+        for index, queue in enumerate(queues):
+            count = sum(1 for c in compute_shaders if c.queue is queue)
+            command_buffers_per_queues[index] += count
+
+        # Allocate a single command pool for every queue with at least 1 command buffer
+        queue_pool_count = []
+        for index, count in enumerate(command_buffers_per_queues):
+            if count == 0:
+                continue
+
+            queue = queues[index]
+            pool_create_info.queue_family_index = queue.family.index
+            pool = hvk.create_command_pool(api, device, pool_create_info)
+            queue_pool_count.append( (queue, pool, count) )
+
+        # Allocate the commands buffers and link them with the compute process
+        command_index = 0
+        command_buffers = []
+        for queue, pool, count in queue_pool_count:
+            for c in compute_shaders:
+                if c.queue != queue:
+                    continue
+
+                c.command_index = command_index
+                command_index += 1
+
+            allocate_info.command_pool = pool
+            allocate_info.command_buffer_count = count
+            buffers = hvk.allocate_command_buffers(api, device, allocate_info)
+            command_buffers.extend(buffers)
+
+        self.compute_pools = tuple( (q, p) for q, p, _ in queue_pool_count )
+        self.compute_commands = command_buffers
+
     def _setup_render_cache(self):
         rc = self.render_cache
         width, height = self.engine.info["swapchain_extent"].values()
@@ -764,7 +822,7 @@ class DataScene(object):
             framebuffer = 0,
             render_area = hvk.rect_2d(0, 0, 0, 0),
             clear_values = (
-                hvk.clear_value(color=(0.10, 0.10, 0.10, 1.0)),
+                hvk.clear_value(color=(0.15, 0.15, 0.15, 1.0)),
                 hvk.clear_value(depth=1.0, stencil=0)
             )
         )

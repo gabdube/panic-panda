@@ -14,7 +14,8 @@ class DataCompute(object):
 
         self.descriptor_set_layouts = None
         self.pipeline_layout = None
-        self.pipeline = None  # Set by DataScene._setup_compute_pipelines
+        self.pipeline = None             # Set by DataScene._setup_compute_pipelines
+        self.command_index = None        # Set by DataScene._setup_compute_commands
 
         self._fetch_queue()
         self._compile_shader()
@@ -31,9 +32,6 @@ class DataCompute(object):
         hvk.destroy_shader_module(api, device, self.module)
 
         del self.engine
-
-    def run(self, data_scene, sync, callback):
-        pass
 
     @property
     def ctx(self):
