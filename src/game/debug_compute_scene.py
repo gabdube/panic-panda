@@ -40,7 +40,10 @@ class DebugComputeScene(object):
         engine.compute(
             self.scene,
             self.compute_heightmap,
+            group = (1, 1, 1),
             sync = False,
+            before = lambda x: 0,
+            after = lambda x: 0,
             callback = self.show_heightmap
         )
 
@@ -122,12 +125,8 @@ class DebugComputeScene(object):
             compute_queue = "compute"
 
         ch = "compute_heightmap/compute_heightmap"
-        compute_heightmap_c = Compute.from_file(
-            f"{ch}.comp.spv",
-            f"{ch}.map.json",
-            name="ComputeHeightmap",
-            queue=compute_queue
-        )
+        compute_heightmap_c = Compute.from_file(f"{ch}.comp.spv", f"{ch}.map.json", name="ComputeHeightmap", queue=compute_queue)
+        #compute_heightmap_c.heightmap
 
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=debug_texture_attributes_map, name="PlaneMesh")

@@ -1,5 +1,6 @@
 from vulkan import vk, helpers as hvk
-from .shared import setup_descriptor_layouts, setup_specialization_constants
+from .shared import ShaderScope, setup_descriptor_layouts, setup_specialization_constants
+
 
 class DataCompute(object):
 
@@ -16,6 +17,10 @@ class DataCompute(object):
         self.pipeline_layout = None
         self.pipeline = None             # Set by DataScene._setup_compute_pipelines
         self.command_index = None        # Set by DataScene._setup_compute_commands
+
+        self.descriptor_sets = None
+        self.write_sets_update_infos = None
+        self.write_sets = None
 
         self._fetch_queue()
         self._compile_shader()
@@ -38,6 +43,10 @@ class DataCompute(object):
         engine = self.engine
         api, device = engine.api, engine.device
         return engine, api, device
+
+    @property
+    def global_layouts(self):
+        return (l for l in self.descriptor_set_layouts if l.scope is ShaderScope.GLOBAL)
 
     def _fetch_queue(self):
         engine = self.engine

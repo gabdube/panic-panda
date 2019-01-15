@@ -164,13 +164,13 @@ class Engine(object):
         scene_data = self.graph[self.current_scene_index]
         self.renderer.render(scene_data)
 
-    def compute(self, scene, compute, sync=False, callback=None):
+    def compute(self, scene, compute, group, sync=False, before=None, after=None, callback=None):
         assert scene.id is not None, "Scene was not loaded in engine"
         assert compute.id is not None, "Compute was not loaded in engine"
 
         data_scene = self.graph[scene.id]
         data_compute = data_scene.computes[compute.id]
-        self.compute_runner.run(data_scene, data_compute, sync=False, callback=None)
+        self.compute_runner.run(data_scene, data_compute, group, sync=False, before=None, after=None, callback=None)
 
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device
