@@ -348,7 +348,13 @@ class DataScene(object):
             hvk.bind_image_memory(api, device, image_handle, image_alloc.device_memory, data_image.base_offset)
             data_image._setup_views()
             
-        # Upload commands submitting
+        # Update the image layouts to match the requested parameters
+        self._setup_image_layouts(staging_buffer, data_images)
+
+        return image_alloc
+
+    def _setup_image_layouts(self, staging_buffer, data_images):
+        engine, api, device = self.ctx
         cmd = engine.setup_command_buffer
         hvk.begin_command_buffer(api, cmd, hvk.command_buffer_begin_info())
 
@@ -361,12 +367,12 @@ class DataScene(object):
             )
         )
 
-        to_shader_read = hvk.image_memory_barrier(
+        to_final_layout = hvk.image_memory_barrier(
             image = 0,
             old_layout = vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            new_layout = vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            new_layout = 0,
             src_access_mask = vk.ACCESS_TRANSFER_WRITE_BIT,
-            dst_access_mask = vk.ACCESS_SHADER_READ_BIT,
+            dst_access_mask = 0,
             subresource_range = hvk.image_subresource_range(
                 level_count = 0
             )
@@ -385,24 +391,29 @@ class DataScene(object):
                 )
                 regions.append(r)
 
-
             to_transfer.image = image_handle
             to_transfer.subresource_range.level_count = image.mipmaps_levels
             to_transfer.subresource_range.layer_count = image.array_layers
 
-            to_shader_read.image = image_handle
-            to_shader_read.subresource_range.level_count = image.mipmaps_levels
-            to_shader_read.subresource_range.layer_count = image.array_layers
-
+            to_final_layout.image = image_handle
+            to_final_layout.new_layout = data_image.target_layout
+            to_final_layout.dst_access_mask = data_image.target_access_mask
+            to_final_layout.subresource_range.level_count = image.mipmaps_levels
+            to_final_layout.subresource_range.layer_count = image.array_layers
+            
             hvk.pipeline_barrier(api, cmd, (to_transfer,), dst_stage_mask=vk.PIPELINE_STAGE_TRANSFER_BIT)
             hvk.copy_buffer_to_image(api, cmd, staging_buffer, image_handle, vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions)
-            hvk.pipeline_barrier(api, cmd, (to_shader_read,), dst_stage_mask=vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
+            hvk.pipeline_barrier(api, cmd, (to_final_layout,), dst_stage_mask=hvk.dst_stage_mask_for_access_mask(to_final_layout.dst_access_mask))
+            
+            vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 
         hvk.end_command_buffer(api, cmd)
 
+        # Sumbit the images and update the layer values in the images
         engine.submit_setup_command(wait=True)
-
-        return image_alloc
+        for img in data_images:
+            img.layout = img.target_layout
+            img.access_mask = img.target_access_mask
 
     def _setup_uniforms(self):
         scene = self.scene
@@ -917,3 +928,14 @@ class DataScene(object):
         with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
             for value, offset in update_list:
                 mapping.write_typed_data(value, offset-base_offset)
+
+#
+def update_layout_barrier(base_barrier, layout):
+    # Will most likely be moved elsewhere
+
+    if layout is ImageLayout.ShaderRead:
+        base_barrier.new_layout = vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        base_barrier.dst_access_mask = vk.ACCESS_SHADER_READ_BIT
+    elif layout is ImageLayout.ShaderWrite:
+        base_barrier.new_layout = vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        base_barrier.dst_access_mask = vk.ACCESS_SHADER_READ_BIT

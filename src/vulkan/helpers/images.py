@@ -3,6 +3,12 @@ from .utils import check_ctypes_members, array_pointer, array, sequence_to_array
 from ctypes import byref, c_uint32
 
 
+def dst_stage_mask_for_access_mask(access_mask):
+    if access_mask == vk.ACCESS_SHADER_READ_BIT:
+        return vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+    elif access_mask == vk.ACCESS_TRANSFER_WRITE_BIT:
+        return vk.PIPELINE_STAGE_TRANSFER_BIT
+
 def component_mapping(**kwargs):
     check_ctypes_members(vk.ComponentMapping, (), kwargs.keys())
     return vk.ComponentMapping(

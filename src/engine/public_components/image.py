@@ -10,6 +10,8 @@ MipmapData = namedtuple('MipmapData', ('level', 'layer', 'offset', 'size', 'widt
 CombinedImageSampler = namedtuple("CombinedImageSampler", ("image_id", "view_name", "sampler_id"))
 image_name = name_generator("Image")
 
+DEFAULT_IMAGE_USAGE = vk.IMAGE_USAGE_TRANSFER_DST_BIT | vk.IMAGE_USAGE_SAMPLED_BIT
+
 IMAGE_FORMAT_PIXEL_SIZE = {
     vk.FORMAT_R8G8B8A8_SNORM: 4,
     vk.FORMAT_R32_SFLOAT: 4,
@@ -30,6 +32,11 @@ class ImageCubemapFaces(Enum):
     Bottom = 3
     Front = 4
     Back = 5
+
+
+class ImageLayout(Enum):
+    ShaderRead = 0
+    ShaderWrite = 1
 
 
 class ImageView(object):
@@ -62,12 +69,14 @@ class Image(object):
         self._id = Id()
         self.name = kwargs.get('name', next(image_name))
         
-        self.views = {}
+        self.views = kwargs.get('views', {})
 
         self.source_type = None
         self.source = None
 
         self.flags = 0
+        self.usage = kwargs.get('usage', DEFAULT_IMAGE_USAGE)
+        self.layout = kwargs.get('layout', ImageLayout.ShaderRead)
         self.format = None
         self.extent = None
         self.mipmaps_levels = None
@@ -110,35 +119,6 @@ class Image(object):
             image.views["default"] = ImageView.from_params(
                 view_type=f.vk_view_type,
                 format=f.vk_format,
-                subresource_range=subs_range
-            )
-
-        return image
-
-    @classmethod
-    def from_env_cubemap(cls, env_file, **kwargs):
-        f = env_file
-        if not isinstance(f, EnvCubemapFile):
-            raise RuntimeError(f"File must be EnvCubemapFile, got {type(f).__qualname__}")
-
-        image = super().__new__(cls)
-        image.__init__(**kwargs)
-
-        image.source_type = ImageSource.EnvCubemap
-        image.source = f
-
-        image.flags = vk.IMAGE_CREATE_CUBE_COMPATIBLE_BIT
-        image.format = vk.FORMAT_R8G8B8A8_UNORM
-        image.extent = (f.width, f.height, 1)
-        image.mipmaps_levels = f.mips_level
-        image.texture_size = f.texture_size
-        image.array_layers = 6
-
-        if kwargs.get("no_default_view", False) != True:
-            subs_range = hvk.image_subresource_range(level_count = f.mips_level, layer_count = 6)
-            image.views["default"] = ImageView.from_params(
-                view_type=vk.IMAGE_VIEW_TYPE_CUBE,
-                format=vk.FORMAT_R8G8B8A8_UNORM,
                 subresource_range=subs_range
             )
 

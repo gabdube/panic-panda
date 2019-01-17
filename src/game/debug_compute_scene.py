@@ -1,4 +1,5 @@
-from engine import Scene, Shader, Compute, Mesh, MeshPrefab, Image, Sampler, GameObject, CombinedImageSampler
+from engine import Scene, Shader, Compute, Mesh, MeshPrefab, Image, ImageLayout, Sampler, GameObject, CombinedImageSampler
+from engine import DEFAULT_IMAGE_USAGE
 from engine.assets import KTXFile, GLTFFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
@@ -36,7 +37,7 @@ class DebugComputeScene(object):
 
     def init_scene(self):
         engine = self.engine
-        
+
         engine.compute(
             self.scene,
             self.compute_heightmap,
@@ -95,12 +96,16 @@ class DebugComputeScene(object):
 
         # Images
         heightmap_i = Image.empty(
+            name = "HeightmapImage",
             extent=(256, 256, 1),
             format=vk.FORMAT_R32_SFLOAT,
-            default_view_type=vk.IMAGE_VIEW_TYPE_2D
+            usage=DEFAULT_IMAGE_USAGE | vk.IMAGE_USAGE_STORAGE_BIT,
+            default_view_type=vk.IMAGE_VIEW_TYPE_2D,
+            layout=ImageLayout.ShaderWrite
         )
 
         placeholder_i = Image.empty(
+            name = "PlaceholderImage",
             extent=(1,1,1),
             format=vk.FORMAT_R8G8B8A8_SNORM,
             default_view_type=vk.IMAGE_VIEW_TYPE_2D
@@ -126,7 +131,7 @@ class DebugComputeScene(object):
 
         ch = "compute_heightmap/compute_heightmap"
         compute_heightmap_c = Compute.from_file(f"{ch}.comp.spv", f"{ch}.map.json", name="ComputeHeightmap", queue=compute_queue)
-        #compute_heightmap_c.heightmap
+        compute_heightmap_c.uniforms.heightmap = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=heightmap_sm.id)
 
         # Meshes
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=debug_texture_attributes_map, name="PlaneMesh")
