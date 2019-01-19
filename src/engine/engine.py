@@ -170,7 +170,7 @@ class Engine(object):
 
         data_scene = self.graph[scene.id]
         data_compute = data_scene.computes[compute.id]
-        self.compute_runner.run(data_scene, data_compute, group, sync=False, before=before, after=after, callback=callback)
+        self.compute_runner.run(data_scene, data_compute, group, sync=sync, before=before, after=after, callback=callback)
 
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device
@@ -297,7 +297,7 @@ class Engine(object):
         queues = {}
         for queue_conf, queue_data in mapped_queue_configurations.items():
             queue_family, local_index = queue_data
-            queue_handle = hvk.get_queue(api, device, render_queue_family.index, render_family_local_index)
+            queue_handle = hvk.get_queue(api, device, queue_family.index, local_index)
             queues[queue_conf.name] = Queue(queue_handle, queue_family)
 
         self.physical_device = physical_device

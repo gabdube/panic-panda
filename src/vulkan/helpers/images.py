@@ -3,12 +3,29 @@ from .utils import check_ctypes_members, array_pointer, array, sequence_to_array
 from ctypes import byref, c_uint32
 
 
-def dst_stage_mask_for_access_mask(access_mask, queue_flags=None):
-    if access_mask == vk.ACCESS_SHADER_READ_BIT:
-        return vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-    elif access_mask == vk.ACCESS_TRANSFER_WRITE_BIT:
-        return vk.PIPELINE_STAGE_TRANSFER_BIT
+GRAPHICS_DST_STAGE_MASK = {
+    vk.ACCESS_SHADER_READ_BIT: vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+    vk.ACCESS_TRANSFER_WRITE_BIT: vk.PIPELINE_STAGE_TRANSFER_BIT
+}
 
+COMPUTE_DST_STAGE_MASK = {
+    vk.ACCESS_SHADER_READ_BIT: vk.PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    vk.ACCESS_TRANSFER_WRITE_BIT: vk.PIPELINE_STAGE_TRANSFER_BIT
+}
+
+def dst_stage_mask_for_access_mask(access_mask, queue_flags=vk.QUEUE_GRAPHICS_BIT):
+    f = None
+    if queue_flags & vk.QUEUE_GRAPHICS_BIT != 0:
+        f = GRAPHICS_DST_STAGE_MASK.get(access_mask)
+    elif queue_flags & vk.QUEUE_COMPUTE_BIT != 0:
+        f = COMPUTE_DST_STAGE_MASK.get(access_mask)
+    else:
+        raise ValueError(f"Queue flags {queue_flags} not implemented")
+    
+    if f is None:
+        raise ValueError(f"Access mask {access_mask} for queue flags {queue_flags} is not implemented")
+
+    return f
 
 def component_mapping(**kwargs):
     check_ctypes_members(vk.ComponentMapping, (), kwargs.keys())

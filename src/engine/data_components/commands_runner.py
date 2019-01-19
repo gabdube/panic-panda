@@ -5,10 +5,10 @@ from vulkan import vk, helpers as hvk
 class CommandsRunner(object):
 
     @staticmethod
-    def run_device(command_list, api, cmd_buffer, data_scene):
+    def run_device(command_list, api, cmd_buffer, queue, data_scene):
         maps = DEVICE_FUNCTIONS_MAP
         for cmd in command_list:
-            maps[cmd.cmd_type](api, cmd_buffer, cmd.data, data_scene)
+            maps[cmd.cmd_type](api, cmd_buffer, queue, cmd.data, data_scene)
             
     @staticmethod
     def run_app(command_list, data_scene):
@@ -17,12 +17,13 @@ class CommandsRunner(object):
             maps[cmd.cmd_type](cmd.data, data_scene)
 
     @staticmethod
-    def device_update_image_layout(api, cmd_buffer, cmd_data, data_scene):
+    def device_update_image_layout(api, cmd_buffer, queue, cmd_data, data_scene):
         data_image = data_scene.images[cmd_data["image_id"]]
         image = data_image.image
 
         data_image.update_layout(cmd_data["new_layout"])
-        dst_stage_mask = hvk.dst_stage_mask_for_access_mask(data_image.target_access_mask)
+        queue_flags = queue.family.properties.queue_flags
+        dst_stage_mask = hvk.dst_stage_mask_for_access_mask(data_image.target_access_mask, queue_flags=queue_flags)
 
         change_layout = hvk.image_memory_barrier(
             image = data_image.image_handle,

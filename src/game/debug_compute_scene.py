@@ -42,7 +42,7 @@ class DebugComputeScene(object):
             self.scene,
             self.compute_heightmap,
             group = (1, 1, 1),
-            sync = False,
+            sync = True,
             after = DeviceCommandList(
                 DeviceCommand.update_image_layout(self.compute_heightmap.id, ImageLayout.ShaderRead)
             ),

@@ -15,14 +15,17 @@ class DataCompute(object):
 
         self.descriptor_set_layouts = None
         self.pipeline_layout = None
-        self.pipeline = None             # Set by DataScene._setup_compute_pipelines
-        self.command_index = None        # Set by DataScene._setup_compute_commands
+        self.pipeline = None                # Set by DataScene._setup_compute_pipelines
+        self.command_index = None           # Set by DataScene._setup_compute_commands
 
         self.descriptor_sets = None
         self.write_sets_update_infos = None
         self.write_sets = None
 
+        self.fence = None
+
         self._fetch_queue()
+        self._setup_sync()
         self._compile_shader()
         self._setup_descriptor_layouts()
         self._setup_pipeline_layout()
@@ -35,6 +38,7 @@ class DataCompute(object):
 
         hvk.destroy_pipeline_layout(api, device, self.pipeline_layout)
         hvk.destroy_shader_module(api, device, self.module)
+        hvk.destroy_fence(api, device, self.fence)
 
         del self.engine
 
@@ -59,6 +63,12 @@ class DataCompute(object):
 
         self.sync = render_queue.handle == queue.handle
         self.queue = queue
+
+    def _setup_sync(self):
+        _, api, device = self.ctx
+        fence_info = hvk.fence_create_info()
+        fence = hvk.create_fence(api, device, fence_info)
+        self.fence = fence
 
     def _compile_shader(self):
         engine, api, device = self.ctx
