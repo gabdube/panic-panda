@@ -22,7 +22,7 @@ class DataImage(object):
 
         self.views = {}
 
-        self._setup_layout()
+        self.update_layout()
         self._setup_image()
 
     def free(self):
@@ -41,8 +41,12 @@ class DataImage(object):
         data = hvk.array(c_ubyte, img.texture_size, img.texture_data())
         return data
 
-    def _setup_layout(self):
+    def update_layout(self, new_layout=None):
         layout = self.image.layout
+        if new_layout is not None:
+            self.image.layout = new_layout
+            layout = new_layout
+            
         tl = ta = None
 
         if layout is ImageLayout.ShaderRead:

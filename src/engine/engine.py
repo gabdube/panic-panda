@@ -170,7 +170,7 @@ class Engine(object):
 
         data_scene = self.graph[scene.id]
         data_compute = data_scene.computes[compute.id]
-        self.compute_runner.run(data_scene, data_compute, group, sync=False, before=None, after=None, callback=None)
+        self.compute_runner.run(data_scene, data_compute, group, sync=False, before=before, after=after, callback=callback)
 
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device

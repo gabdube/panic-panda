@@ -1,5 +1,5 @@
 from engine import Scene, Shader, Compute, Mesh, MeshPrefab, Image, ImageLayout, Sampler, GameObject, CombinedImageSampler
-from engine import DEFAULT_IMAGE_USAGE
+from engine import DeviceCommandList, DeviceCommand, DEFAULT_IMAGE_USAGE
 from engine.assets import KTXFile, GLTFFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
@@ -43,8 +43,9 @@ class DebugComputeScene(object):
             self.compute_heightmap,
             group = (1, 1, 1),
             sync = False,
-            before = lambda x: 0,
-            after = lambda x: 0,
+            after = DeviceCommandList(
+                DeviceCommand.update_image_layout(self.compute_heightmap.id, ImageLayout.ShaderRead)
+            ),
             callback = self.show_heightmap
         )
 

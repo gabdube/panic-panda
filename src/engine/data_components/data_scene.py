@@ -404,8 +404,6 @@ class DataScene(object):
             hvk.pipeline_barrier(api, cmd, (to_transfer,), dst_stage_mask=vk.PIPELINE_STAGE_TRANSFER_BIT)
             hvk.copy_buffer_to_image(api, cmd, staging_buffer, image_handle, vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions)
             hvk.pipeline_barrier(api, cmd, (to_final_layout,), dst_stage_mask=hvk.dst_stage_mask_for_access_mask(to_final_layout.dst_access_mask))
-            
-            vk.PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 
         hvk.end_command_buffer(api, cmd)
 
@@ -928,14 +926,3 @@ class DataScene(object):
         with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
             for value, offset in update_list:
                 mapping.write_typed_data(value, offset-base_offset)
-
-#
-def update_layout_barrier(base_barrier, layout):
-    # Will most likely be moved elsewhere
-
-    if layout is ImageLayout.ShaderRead:
-        base_barrier.new_layout = vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        base_barrier.dst_access_mask = vk.ACCESS_SHADER_READ_BIT
-    elif layout is ImageLayout.ShaderWrite:
-        base_barrier.new_layout = vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        base_barrier.dst_access_mask = vk.ACCESS_SHADER_READ_BIT
