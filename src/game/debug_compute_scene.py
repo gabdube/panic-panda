@@ -20,6 +20,7 @@ class DebugComputeScene(object):
         self.objects = ()
         self.compute_heightmap = None
         self.heightmap_texture = None
+        self.heightmap_sampler = None
 
         # Camera
         width, height = engine.window.dimensions()
@@ -53,7 +54,11 @@ class DebugComputeScene(object):
         self.update_view()
         
     def show_heightmap(self):
-        print("TEST")
+        heightmap_i = self.heightmap_texture
+
+        #heightmap_s = self.compute_heightmap
+        #heightmap_s.uniforms.heightmap = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=self.heightmap_sampler)
+        #self.scene.update_shaders(heightmap_s)
 
     def update_perspective(self, event, data):
         width, height = data
@@ -153,3 +158,4 @@ class DebugComputeScene(object):
         self.shaders = ()
         self.compute_heightmap = compute_heightmap_c
         self.heightmap_texture = heightmap_i
+        self.heightmap_sampler = heightmap_sm

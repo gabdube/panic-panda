@@ -40,7 +40,7 @@ class ComputeRunner(object):
         hvk.dispatch(api, cmd, x, y, z)
         CommandsRunner.run_device(after, api, cmd, queue, data_scene)
 
-        hvk.end_command_buffer(api, cmd)
+        hvk.end_command_buffer(api, cmd)    
 
         # Execute the command buffer 
         cmds = (cmd,)

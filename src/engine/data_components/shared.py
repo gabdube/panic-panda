@@ -84,7 +84,8 @@ def setup_descriptor_layouts(shader, engine, api, device, mappings):
 
         for uniform in uniforms:
             uniform_name, dtype, dcount, ubinding = uniform["name"], uniform["type"], uniform["count"], uniform["binding"]
-    
+            buffer = True
+
             # Counts used for the descriptor pool max capacity
             if dtype in counts:
                 counts[dtype] += dcount
@@ -111,6 +112,7 @@ def setup_descriptor_layouts(shader, engine, api, device, mappings):
                 structs[uniform_name] = struct
             elif dtype in (vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vk.DESCRIPTOR_TYPE_STORAGE_IMAGE):
                 images.append(uniform_name)
+                buffer = False
             else:
                 raise NotImplementedError(f"Descriptor type {dtype} not implemented")
             
@@ -129,7 +131,8 @@ def setup_descriptor_layouts(shader, engine, api, device, mappings):
                 "name": uniform_name,
                 "descriptor_type": dtype,
                 "range": struct_size,
-                "binding": ubinding
+                "binding": ubinding,
+                "buffer": buffer
             })
 
         # Associate the values to the descriptor set layout wrapper

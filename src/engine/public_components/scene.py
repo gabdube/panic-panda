@@ -46,7 +46,7 @@ class Scene(object):
         self.update_obj_set.update(set(obj for obj in objects if isinstance(obj, GameObject)))
 
     def update_shaders(self, *shaders):
-        self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, Shader)))
+        self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, (Shader, Compute))))
 
 
 class ComponentArray(list):

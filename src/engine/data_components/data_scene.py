@@ -6,6 +6,7 @@ from .data_sampler import DataSampler
 from .data_image import DataImage
 from .data_game_object import DataGameObject
 from ..base_types import UniformsMaps
+from ..public_components import GameObject, Shader, Compute
 from ctypes import sizeof, memset
 
 
@@ -183,18 +184,30 @@ class DataScene(object):
 
     def apply_updates(self):
         scene = self.scene
-        data_objects = self.objects
-        data_shaders = self.shaders
         obj_update, shader_update = [], []
 
         for obj in scene.update_obj_set:
+            t, data_objs = type(obj), None
+            if t is GameObject:
+                data_objs = self.objects
+            else:
+                raise RuntimeError(f"Unkown object type {t.__qualname__} in object update list")
+
             if len(obj.uniforms.updated_member_names) > 0:
-                dobj = data_objects[obj.id]
+                dobj = data_objs[obj.id]
                 obj_update.append((obj, dobj))
 
         for shader in scene.update_shader_set:
+            t, data_objs = type(shader), None
+            if t is Compute:
+                data_objs = self.computes
+            elif t is Shader:
+                data_objs = self.shaders
+            else:
+                raise RuntimeError(f"Unkown object type {t.__qualname__} in shader update list")
+
             if len(shader.uniforms.updated_member_names) > 0:
-                dshader = data_shaders[shader.id]
+                dshader = data_objs[shader.id]
                 shader_update.append((shader, dshader))
 
         if len(obj_update) > 0 or len(shader_update) > 0:
@@ -355,8 +368,6 @@ class DataScene(object):
 
     def _setup_image_layouts(self, staging_buffer, data_images):
         engine, api, device = self.ctx
-        cmd = engine.setup_command_buffer
-        hvk.begin_command_buffer(api, cmd, hvk.command_buffer_begin_info())
 
         to_transfer = hvk.image_memory_barrier(
             image = 0,
@@ -377,6 +388,9 @@ class DataScene(object):
                 level_count = 0
             )
         )
+
+        cmd = engine.setup_command_buffer
+        hvk.begin_command_buffer(api, cmd, hvk.command_buffer_begin_info())
 
         for data_image in data_images:
             image = data_image.image
@@ -433,8 +447,12 @@ class DataScene(object):
                     else:
                         uniforms_members.remove(name)
 
+                    uniforms.uniform_names.append(name)
+
                 # Buffer based uniforms are specified in `struct_map`
                 for name, struct in layout.struct_map.items():
+                    uniforms.uniform_names.append(name)
+
                     default = getattr(uniforms, name, None)
                     if default is not None:
                         value = struct(**default)
@@ -754,8 +772,10 @@ class DataScene(object):
 
             for descriptor_set, descriptor_layout in zip(data_obj.descriptor_sets, layouts):
                 for wst in descriptor_layout.write_set_templates:
-                    name = wst["name"]
-                    update_infos[name] = (uniform_offset, wst["range"])
+                    if wst["buffer"]:
+                        name = wst["name"]
+                        update_infos[name] = (uniform_offset, wst["range"])
+
                     write_sets.append( generate_write_set(obj, wst, descriptor_set) )
 
             return update_infos, write_sets
@@ -897,32 +917,51 @@ class DataScene(object):
         mem = self.engine.memory_manager
         uniforms_alloc = self.uniforms_alloc
         base_offset = map_size = None
-        update_list = []
+        buffer_update_list = []
+        image_write_sets = []
 
-        def read_offets(uniforms, dobj, name):
-            nonlocal update_list, base_offset, map_size
+        def read_buffer_offets(uniforms, dobj, name):
+            nonlocal buffer_update_list, base_offset, map_size
 
-            offset, size = dobj.write_sets_update_infos[name]
-            offset_size = offset + size
+            # Skips image uniforms
+            buffer_update_info = dobj.write_sets_update_infos.get(name)
+            if buffer_update_info is None:
+                return
 
+            offset, size = buffer_update_info
+            offset_size = offset+size
             if base_offset is None or offset < base_offset:
                 base_offset = offset 
 
             if map_size is None or offset_size > map_size:
                 map_size = size
 
-            update_list.append( (getattr(uniforms, name), offset) )
+            buffer_update_list.append( (getattr(uniforms, name), offset) )
+
+        def read_image_write_sets(uniforms, dobj, name):
+            nonlocal image_write_sets
+
+            buffer_update_info = dobj.write_sets_update_infos.get(name)
+            if buffer_update_info is not None:
+                return
+
+            print(uniforms, dobj, name)
 
         def process_uniforms(items):
             for obj, data_obj in items:
                 uniforms = obj.uniforms
                 for name in uniforms.updated_member_names:
-                    read_offets(uniforms, data_obj, name)
+                    # Find the offsets in the uniforms buffer for the updated buffer uniforms
+                    read_buffer_offets(uniforms, data_obj, name)
+
+                    # Fetch the write sets for the updated image uniforms
+                    read_image_write_sets(uniforms, data_obj, name)
+                
                 uniforms.updated_member_names.clear()
 
         process_uniforms(objects)
         process_uniforms(shaders)
 
         with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
-            for value, offset in update_list:
+            for value, offset in buffer_update_list:
                 mapping.write_typed_data(value, offset-base_offset)
