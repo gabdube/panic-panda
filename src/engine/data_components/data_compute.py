@@ -19,7 +19,6 @@ class DataCompute(object):
         self.command_index = None           # Set by DataScene._setup_compute_commands
 
         self.descriptor_sets = None
-        self.write_sets_update_infos = None
         self.write_sets = None
 
         self.fence = None

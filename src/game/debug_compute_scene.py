@@ -21,6 +21,7 @@ class DebugComputeScene(object):
         self.compute_heightmap = None
         self.heightmap_texture = None
         self.heightmap_sampler = None
+        self.heightmap_preview = None
 
         # Camera
         width, height = engine.window.dimensions()
@@ -42,7 +43,7 @@ class DebugComputeScene(object):
         engine.compute(
             self.scene,
             self.compute_heightmap,
-            group = (1, 1, 1),
+            group = (256, 256, 1),
             sync = True,
             after = DeviceCommandList(
                 DeviceCommand.update_image_layout(self.compute_heightmap.id, ImageLayout.ShaderRead)
@@ -51,22 +52,18 @@ class DebugComputeScene(object):
         )
 
         self.update_objects()
-        self.update_view()
-        
+
     def show_heightmap(self):
         heightmap_i = self.heightmap_texture
+        heightmap_preview_o = self.heightmap_preview
 
-        #heightmap_s = self.compute_heightmap
-        #heightmap_s.uniforms.heightmap = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=self.heightmap_sampler)
-        #self.scene.update_shaders(heightmap_s)
+        heightmap_preview_o.uniforms.color_texture = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=self.heightmap_sampler.id)
+        self.scene.update_objects(heightmap_preview_o)
 
     def update_perspective(self, event, data):
         width, height = data
         self.camera.update_perspective(60, width, height)
         self.update_objects()
-
-    def update_view(self):
-        return
 
     def update_objects(self):
         objects = self.objects
@@ -93,7 +90,6 @@ class DebugComputeScene(object):
 
     def handle_mouse(self, event, event_data):
         if self.camera_view(event, event_data):
-            self.update_view()
             self.update_objects()
 
     def _setup_assets(self):
@@ -159,3 +155,4 @@ class DebugComputeScene(object):
         self.compute_heightmap = compute_heightmap_c
         self.heightmap_texture = heightmap_i
         self.heightmap_sampler = heightmap_sm
+        self.heightmap_preview = preview_heightmap_o

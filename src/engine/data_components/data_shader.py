@@ -18,7 +18,6 @@ class DataShader(object):
         self.pipeline_layout = None
 
         self.descriptor_sets = None
-        self.write_sets_update_infos = None
         self.write_sets = None
 
         self._compile_shader()

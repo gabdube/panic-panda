@@ -451,8 +451,6 @@ class DataScene(object):
 
                 # Buffer based uniforms are specified in `struct_map`
                 for name, struct in layout.struct_map.items():
-                    uniforms.uniform_names.append(name)
-
                     default = getattr(uniforms, name, None)
                     if default is not None:
                         value = struct(**default)
@@ -720,6 +718,8 @@ class DataScene(object):
         uniform_buffer = self.uniforms_buffer
         uniform_offset = 0
         
+        write_sets_to_update = []
+
         def generate_write_set(obj, wst, descriptor_set):
             nonlocal uniform_buffer, uniform_offset
             name, dtype, drange, binding = wst['name'], wst['descriptor_type'], wst['range'], wst['binding']
@@ -742,6 +742,7 @@ class DataScene(object):
 
             elif dtype in (vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vk.DESCRIPTOR_TYPE_STORAGE_IMAGE):
                 image_id, view_name, sampler_id = getattr(obj.uniforms, name)
+
                 data_image = data_images[image_id]
                 data_sampler = data_samplers[sampler_id]
                 data_view = data_image.views.get(view_name, None)
@@ -765,36 +766,45 @@ class DataScene(object):
             else:
                 raise ValueError(f"Unknown descriptor type: {dtype}")
 
+            # Clear the accessed uniforms names because we don't actually need to mark them as updated
+            obj.uniforms.updated_member_names.clear()
+
             return write_set
 
         def map_write_sets(data_obj, obj, layouts):
-            update_infos, write_sets = {}, []
+            write_sets = {}
 
             for descriptor_set, descriptor_layout in zip(data_obj.descriptor_sets, layouts):
                 for wst in descriptor_layout.write_set_templates:
+                    name = wst["name"]
+                    buffer_offset_range = None
+
                     if wst["buffer"]:
-                        name = wst["name"]
-                        update_infos[name] = (uniform_offset, wst["range"])
+                        buffer_offset_range = (uniform_offset, wst["range"])
 
-                    write_sets.append( generate_write_set(obj, wst, descriptor_set) )
+                    write_set = generate_write_set(obj, wst, descriptor_set)
+                    write_sets_to_update.append(write_set)
+                    write_sets[name] = {
+                        "buffer_offset_range": buffer_offset_range,
+                        "write_set": write_set
+                    }
 
-            return update_infos, write_sets
+            return write_sets
 
         for data_shader in shaders:
-            data_shader.write_sets_update_infos, data_shader.write_sets = map_write_sets(data_shader, data_shader.shader, data_shader.global_layouts)
-            hvk.update_descriptor_sets(api, device, data_shader.write_sets, ())
+            data_shader.write_sets = map_write_sets(data_shader, data_shader.shader, data_shader.global_layouts)
 
         for data_compute in computes:
-            data_compute.write_sets_update_infos, data_compute.write_sets = map_write_sets(data_compute, data_compute.compute, data_compute.global_layouts)
-            hvk.update_descriptor_sets(api, device, data_compute.write_sets, ())
+            data_compute.write_sets = map_write_sets(data_compute, data_compute.compute, data_compute.global_layouts)
 
         for shader_index, objects in self._group_objects_by_shaders():
             data_shader = shaders[shader_index]
 
             # Local descriptor sets
             for data_obj in objects:
-                data_obj.write_sets_update_infos, data_obj.write_sets = map_write_sets(data_obj, data_obj.obj, data_shader.local_layouts)
-                hvk.update_descriptor_sets(api, device, data_obj.write_sets, ())
+                data_obj.write_sets = map_write_sets(data_obj, data_obj.obj, data_shader.local_layouts)
+
+        hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
 
     def _group_objects_by_shaders(self):
         if self.shader_objects_sorted:
@@ -914,21 +924,26 @@ class DataScene(object):
     #
 
     def _update_uniforms(self, objects, shaders):
-        mem = self.engine.memory_manager
         uniforms_alloc = self.uniforms_alloc
         base_offset = map_size = None
         buffer_update_list = []
+        
+        data_samplers, data_images = self.samplers, self.images
         image_write_sets = []
 
         def read_buffer_offets(uniforms, dobj, name):
             nonlocal buffer_update_list, base_offset, map_size
 
             # Skips image uniforms
-            buffer_update_info = dobj.write_sets_update_infos.get(name)
-            if buffer_update_info is None:
+            buffer_offset_range = dobj.write_sets[name]["buffer_offset_range"]
+            if buffer_offset_range is None:
                 return
 
-            offset, size = buffer_update_info
+            # Fetch the new uniform value
+            buffer_value = getattr(uniforms, name)
+
+            # Update the mapping info from the size and offset of the uniforms value
+            offset, size = buffer_offset_range
             offset_size = offset+size
             if base_offset is None or offset < base_offset:
                 base_offset = offset 
@@ -936,17 +951,35 @@ class DataScene(object):
             if map_size is None or offset_size > map_size:
                 map_size = size
 
-            buffer_update_list.append( (getattr(uniforms, name), offset) )
+            buffer_update_list.append( (buffer_value, offset) )
 
         def read_image_write_sets(uniforms, dobj, name):
-            nonlocal image_write_sets
+            nonlocal image_write_sets, data_images, data_samplers
 
-            buffer_update_info = dobj.write_sets_update_infos.get(name)
-            if buffer_update_info is not None:
+            write_set_info = dobj.write_sets[name]
+            if write_set_info["buffer_offset_range"] is not None:
                 return
 
-            print(uniforms, dobj, name)
+            # Fetch the new image CombinedSampler value
+            image_sampler = getattr(uniforms, name)
+            data_sampler = data_samplers[image_sampler.sampler_id]
+            data_image = data_images[image_sampler.image_id]
+            data_view = data_image.views.get(image_sampler.view_name, None)
 
+            if data_view is None:
+                raise ValueError(f"No view named \"{view_name}\" for image \"{data_image.image.name}\"")
+
+            # Fetch the write set associated with the updated uniform value
+            write_set = write_set_info["write_set"]
+            
+            # Update the image info
+            image_info = write_set.image_info[0]
+            image_info.sampler = data_sampler.sampler_handle
+            image_info.image_layout = data_image.layout
+            image_info.image_view = data_view
+
+            image_write_sets.append(write_set)
+            
         def process_uniforms(items):
             for obj, data_obj in items:
                 uniforms = obj.uniforms
@@ -962,6 +995,12 @@ class DataScene(object):
         process_uniforms(objects)
         process_uniforms(shaders)
 
+        # Update the image uniforms
+        _, api, device = self.ctx
+        hvk.update_descriptor_sets(api, device, image_write_sets, ())
+
+        # Update the uniform buffers
+        mem = self.engine.memory_manager
         with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
             for value, offset in buffer_update_list:
                 mapping.write_typed_data(value, offset-base_offset)
