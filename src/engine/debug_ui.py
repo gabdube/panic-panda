@@ -6,6 +6,7 @@ from functools import lru_cache
 from multiprocessing import Process, JoinableQueue, Queue
 from collections import namedtuple
 from queue import Empty
+from ctypes import Structure
 
 
 DataPair = namedtuple("DataPair", ("name", "children"))
@@ -429,22 +430,24 @@ class UniformInspector(QTableWidget):
         self.setHorizontalHeaderLabels(("Uniform", "Member", "Value"))
 
         count = 0
-        for name, fields in uniforms.items():
-            for fname, value in fields.items():
-                if fname == "PADDING":
-                    continue
+        for name, uniform_data in uniforms.items():
+            if isinstance(uniform_data, dict):
+                for fname, value in uniform_data.items():
+                    if fname == "PADDING":
+                        continue
 
-                self.setItem(count, 0, QTableWidgetItem(name))
-                self.setItem(count, 1, QTableWidgetItem(fname))
-                self.setItem(count, 2, QTableWidgetItem(repr([round(x, 4) for x in value])))
-                count += 1
+                    self.setItem(count, 0, QTableWidgetItem(name))
+                    self.setItem(count, 1, QTableWidgetItem(fname))
+                    self.setItem(count, 2, QTableWidgetItem(repr([round(x, 4) for x in value])))
+                    count += 1
 
     def set_rows(self, uniforms):
         count = 0
-        for name, fields in uniforms.items():
-            for fname, value in fields.items():
-                if fname != "PADDING":
-                    count += 1
+        for name, uniform_data in uniforms.items():
+            if isinstance(uniform_data, dict):
+                for fname, value in uniform_data.items():
+                    if fname != "PADDING":
+                        count += 1
         
         self.setRowCount(count)
 

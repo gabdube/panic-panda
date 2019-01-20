@@ -18,6 +18,10 @@ class DebugComputeScene(object):
         # Global state stuff
         self.shaders = ()
         self.objects = ()
+
+        self.heightmap_size = (256, 256)
+        self.compute_local_size = (16, 16)
+
         self.compute_heightmap = None
         self.heightmap_texture = None
         self.heightmap_sampler = None
@@ -40,10 +44,14 @@ class DebugComputeScene(object):
     def init_scene(self):
         engine = self.engine
 
+        w, h = self.heightmap_size
+        local_x, local_y = self.compute_local_size
+        group_x, group_y = w // local_x, h // local_y
+
         engine.compute(
             self.scene,
             self.compute_heightmap,
-            group = (256, 256, 1),
+            group = (group_x, group_y, 1),
             sync = True,
             after = DeviceCommandList(
                 DeviceCommand.update_image_layout(self.compute_heightmap.id, ImageLayout.ShaderRead)
@@ -97,9 +105,10 @@ class DebugComputeScene(object):
         engine = self.engine
 
         # Images
+        w, h = self.heightmap_size
         heightmap_i = Image.empty(
             name = "HeightmapImage",
-            extent=(256, 256, 1),
+            extent=(w, h, 1),
             format=vk.FORMAT_R32_SFLOAT,
             usage=DEFAULT_IMAGE_USAGE | vk.IMAGE_USAGE_STORAGE_BIT,
             default_view_type=vk.IMAGE_VIEW_TYPE_2D,

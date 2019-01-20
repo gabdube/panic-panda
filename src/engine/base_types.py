@@ -47,12 +47,16 @@ class UniformsMaps(object):
         for n in self.uniform_names:
             uni = super().__getattribute__(n)
             d[n] = fields = {}
-            for name, ctype in uni._fields_:
-                value = getattr(uni, name)
-                if hasattr(value, '_length_'):
-                    fields[name] = value[::]
-                else:
-                    fields[name] = value
+
+            if hasattr(uni, '_fields_'):
+                for name, ctype in uni._fields_:
+                    value = getattr(uni, name)
+                    if hasattr(value, '_length_'):
+                        fields[name] = value[::]
+                    else:
+                        fields[name] = value
+            else:
+                d[n] = uni
         
         return d
 

@@ -763,11 +763,11 @@ class DataScene(object):
                     image_info = (image_info,)
                 )
 
+                # Clear the accessed uniforms names for images because we don't actually need to mark them as updated
+                obj.uniforms.updated_member_names.clear()
+
             else:
                 raise ValueError(f"Unknown descriptor type: {dtype}")
-
-            # Clear the accessed uniforms names because we don't actually need to mark them as updated
-            obj.uniforms.updated_member_names.clear()
 
             return write_set
 
@@ -931,16 +931,16 @@ class DataScene(object):
         data_samplers, data_images = self.samplers, self.images
         image_write_sets = []
 
-        def read_buffer_offets(uniforms, dobj, name):
+        def read_buffer_offets(uniforms, dobj, obj, uniform_name):
             nonlocal buffer_update_list, base_offset, map_size
 
             # Skips image uniforms
-            buffer_offset_range = dobj.write_sets[name]["buffer_offset_range"]
+            buffer_offset_range = dobj.write_sets[uniform_name]["buffer_offset_range"]
             if buffer_offset_range is None:
                 return
 
             # Fetch the new uniform value
-            buffer_value = getattr(uniforms, name)
+            buffer_value = getattr(uniforms, uniform_name)
 
             # Update the mapping info from the size and offset of the uniforms value
             offset, size = buffer_offset_range
@@ -953,21 +953,21 @@ class DataScene(object):
 
             buffer_update_list.append( (buffer_value, offset) )
 
-        def read_image_write_sets(uniforms, dobj, name):
+        def read_image_write_sets(uniforms, dobj, obj, uniform_name):
             nonlocal image_write_sets, data_images, data_samplers
 
-            write_set_info = dobj.write_sets[name]
+            write_set_info = dobj.write_sets[uniform_name]
             if write_set_info["buffer_offset_range"] is not None:
                 return
 
             # Fetch the new image CombinedSampler value
-            image_sampler = getattr(uniforms, name)
+            image_sampler = getattr(uniforms, uniform_name)
             data_sampler = data_samplers[image_sampler.sampler_id]
             data_image = data_images[image_sampler.image_id]
             data_view = data_image.views.get(image_sampler.view_name, None)
 
             if data_view is None:
-                raise ValueError(f"No view named \"{view_name}\" for image \"{data_image.image.name}\"")
+                raise ValueError(f"No view named \"{view_name}\" for image \"{data_image.image.name}\" of component {obj.name}")
 
             # Fetch the write set associated with the updated uniform value
             write_set = write_set_info["write_set"]
@@ -983,12 +983,12 @@ class DataScene(object):
         def process_uniforms(items):
             for obj, data_obj in items:
                 uniforms = obj.uniforms
-                for name in uniforms.updated_member_names:
+                for uniform_name in uniforms.updated_member_names:
                     # Find the offsets in the uniforms buffer for the updated buffer uniforms
-                    read_buffer_offets(uniforms, data_obj, name)
+                    read_buffer_offets(uniforms, data_obj, obj, uniform_name)
 
                     # Fetch the write sets for the updated image uniforms
-                    read_image_write_sets(uniforms, data_obj, name)
+                    read_image_write_sets(uniforms, data_obj, obj, uniform_name)
                 
                 uniforms.updated_member_names.clear()
 
