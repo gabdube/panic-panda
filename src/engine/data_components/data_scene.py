@@ -764,7 +764,7 @@ class DataScene(object):
                 )
 
                 # Clear the accessed uniforms names for images because we don't actually need to mark them as updated
-                obj.uniforms.updated_member_names.clear()
+                obj.uniforms.updated_member_names.remove(name)
 
             else:
                 raise ValueError(f"Unknown descriptor type: {dtype}")

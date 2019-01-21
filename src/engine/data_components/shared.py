@@ -182,7 +182,7 @@ def setup_specialization_constants(stage, contants):
         cdata = uniform_member_as_ctype(c["type"], 1)
         size = sizeof(cdata)
 
-        default = c.get('value')
+        default = c.get('default_value')
         if default is not None:
             data.write(cdata(default))
         else:
