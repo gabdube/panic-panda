@@ -44,3 +44,11 @@ class Shader(object):
     @id.setter
     def id(self, value):
         self._id.value = value
+
+    def set_constant(self, name, value):
+        constants = self.mapping["constants"]
+        constant = next((c for c in constants if c["name"] == name), None)
+        if constant is None:
+            raise ValueError(f"No shader constant named \"{name}\" in shader")
+
+        constant["default_value"] = value

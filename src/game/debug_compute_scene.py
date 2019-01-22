@@ -19,8 +19,11 @@ class DebugComputeScene(object):
         self.shaders = ()
         self.objects = ()
 
-        self.heightmap_size = (256, 256)
-        self.compute_local_size = (16, 16)
+        self.heightmap_size = (1024, 1024)
+        self.compute_local_size = self._compute_local_size()
+
+        if __debug__:
+            self.heightmap_size = (256, 256)
 
         self.compute_heightmap = None
         self.heightmap_texture = None
@@ -100,6 +103,34 @@ class DebugComputeScene(object):
         if self.camera_view(event, event_data):
             self.update_objects()
 
+    def _compute_local_size(self):
+        # Allocate as much workgroup for invoking compute shaders
+        #
+        # Workgroup limits varies alot by vendors. 
+        #
+        # AMD leading by allowing (usually) 1024 max invocations with a 1024 max on the x, y, z local work group
+        # NVDIA follows with the same 1024 max invocations, but usually limits the z to 64 instead of 1024
+        # And then there's INTEL, begin "special", with a max of 896 invocations.
+        #
+        from math import sqrt
+        INVOKE_SIZE = [1, 2, 4, 8, 16, 32]
+        
+        limits = self.engine.info["limits"]
+        max_invoc = limits.max_compute_work_group_invocations
+        max_group_size = limits.max_compute_work_group_size[0:3]
+        max_group_count = limits.max_compute_work_group_count[0:3]
+
+        invoke_group = int(sqrt(max_invoc))
+        if invoke_group in INVOKE_SIZE:
+            return invoke_group, invoke_group
+
+        # if `invoke_group` is not a square number, find the nearest going down
+        for size in reversed(INVOKE_SIZE):
+            if size < invoke_group:
+                return size, size
+
+        raise RuntimeError("Failed to find a suitable workgroup invoke count. This will never happens ")
+
     def _setup_assets(self):
         scene = self.scene
         engine = self.engine
@@ -141,7 +172,10 @@ class DebugComputeScene(object):
             compute_queue = "compute"
 
         ch = "compute_heightmap/compute_heightmap"
+        local_x, local_y = self.compute_local_size
         compute_heightmap_c = Compute.from_file(f"{ch}.comp.spv", f"{ch}.map.json", name="ComputeHeightmap", queue=compute_queue)
+        compute_heightmap_c.set_constant("local_size_x", local_x)
+        compute_heightmap_c.set_constant("local_size_y", local_y)
         compute_heightmap_c.uniforms.heightmap = CombinedImageSampler(image_id=heightmap_i.id, view_name="default", sampler_id=heightmap_sm.id)
 
         # Meshes
