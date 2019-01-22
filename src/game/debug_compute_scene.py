@@ -19,11 +19,9 @@ class DebugComputeScene(object):
         self.shaders = ()
         self.objects = ()
 
-        self.heightmap_size = (1024, 1024)
+        self.heightmap_seed = (1, 1)
+        self.heightmap_size = (256, 256)
         self.compute_local_size = self._compute_local_size()
-
-        if __debug__:
-            self.heightmap_size = (256, 256)
 
         self.compute_heightmap = None
         self.heightmap_texture = None
@@ -33,7 +31,7 @@ class DebugComputeScene(object):
         # Camera
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(45, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0,-3.5], bounds_zoom=(-7.0, -0.2))
+        self.camera_view = LookAtView(cam, position = [0,0,-1.9], bounds_zoom=(-3.0, -0.2))
 
         # Assets
         self._setup_assets()
@@ -140,7 +138,7 @@ class DebugComputeScene(object):
         heightmap_i = Image.empty(
             name = "HeightmapImage",
             extent=(w, h, 1),
-            format=vk.FORMAT_R32_SFLOAT,
+            format=vk.FORMAT_R8G8B8A8_SNORM,
             usage=DEFAULT_IMAGE_USAGE | vk.IMAGE_USAGE_STORAGE_BIT,
             default_view_type=vk.IMAGE_VIEW_TYPE_2D,
             layout=ImageLayout.ShaderWrite

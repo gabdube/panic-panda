@@ -8,8 +8,46 @@ layout (constant_id = 2) const int LOCAL_SIZE_Y = 16;
 
 layout(local_size_x_id = 1, local_size_y_id = 2) in;
 
-layout (set=0, binding=0, r32f) uniform image2D heightmap;
+layout (set=0, binding=0, rgba8) uniform image2D heightmap;
+
+// Optimized Ashima Simplex noise2D by @makio64 https://www.shadertoy.com/view/4sdGD8
+// Original shader : https://github.com/ashima/webgl-noise/blob/master/src/noise2D.glsl
+// snoise return a value between 0 & 1
+
+ vec3 permute(in vec3 x) { return mod( x*x*34.+x, 289.); }
+ float noise(in vec2 v) {
+   vec2 i = floor((v.x+v.y)*.36602540378443 + v),
+      x0 = (i.x+i.y)*.211324865405187 + v - i;
+   float s = step(x0.x,x0.y);
+   vec2 j = vec2(1.0-s,s),
+      x1 = x0 - j + .211324865405187, 
+      x3 = x0 - .577350269189626; 
+  i = mod(i,289.);
+   vec3 p = permute( permute( i.y + vec3(0, j.y, 1 ))+ i.x + vec3(0, j.x, 1 )   ),
+       m = max( .5 - vec3(dot(x0,x0), dot(x1,x1), dot(x3,x3)), 0.),
+       x = fract(p * .024390243902439) * 2. - 1.,
+       h = abs(x) - .5,
+      a0 = x - floor(x + .5);
+  return .5 + 65. * dot( pow(m,vec3(4.))*(- 0.85373472095314*( a0*a0 + h*h )+1.79284291400159 ), a0 * vec3(x0.x,x1.x,x3.x) + h * vec3(x0.y,x1.y,x3.y));
+}
+
+
+/// Noise function end
 
 void main() {
-    imageStore(heightmap, ivec2(gl_GlobalInvocationID.xy), vec4(1.0) );
+    mat2 m = mat2( 1.6,  1.0, -1.0,  1.6 );
+
+    vec2 resolution = imageSize(heightmap);
+    vec2 p = vec2(gl_GlobalInvocationID.xy) / resolution;
+    vec2 uv = p * vec2(resolution.x/resolution.y, 1.0) * 5.0;
+
+    float f;
+    f  = 0.5000*noise( uv ); uv = m*uv;
+    f += 0.2500*noise( uv ); uv = m*uv;
+    f += 0.1250*noise( uv ); uv = m*uv;
+    f += 0.0625*noise( uv ); uv = m*uv;
+
+    f = 0.3 + 0.5*f;
+
+    imageStore(heightmap, ivec2(gl_GlobalInvocationID.xy), vec4(f, f, f, 1.0) );
 }
