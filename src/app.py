@@ -78,7 +78,7 @@ class PanicPanda(object):
 
     def run(self):
         engine = self.engine
-        self.set_scene(4)
+        self.set_scene(5)
 
         while engine.running:
             engine.events()

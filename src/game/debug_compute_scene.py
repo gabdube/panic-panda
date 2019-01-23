@@ -154,9 +154,7 @@ class DebugComputeScene(object):
         # Samplers
         heightmap_sm = Sampler.from_params(
             address_mode_V=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            mag_filter=vk.FILTER_NEAREST,
-            min_filter=vk.FILTER_NEAREST
+            address_mode_U=vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
         )
 
         # Shaders

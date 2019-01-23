@@ -1,4 +1,4 @@
-python -O -m PyInstaller \
+python -m PyInstaller \
  --exclude-module PyQt5 \
  --exclude-module debug_ui \
  -n panic-panda \
