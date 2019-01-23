@@ -111,6 +111,9 @@ The demo includes demo 3 scenes, accessible by pressing the key `2`, `3` and `4`
   * https://sketchfab.com/models/b81008d513954189a063ff901f7abfe4
   * https://sketchfab.com/theblueturtle_
 
+* Optimized Ashima SimplexNoise2D by Makio64
+  * https://www.shadertoy.com/view/4sdGD8
+  
 ## Code sample
 
 ```python
