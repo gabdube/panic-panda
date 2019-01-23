@@ -74,16 +74,9 @@ vec4 tonemap(vec4 color)
 	return vec4(pow(outcol, vec3(1.0f / gamma)), 1.0);
 }
 
-vec4 SRGBtoLINEAR(vec4 srgbIn)
-{
-    vec3 bLess = step(vec3(0.04045),srgbIn.xyz);
-    vec3 linOut = mix( srgbIn.xyz/vec3(12.92), pow((srgbIn.xyz+vec3(0.055))/vec3(1.055),vec3(2.4)), bLess );
-    return vec4(linOut,srgbIn.w);
-}
-
 vec4 getBaseColor() {
     vec4 color = texture(maps, vec3(inUv, DIFFUSE_INDEX)) * render.factors[0];
-    return SRGBtoLINEAR(color);
+    return color;
 }
 
 vec3 getMetallicRoughness() {
@@ -148,10 +141,10 @@ vec3 getIBLContribution(PBRInfo pbrInputs, vec3 n, vec3 reflection)
 
     vec3 brdf = texture(brdfLUT, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness)).rgb;
 
-    vec3 diffuseLight = SRGBtoLINEAR(tonemap(texture(envIrradiance, n))).rgb;
+    vec3 diffuseLight = tonemap(texture(envIrradiance, n)).rgb;
     vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;
 
-    vec3 specularLight = SRGBtoLINEAR(tonemap(texture(envSpecular, reflection, lod))).rgb;
+    vec3 specularLight = tonemap(texture(envSpecular, reflection, lod)).rgb;
     vec3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
 
     return diffuse + specular;
@@ -217,7 +210,7 @@ void main()
     const float occlusion_strength = 1.0;
     colorFinal = mix(colorFinal, colorFinal * ao, occlusion_strength);
 
-    vec3 emissive = SRGBtoLINEAR(texture(maps, vec3(inUv, EMISSIVE_INDEX))).rgb * render.factors[1];
+    vec3 emissive = texture(maps, vec3(inUv, EMISSIVE_INDEX)).rgb * render.factors[1];
     colorFinal += emissive;
 
     int debug = render.debug[0];

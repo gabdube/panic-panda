@@ -1,4 +1,4 @@
-from ..public_components import ImageSource
+from ..public_components import ImageSource, ImageLayout
 from vulkan import vk, helpers as hvk
 from ctypes import c_ubyte
 
@@ -13,9 +13,16 @@ class DataImage(object):
         self.base_offset = 0                            # Set in `DataScene._setup_images_resources`
 
         self.image_handle = None
+        
+        self.target_layout = None
         self.layout = None
+
+        self.target_access_mask = None
+        self.access_mask = None
+
         self.views = {}
 
+        self.update_layout()
         self._setup_image()
 
     def free(self):
@@ -34,6 +41,26 @@ class DataImage(object):
         data = hvk.array(c_ubyte, img.texture_size, img.texture_data())
         return data
 
+    def update_layout(self, new_layout=None):
+        layout = self.image.layout
+        if new_layout is not None:
+            self.image.layout = new_layout
+            layout = new_layout
+            
+        tl = ta = None
+
+        if layout is ImageLayout.ShaderRead:
+            tl = vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            ta = vk.ACCESS_SHADER_READ_BIT
+        elif layout is ImageLayout.ShaderWrite:
+            tl = vk.IMAGE_LAYOUT_GENERAL
+            ta = vk.ACCESS_TRANSFER_WRITE_BIT
+        else:
+            raise NotImplementedError(f"Layout {layout} is not implemented in DataImage")
+
+        self.target_layout = tl
+        self.target_access_mask = ta
+
     def _setup_image(self):
         engine, api, device = self.ctx
 
@@ -46,11 +73,12 @@ class DataImage(object):
             mip_levels = img.mipmaps_levels,
             array_layers = img.array_layers,
             extent = vk.Extent3D(width, height, depth),
-            usage = vk.IMAGE_USAGE_TRANSFER_DST_BIT | vk.IMAGE_USAGE_SAMPLED_BIT
+            usage = img.usage
         ))
 
         self.image_handle = image
         self.layout = vk.IMAGE_LAYOUT_UNDEFINED
+        self.access_mask = 0
 
     def _setup_views(self):
         # Called from `DataScene._setup_images_resources` after the memory is bound to the image

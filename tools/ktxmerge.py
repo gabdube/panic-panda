@@ -404,5 +404,5 @@ if __name__ == "__main__":
 
     except KTXException as e:
         print(f"ERROR: {e}")
-    except DeprecationWarning:
+    except Exception as e:
         print(__doc__)

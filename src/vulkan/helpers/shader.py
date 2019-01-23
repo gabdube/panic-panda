@@ -1,6 +1,6 @@
 from .. import vk
 from .utils import check_ctypes_members, sequence_to_array, array, array_pointer
-from ctypes import byref, c_uint32, c_uint8
+from ctypes import byref, cast, c_uint32, c_uint8, c_void_p
 
 
 def descriptor_set_layout_binding(**kwargs):
@@ -53,6 +53,7 @@ def descriptor_set_layout_create_info(**kwargs):
         bindings = bindings_ptr
     )
 
+
 def create_descriptor_set_layout(api, device, info):
     layout = vk.DescriptorSetLayout(0)
     result = api.CreateDescriptorSetLayout(device, byref(info), None, byref(layout))
@@ -64,6 +65,23 @@ def create_descriptor_set_layout(api, device, info):
 
 def destroy_descriptor_set_layout(api, device, layout):
     api.DestroyDescriptorSetLayout(device, layout, None)
+
+
+def specialization_info(**kwargs):
+    check_ctypes_members(vk.SpecializationInfo, ('map_entries', 'data'), kwargs.keys())
+
+    map_entries, map_entries_ptr, map_entry_count = sequence_to_array(kwargs['map_entries'], vk.SpecializationMapEntry)
+
+    data = kwargs["data"]
+    data_size = len(data)
+    data = array(c_uint8, data_size, data)
+
+    return vk.SpecializationInfo(
+        map_entry_count = map_entry_count,
+        map_entries = map_entries_ptr,
+        data_size = data_size,
+        data = cast(array_pointer(data), c_void_p)
+    )
 
 
 def shader_module_create_info(**kwargs):
@@ -137,6 +155,7 @@ def descriptor_set_allocate_info(**kwargs):
         set_layouts = set_layouts_ptr
     )
 
+
 def allocate_descriptor_sets(api, device, info):
     sets = (vk.DescriptorSet*info.descriptor_set_count)()
     result = api.AllocateDescriptorSets(device, info, array_pointer(sets))
@@ -175,6 +194,7 @@ def write_descriptor_set(**kwargs):
         buffer_info = buffers_ptr,
         texel_buffer_view = texel_buffer_views_ptr
     )
+
 
 def update_descriptor_sets(api, device, write, copy):
     writes, writes_ptr, write_count = sequence_to_array(write, vk.WriteDescriptorSet)

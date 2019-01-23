@@ -22,8 +22,9 @@ pattern = f"**/{input_shader}.*"
 
 outputs = {}
 
+
 for file in path.glob(pattern):
-    if file.suffix not in ('.frag', '.vert'):
+    if file.suffix not in ('.frag', '.vert', '.comp'):
         continue
 
     file_in = str(file)

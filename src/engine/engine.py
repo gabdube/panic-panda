@@ -1,12 +1,14 @@
 from enum import IntFlag
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from system import Window, events as evt
 from vulkan import vk, helpers as hvk
 from . import Queue, ImageAndView
 from .memory_manager import MemoryManager
 from .render_target import RenderTarget
 from .renderer import Renderer
+from .compute_runner import ComputeRunner
 from .data_components import DataScene
+
 
 # Tells the engine to instantiate a Debugger object that will logs various vulkan information 
 DEBUG = __debug__
@@ -20,9 +22,25 @@ else:
     DebugUI = lambda app: None
 
 
+class QueueType(IntFlag):
+    All = vk.QUEUE_GRAPHICS_BIT | vk.QUEUE_COMPUTE_BIT | vk.QUEUE_TRANSFER_BIT
+    Graphics = vk.QUEUE_GRAPHICS_BIT 
+    Compute = vk.QUEUE_COMPUTE_BIT
+    Transfer = vk.QUEUE_TRANSFER_BIT
+
+
+QueueConf = namedtuple("QueueConf", ("name", "type", "required"))
+QueueConf.Default = QueueConf(name="render", type=QueueType.All, required=True)
+
+DEFAULT_ENGINE_CONFIGURATION = {
+    "QUEUES": (QueueConf.Default,)
+}
+
+
 class Engine(object):
 
-    def __init__(self):
+    def __init__(self, configuration=None):
+        self.configuration = configuration or DEFAULT_ENGINE_CONFIGURATION
         self.window = w = Window(width=800, height=600)
 
         self.running = False
@@ -30,7 +48,7 @@ class Engine(object):
 
         self.api = self.instance = self.device = self.physical_device = None
         self.debugger = self.debug_ui = self.surface = self.render_queue = None
-        self.swapchain = self.swapchain_images = None
+        self.queues = self.swapchain = self.swapchain_images = None
         self.command_pool = self.setup_command_buffer = self.setup_fence = None
         self.info = {}
 
@@ -49,6 +67,7 @@ class Engine(object):
         self.render_target = RenderTarget(self)
 
         self.renderer = Renderer(self)
+        self.compute_runner = ComputeRunner(self)
 
     def free(self):
         api, i, d = self.api, self.instance, self.device
@@ -61,6 +80,7 @@ class Engine(object):
         for scene in self.graph:
             scene.free()
 
+        self.compute_runner.free()
         self.renderer.free()
         self.render_target.free()
         self.memory_manager.free()
@@ -86,8 +106,9 @@ class Engine(object):
 
         scene_data = DataScene(self, scene)
         scene.id = len(self.graph)
-        scene.on_initialized()
         self.graph.append(scene_data)
+
+        scene.on_initialized()
 
     def activate(self, scene):
         assert scene.id is not None, "Scene was not loaded in engine"
@@ -143,6 +164,14 @@ class Engine(object):
         scene_data = self.graph[self.current_scene_index]
         self.renderer.render(scene_data)
 
+    def compute(self, scene, compute, group, sync=False, before=None, after=None, callback=None):
+        assert scene.id is not None, "Scene was not loaded in engine"
+        assert compute.id is not None, "Compute was not loaded in engine"
+
+        data_scene = self.graph[scene.id]
+        data_compute = data_scene.computes[compute.id]
+        self.compute_runner.run(data_scene, data_compute, group, sync=sync, before=before, after=after, callback=callback)
+
     def submit_setup_command(self, wait=False):
         api, device = self.api, self.device
         fence = 0
@@ -190,38 +219,91 @@ class Engine(object):
     
     def _setup_device(self):
         api, instance = self.api, self.instance
+        conf = self.configuration
+        queues_conf = conf.get("QUEUES", DEFAULT_ENGINE_CONFIGURATION["QUEUES"])
 
-        # Device selection (use the first available)
+        # Device selection
+        failure_reasons, all_good = [], False
         physical_devices = hvk.list_physical_devices(api, instance)
-        self.physical_device = physical_device = physical_devices[0]
-
-        # Get the features
-        supported_features = hvk.physical_device_features(api, physical_device)
-        if not "texture_compression_BC" in supported_features:
-            raise RuntimeError("BC compressed textures are not supported on your machine")
         
-        features = vk.PhysicalDeviceFeatures(texture_compression_BC = 1)
+        for index, physical_device in enumerate(physical_devices):
+            
+            # Features
+            supported_features = hvk.physical_device_features(api, physical_device)
+            if not "texture_compression_BC" in supported_features:
+                failure_reasons.append(f"BC compressed textures are not supported on your machine on device #{index}")
+                continue
 
-        # Queues setup (A single graphic queue)
-        queue_families = hvk.list_queue_families(api, physical_device)
+            # Queues
+            queue_families = hvk.list_queue_families(api, physical_device)
+            queue_create_infos = []
+            mapped_queue_configurations = {}
+            render_queue_data = None
+            bad_queues = False
 
-        render_queue_family = None
-        for qf in queue_families:
-            if qf.properties.queue_flags & vk.QUEUE_GRAPHICS_BIT != 0:
-                render_queue_family = qf
-        
-        render_queue_create_info = hvk.queue_create_info(
-            queue_family_index = render_queue_family.index,
-            queue_count = 1
-        )
+            for qconf in queues_conf:
+                queue_family = None
+
+                # Find a matching queue family
+                for qf in queue_families:
+                    if qconf.type in IntFlag(qf.properties.queue_flags):
+                        queue_family = qf
+                
+                # Go to the next device if a required queue configuration could not be found
+                if qconf.required and queue_family is None:
+                    bad_queues = True
+                    failure_reasons.append(f"No queue family matches the required configuration {qconf} on device #{index}")
+                    break
+
+                # Update the queue create info array
+                new_info = {"queue_family_index": queue_family.index, "queue_count": 0}
+                queue_create_info = next((qc for qc in queue_create_infos if qc["queue_family_index"] == queue_family.index), new_info)
+                queue_create_infos.append(queue_create_info)
+                queue_local_index = queue_create_info["queue_count"]
+                queue_create_info["queue_count"] += 1
+            
+                # Save the index of the required graphics queue that will be used by the renderer
+                if render_queue_data is None and QueueType.Graphics in qconf.type:
+                    render_queue_data = (queue_family, queue_local_index)
+
+                # Associate the queue configuration with the family and the local index for queue handle fetching
+                mapped_queue_configurations[qconf] = (queue_family, queue_local_index)
+
+            if bad_queues:
+                continue
+
+            all_good = True
+            break
+
+        if not all_good:
+            raise RuntimeError(failure_reasons)
+
+        if render_queue_data is None:
+            raise RuntimeError("No graphics queue was specified in the engine queues configuration. Protip: use \"QueueConf.Default\" ")
 
         # Device creation
+        queue_create_infos = [hvk.queue_create_info(**args) for args in queue_create_infos]
         extensions = ("VK_KHR_swapchain",)
-        self.device = device = hvk.create_device(api, physical_device, extensions, (render_queue_create_info,), features)
+        features = vk.PhysicalDeviceFeatures(texture_compression_BC = 1)
+        device = hvk.create_device(api, physical_device, extensions, queue_create_infos, features)
 
-        # Queue setup
-        render_queue_handle = hvk.get_queue(api, device, render_queue_family.index, 0)
-        self.render_queue = Queue(render_queue_handle, render_queue_family)
+        # Fetching queues
+        # First, fetch the render queue
+        render_queue_family, render_family_local_index = render_queue_data
+        render_queue_handle = hvk.get_queue(api, device, render_queue_family.index, render_family_local_index)
+        render_queue = Queue(render_queue_handle, render_queue_family)
+
+        # Second, fetch all the queues (yes, the render queue is fetched twice)
+        queues = {}
+        for queue_conf, queue_data in mapped_queue_configurations.items():
+            queue_family, local_index = queue_data
+            queue_handle = hvk.get_queue(api, device, queue_family.index, local_index)
+            queues[queue_conf.name] = Queue(queue_handle, queue_family)
+
+        self.physical_device = physical_device
+        self.device = device
+        self.render_queue = render_queue
+        self.queues = queues
 
     def _setup_device_info(self):
         api, physical_device = self.api, self.physical_device
@@ -255,7 +337,7 @@ class Engine(object):
 
         # Swapchain Format
         format_values = tuple(vkf.format for vkf in formats)
-        required_formats = [vk.FORMAT_B8G8R8A8_SRGB, vk.FORMAT_B8G8R8A8_UNORM]
+        required_formats = [vk.FORMAT_B8G8R8A8_UNORM, vk.FORMAT_B8G8R8A8_SRGB]
         for i, required_format in enumerate(required_formats):
             if required_format in format_values:
                 required_formats[i] = format_values.index(required_format)

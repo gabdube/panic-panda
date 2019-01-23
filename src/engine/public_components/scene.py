@@ -1,4 +1,4 @@
-from . import Shader, Mesh, GameObject, Image, Sampler
+from . import Shader, Mesh, GameObject, Image, Sampler, Compute
 from ..base_types import Id
 
 
@@ -7,6 +7,7 @@ class Scene(object):
     def __init__(self):
         self._id = Id()
         self.shaders = ComponentArray(Shader)
+        self.computes = ComponentArray(Compute)
         self.meshes = ComponentArray(Mesh)
         self.objects = ComponentArray(GameObject)
         self.samplers = ComponentArray(Sampler)
@@ -45,7 +46,7 @@ class Scene(object):
         self.update_obj_set.update(set(obj for obj in objects if isinstance(obj, GameObject)))
 
     def update_shaders(self, *shaders):
-        self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, Shader)))
+        self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, (Shader, Compute))))
 
 
 class ComponentArray(list):

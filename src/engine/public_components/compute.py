@@ -4,46 +4,32 @@ from ..base_types import name_generator, UniformsMaps, Id
 
 
 SHADER_ASSET_PATH = Path("./assets/shaders/")
-shader_name = name_generator("Shader")
+compute_name = name_generator("Compute")
 
+class Compute(object):
 
-class Shader(object):
-
-    def __init__(self, vert, frag, mapping, **kwargs):
+    def __init__(self, src, mapping, **kwargs):
         self._id = Id()
-        self.name = kwargs.get('name', next(shader_name))
-        self.vert = vert
-        self.frag = frag
+        self.name = kwargs.get('name', next(compute_name))
+        self.src = src
         self.mapping = mapping
-
         self.uniforms = UniformsMaps()
+        self.queue = kwargs.get('queue')
 
     @classmethod
-    def from_files(cls, vert, frag, mapping, **kwargs):
+    def from_file(cls, src, mapping, **kwargs):
         shader = super().__new__(cls)
+        src_spv = mapping_json = None
 
-        vert_spv = frag_spv = mapping_json = None
-
-        with open(SHADER_ASSET_PATH / vert, 'rb') as f:
-            vert_spv = f.read()
-
-        with open(SHADER_ASSET_PATH / frag, 'rb') as f:
-            frag_spv = f.read()
+        with open(SHADER_ASSET_PATH / src, 'rb') as f:
+            src_spv = f.read()
 
         with open(SHADER_ASSET_PATH / mapping, 'r') as f:
             mapping_json = json.load(f)
 
-        shader.__init__(vert_spv, frag_spv, mapping_json, **kwargs)
+        shader.__init__(src_spv, mapping_json, **kwargs)
 
         return shader
-
-    @property
-    def id(self):
-        return self._id
-
-    @id.setter
-    def id(self, value):
-        self._id.value = value
 
     def set_constant(self, name, value):
         constants = self.mapping["constants"]

@@ -1,5 +1,7 @@
 from .shader import *
+from .compute import *
 from .typed_array import *
+from .device_commands import *
 from .mesh import *
 from .sampler import *
 from .image import *

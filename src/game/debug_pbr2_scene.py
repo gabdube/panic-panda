@@ -141,8 +141,8 @@ class DebugPBRScene(object):
         
         color_factor = 1.0
         emissive_factor = 1.0
-        exposure = 2.2
-        gamma = 1.3
+        exposure = 1.5
+        gamma = 2.2
 
         shader.uniforms.render = {
             "light_color": (1.0, 1.0, 1.0),
