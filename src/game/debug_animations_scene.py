@@ -3,7 +3,7 @@ from system import events as evt
 from .components import Camera, LookAtView
 
 
-class MainScene(object):
+class DebugAnimationsScene(object):
 
     def __init__(self, app, engine):
         self.app = app
