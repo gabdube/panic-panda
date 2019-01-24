@@ -57,6 +57,7 @@ shaders = (
     (SHADERS_PATH/"debug_normals", "debug_normals"),
     (SHADERS_PATH/"debug_normals2", "debug_normals2"),
     (SHADERS_PATH/"pbr2", "pbr2"),
+    (SHADERS_PATH/"pbr", "pbr"),
     (SHADERS_PATH/"compute_heightmap", "compute_heightmap"),
 )
 
