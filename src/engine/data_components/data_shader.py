@@ -1,5 +1,5 @@
 from vulkan import vk, helpers as hvk
-from .shared import ShaderScope, setup_descriptor_layouts
+from .shared import ShaderScope, setup_descriptor_layouts, setup_specialization_constants
 
 
 class DataShader(object):

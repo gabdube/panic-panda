@@ -71,6 +71,7 @@ images = (
     (IMAGES_PATH/"dev/storm/out/irr_faces", "irr_*.png"),
     (IMAGES_PATH/"dev/storm/out/spec/faces", "specular_*.png"),
     (MODELS_PATH/"dev/damaged_helmet", "damaged_helmet_*.jpg", "--miplevels", "100"),
+    (MODELS_PATH/"dev/little-bot-bunny", "bunny_*.jpg", "--miplevels", "100"),
 )
 
 
@@ -80,6 +81,7 @@ images_merge_copy = (
     ("COPY", IMAGES_PATH/"dev/storm/specular_cubemap_ue4_256_rgbm.bin", IMAGES_PATH/"storm/specular_cubemap_256_rgbm.bin"),
     ("MERGE_ARRAY", IMAGES_PATH/"dev/array_test/*", IMAGES_PATH/"array_test.ktx"),
     ("MERGE_ARRAY", MODELS_PATH/"dev/damaged_helmet/damaged_helmet_*", IMAGES_PATH/"damaged_helmet.ktx"),
+    ("MERGE_ARRAY", MODELS_PATH/"dev/little-bot-bunny/bunny_*", IMAGES_PATH/"bunny.ktx"),
     ("MERGE_CUBE", IMAGES_PATH/"dev/storm/out/irr_*", IMAGES_PATH/"storm/irr_cubemap.ktx"),
     ("MERGE_CUBE_MIPS", IMAGES_PATH/"dev/storm/out/spec/faces/specular_*", IMAGES_PATH/"storm/specular_cubemap.ktx"),
 )
@@ -91,6 +93,7 @@ clean = (
     (IMAGES_PATH/"dev/storm/out/spec/faces", "*.png"),
     (IMAGES_PATH/"dev/storm/out/irr_faces", "*.png"),
     (MODELS_PATH/"dev/damaged_helmet/", "*.ktx"),
+    (MODELS_PATH/"dev/little-bot-bunny/", "*.ktx"),
 )
 
 
@@ -154,11 +157,11 @@ for action, target, output in images_merge_copy:
         else:
             shutil.copy(target, output)
     elif action == "MERGE_ARRAY":
-        p = process("python", KTX_MERGE_PATH,  "--array", "--auto", "--output", str(output), "--input", repr(str(target)))
+        p = process("python", KTX_MERGE_PATH,  "--array", "--auto", "--output", repr(str(output)), "--input", repr(str(target)))
     elif action == "MERGE_CUBE":
-        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--output", str(output), "--input", repr(str(target)))
+        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--output", repr(str(output)), "--input", repr(str(target)))
     elif action == "MERGE_CUBE_MIPS":
-        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--mipmaps", "--output", str(output), "--input", repr(str(target)))
+        p = process("python", KTX_MERGE_PATH,  "--cube", "--auto", "--mipmaps", "--output", repr(str(output)), "--input", repr(str(target)))
 
     if p is not None:
         merge_outputs[f"[{action} {target}]"] = p 

@@ -35,17 +35,18 @@ const float M_PI = 3.141592653589793;
 layout(constant_id = 1) const bool USE_DIFFUSE = true;
 layout(constant_id = 2) const int DIFFUSE_INDEX = 0;
 
-layout(constant_id = 3) const bool USE_METALLIC_ROUGHNESS = true;
-layout(constant_id = 4) const int METALLIC_ROUGHNESS_INDEX = 1;
+layout(constant_id = 3) const bool USE_METALLIC_ROUGHNESS = false;
+layout(constant_id = 4) const bool USE_AO = false;
+layout(constant_id = 5) const int AO_METALLIC_ROUGHNESS_INDEX = 1;
 
-layout(constant_id = 5) const bool USE_NORMALS = true;
-layout(constant_id = 6) const int NORMALS_INDEX = 2;
+layout(constant_id = 6) const bool USE_NORMALS = true;
+layout(constant_id = 7) const int NORMALS_INDEX = 2;
 
-layout(constant_id = 7) const bool USE_AO = true;
-layout(constant_id = 8) const int AO_INDEX = 3;
+layout(constant_id = 8) const bool USE_EMISSIVE = true;
+layout(constant_id = 9) const int EMISSIVE_INDEX = 4;
 
-layout(constant_id = 9) const bool USE_EMISSIVE = true;
-layout(constant_id = 10) const int EMISSIVE_INDEX = 4;
+layout(constant_id = 10) const bool USE_IBL = false;
+layout(constant_id = 11) const bool DEBUG = false;
 
 struct PBRInfo
 {
@@ -86,23 +87,38 @@ vec4 tonemap(vec4 color)
 }
 
 vec4 getBaseColor() {
-    vec4 color = texture(maps, vec3(inUv, DIFFUSE_INDEX)) * render.factors[0];
+    vec4 color;
+    if (USE_DIFFUSE) {
+        color = texture(maps, vec3(inUv, DIFFUSE_INDEX)) * render.factors[0];
+    } else {
+        color = mat.color;
+    }
+    
     return color;
 }
 
 vec3 getMetallicRoughness() {
-    vec4 mrSample = texture(maps, vec3(inUv, METALLIC_ROUGHNESS_INDEX));
     float perceptualRoughness, alphaRoughness, metallic;
 
-    perceptualRoughness = clamp(mrSample.g, 0.04, 1.0);
+    if (USE_METALLIC_ROUGHNESS) {
+        vec4 mrSample = texture(maps, vec3(inUv, AO_METALLIC_ROUGHNESS_INDEX));
+        perceptualRoughness = mrSample.g;
+        metallic = mrSample.b;
+    } else {
+        vec2 mrSample = mat.metallicRoughness;
+        perceptualRoughness = mrSample.g;
+        metallic = mrSample.r;
+    }
+
+    perceptualRoughness = clamp(perceptualRoughness, 0.04, 1.0);
+    metallic = clamp(metallic, 0.0, 1.0);
     alphaRoughness = perceptualRoughness * perceptualRoughness;
-    metallic = clamp(mrSample.b, 0.0, 1.0);
     
     return vec3(perceptualRoughness, alphaRoughness, metallic);
 }
 
 vec3 getNormals() {
-    vec3 tangentNormal = texture(maps, vec3(inUv, NORMALS_INDEX) ).xyz * 2.0 - 1.0;
+    vec3 n;
 
 	vec3 q1 = dFdx(inPos);
 	vec3 q2 = dFdy(inPos);
@@ -114,7 +130,14 @@ vec3 getNormals() {
 	vec3 B = -normalize(cross(N, T));
 	mat3 TBN = mat3(T, B, N);
 
-	return normalize(TBN * tangentNormal);
+    if (USE_NORMALS) {
+        vec3 tangentNormal = texture(maps, vec3(inUv, NORMALS_INDEX) ).xyz * 2.0 - 1.0;
+        n = normalize(TBN * tangentNormal);
+    } else {
+        n = normalize(TBN[2].xyz);
+    }
+
+	return n;
 }
 
 vec3 specularReflection(PBRInfo pbrInputs)
@@ -215,40 +238,52 @@ void main()
     vec3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
     vec3 color = NdotL * render.lightColor.rgb * (diffuseContrib + specContrib);
 
-    vec3 colorFinal = color + getIBLContribution(pbrInputs, n, reflection);
+    vec3 colorFinal = color;
+    
+    if (USE_IBL) {
+        colorFinal += getIBLContribution(pbrInputs, n, reflection);
+    }
 
-    float ao = texture(maps, vec3(inUv, AO_INDEX)).r;
-    const float occlusion_strength = 1.0;
-    colorFinal = mix(colorFinal, colorFinal * ao, occlusion_strength);
-
-    vec3 emissive = texture(maps, vec3(inUv, EMISSIVE_INDEX)).rgb * render.factors[1];
-    colorFinal += emissive;
-
-    int debug = render.debug;
+    if (USE_AO) {
+        float ao = texture(maps, vec3(inUv, AO_METALLIC_ROUGHNESS_INDEX)).r;
+        const float occlusion_strength = 1.0;
+        colorFinal = mix(colorFinal, colorFinal * ao, occlusion_strength);
+    }
+    
+    if (USE_EMISSIVE) {
+        vec3 emissive = texture(maps, vec3(inUv, EMISSIVE_INDEX)).rgb * render.factors[1];
+        colorFinal += emissive;
+    }
+    
     vec4 outColor;
 
-    if (debug == 0)
+    if (DEBUG) {
+        int debug = render.debug;
+        if (debug == 0)
+            outColor = vec4(pow(colorFinal,vec3(1.0/2.2)), baseColor.a);
+        else if (debug == 1)
+            outColor = baseColor;
+        else if (debug == 2)
+            outColor = vec4(diffuseColor, 1.0);
+        else if (debug == 3)
+            outColor = vec4(specularColor, 1.0);
+        else if (debug == 4) 
+            outColor = vec4(perceptualRoughness, perceptualRoughness, perceptualRoughness, 1.0);
+        else if (debug == 5) 
+            outColor = vec4(metallic, metallic, metallic, 1.0);
+        else if (debug == 6)
+            outColor = vec4(n, 1.0);
+        else if (debug == 7)
+            outColor = vec4(F, 1.0);
+        else if (debug == 8)
+            outColor = vec4(G, G, G, 1.0);
+        else if (debug == 9)
+            outColor = vec4(D, D, D, 1.0);
+        else if (debug == 10)
+            outColor = vec4(color, 1.0);
+    } else {
         outColor = vec4(pow(colorFinal,vec3(1.0/2.2)), baseColor.a);
-    else if (debug == 1)
-        outColor = baseColor;
-    else if (debug == 2)
-        outColor = vec4(diffuseColor, 1.0);
-    else if (debug == 3)
-        outColor = vec4(specularColor, 1.0);
-    else if (debug == 4) 
-        outColor = vec4(perceptualRoughness, perceptualRoughness, perceptualRoughness, 1.0);
-    else if (debug == 5) 
-        outColor = vec4(metallic, metallic, metallic, 1.0);
-    else if (debug == 6)
-        outColor = vec4(n, 1.0);
-    else if (debug == 7)
-        outColor = vec4(F, 1.0);
-    else if (debug == 8)
-        outColor = vec4(G, G, G, 1.0);
-    else if (debug == 9)
-        outColor = vec4(D, D, D, 1.0);
-    else if (debug == 10)
-        outColor = vec4(color, 1.0);
-
+    }
+   
     outFragColor = outColor;
 }

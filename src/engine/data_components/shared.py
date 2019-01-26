@@ -37,6 +37,7 @@ class UniformMemberType(Enum):
 
     FLOAT = 12
     INT = 13
+    BOOL = 14
 
 
 class ShaderScope(Enum):
@@ -207,7 +208,7 @@ def uniform_member_as_ctype(value, count1):
 
     if value in (mt.FLOAT_MAT2, mt.FLOAT_MAT3, mt.FLOAT_MAT4, mt.FLOAT_VEC4, mt.FLOAT_VEC2, mt.FLOAT_VEC3, mt.FLOAT):
         t = c_float
-    elif value in (mt.INT_MAT2, mt.INT_MAT3, mt.INT_MAT4, mt.INT_VEC4, mt.INT_VEC2, mt.INT_VEC3, mt.INT):
+    elif value in (mt.INT_MAT2, mt.INT_MAT3, mt.INT_MAT4, mt.INT_VEC4, mt.INT_VEC2, mt.INT_VEC3, mt.INT, mt.BOOL):
         t = c_int32
     else:
         raise ValueError("Invalid uniform member type")
@@ -217,7 +218,7 @@ def uniform_member_as_ctype(value, count1):
     elif value in (mt.FLOAT_MAT4, mt.INT_MAT4): count2 = 16
     elif value in (mt.FLOAT_VEC2, mt.INT_VEC2): count2 = 2
     elif value in (mt.FLOAT_VEC3, mt.INT_VEC3): count2 = 3
-    elif value in (mt.FLOAT, mt.INT): count2 = 1
+    elif value in (mt.FLOAT, mt.INT, mt.BOOL): count2 = 1
     else:
         raise ValueError("Invalid uniform member type")
     

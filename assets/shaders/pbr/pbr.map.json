@@ -9,7 +9,8 @@
             {"name": "light_color", "type": 5, "count": 1},
             {"name": "camera", "type": 5, "count": 1},
             {"name": "env_lod", "type": 5, "count": 1},
-            {"name": "factors", "type": 5, "count": 1}
+            {"name": "factors", "type": 5, "count": 1},
+            {"name": "debug", "type": 13, "count": 1}
         ]},
         {"name": "brdf", "set": 0, "binding": 1, "count": 1, "stage": 16, "type": 1},
         {"name": "env_specular", "set": 0, "binding": 2, "count": 1, "stage": 16, "type": 1},
@@ -24,6 +25,24 @@
             {"name": "color", "type": 5, "count": 1},
             {"name": "metallic_roughness", "type": 3, "count": 1}
         ]}
+    ],
+    "constants": [
+        {"name": "use_diffuse", "id": 1, "stage": 16, "type": 14, "default_value": 1},
+        {"name": "diffuse_index", "id": 2, "stage": 16, "type": 13, "default_value": 0},
+
+        {"name": "use_metallic_roughness", "id": 3, "stage": 16, "type": 14, "default_value": 0},
+        {"name": "use_ao", "id": 4, "stage": 16, "type": 14, "default_value": 0},
+        {"name": "ao_metallic_roughness_index", "id": 5, "stage": 16, "type": 13, "default_value": 1},
+
+        {"name": "use_normals", "id": 6, "stage": 16, "type": 14, "default_value": 0},
+        {"name": "normals_index", "id": 7, "stage": 16, "type": 13, "default_value": 2},
+
+        {"name": "use_emissive", "id": 8, "stage": 16, "type": 14, "default_value": 0},
+        {"name": "emissive_index", "id": 9, "stage": 16, "type": 13, "default_value": 3},
+
+        {"name": "use_ibl", "id": 10, "stage": 16, "type": 14, "default_value": 0},
+
+        {"name": "debug", "id": 11, "stage": 16, "type": 14, "default_value": 0}
     ],
     "bindings": [
         {"id": 0, "stride": 12},
