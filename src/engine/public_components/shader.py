@@ -15,6 +15,9 @@ class Shader(object):
         self.vert = vert
         self.frag = frag
         self.mapping = mapping
+        
+        # Attributes names listed in here will be ignored by the data shader
+        self.disabled_attributes = set()
 
         self.uniforms = UniformsMaps()
 
@@ -44,6 +47,13 @@ class Shader(object):
     @id.setter
     def id(self, value):
         self._id.value = value
+
+    def toggle_attribute(self, name, value):
+        attr = self.disabled_attributes
+        if not value and name in attr:
+            attr.remove(name)
+        else:
+            attr.add(name)
 
     def set_constant(self, name, value):
         constants = self.mapping["constants"]

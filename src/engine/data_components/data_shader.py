@@ -82,18 +82,22 @@ class DataShader(object):
         self.stage_infos = stage_infos
 
     def _setup_vertex_state(self):
-        mapping = self.shader.mapping
+        shader = self.shader
+        mapping = shader.mapping
         bindings = []
         attributes = []
         attribute_names = []
-        
-        for binding in mapping["bindings"]:
+
+        filtered_attributes = [attr for attr in mapping["attributes"] if attr["name"] not in shader.disabled_attributes]
+        filtered_bindings = [b for b in mapping["bindings"] if b["id"] in (attr["binding"] for attr in filtered_attributes)]
+
+        for binding in filtered_bindings:
             bindings.append(hvk.vertex_input_binding_description(
                 binding = binding["id"],
                 stride = binding["stride"]
             ))
 
-        for attr in mapping["attributes"]:
+        for attr in filtered_attributes:
             attributes.append(hvk.vertex_input_attribute_description(
                 location = attr["location"],
                 binding = attr["binding"],
@@ -101,7 +105,7 @@ class DataShader(object):
                 offset = attr.get("offset", 0)
             ))
 
-        self.ordered_attribute_names = tuple(a["name"] for a in sorted(mapping["attributes"], key = lambda i: i["binding"]))
+        self.ordered_attribute_names = tuple(a["name"] for a in sorted(filtered_attributes, key = lambda i: i["binding"]))
 
         self.vertex_input_state = hvk.pipeline_vertex_input_state_create_info(
             vertex_binding_descriptions = bindings,

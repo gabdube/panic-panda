@@ -22,7 +22,7 @@ class DebugAnimationsScene(object):
         # Camera
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(45, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0.25,-1.2], bounds_zoom=(-3.0, -0.2), mod_translate=0.0015)
+        self.camera_view = LookAtView(cam, position = [0,0.25,-3.2], bounds_zoom=(-5.0, -1.2), mod_translate=0.0015)
 
         # Assets
         self._setup_assets()
@@ -40,17 +40,17 @@ class DebugAnimationsScene(object):
 
     def update_light(self):
         light = self.light
-        shader = self.shaders[0]
-        render = shader.uniforms.render
+        for shader in self.shaders:
+            render = shader.uniforms.render
 
-        rot, pitch = radians(light["rot"]), radians(light["pitch"])
-        render.light_direction[:3] = (
-            sin(rot) * cos(pitch),
-            sin(pitch),
-            cos(rot) * cos(pitch)
-        )
+            rot, pitch = radians(light["rot"]), radians(light["pitch"])
+            render.light_direction[:3] = (
+                sin(rot) * cos(pitch),
+                sin(pitch),
+                cos(rot) * cos(pitch)
+            )
 
-        self.scene.update_shaders(shader)
+        self.scene.update_shaders(*self.shaders)
 
     def update_view(self):
         for shader in self.shaders:
@@ -141,7 +141,10 @@ class DebugAnimationsScene(object):
                 "brdf": CombinedImageSampler(image_id=brdf_i.id, view_name="default", sampler_id=brdf_sm.id),
                 "env_specular": CombinedImageSampler(image_id=env_i.id, view_name="default", sampler_id=env_sm.id),
                 "env_irradiance": CombinedImageSampler(image_id=env_irr_i.id, view_name="default", sampler_id=brdf_sm.id)
-            }
+            },
+            attr_filter = [
+                "uv"
+            ]
         )
         
         # Objects
@@ -155,10 +158,14 @@ class DebugAnimationsScene(object):
 
         self.shaders = (bunny_pbr_s, box_pbr_s)
 
-    def _setup_pbr(self, constants, uniforms, shader_name):
+    def _setup_pbr(self, constants, uniforms, shader_name, attr_filter=()):
         name = "pbr/pbr"
         pbr_map = {"POSITION": "pos", "NORMAL": "normal", "TEXCOORD_0": "uv"}
         pbr_s = Shader.from_files(f"{name}.vert.spv", f"{name}.frag.spv", f"{name}.map.json", name=shader_name)
+
+        # Remove certain attributes that won't be used by the linked meshes
+        for attr in attr_filter:
+            pbr_s.toggle_attribute(attr, False)
 
         render = {
             "light_color": (1.0, 1.0, 1.0),
@@ -220,7 +227,7 @@ class DebugAnimationsScene(object):
             name="PlaceholderImage",
             extent=(1,1,1),
             format=vk.FORMAT_R8G8B8A8_SNORM,
-            default_view_type=vk.IMAGE_VIEW_TYPE_2D
+            default_view_type=vk.IMAGE_VIEW_TYPE_2D_ARRAY
         )
 
         # Samplers
@@ -234,12 +241,12 @@ class DebugAnimationsScene(object):
         inner_o = GameObject.from_components(shader=shader.id, mesh=inner_m.id, name="InnerBox")
         inner_o.model = Mat4()
         inner_o.uniforms.texture_maps = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=sm.id)
-        inner_o.uniforms.base_material = {"color": (1.0, 1.0, 1.0, 1.0),  "metallic_roughness": (0.0, 0.0)}
+        inner_o.uniforms.base_material = {"color": (1.0, 1.0, 1.0, 1.0),  "metallic_roughness": (0.0, 1.0)}
 
         outer_o = GameObject.from_components(shader=shader.id, mesh=outer_m.id, name="OuterBox")
         outer_o.model = Mat4()
         outer_o.uniforms.texture_maps = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=sm.id)
-        outer_o.uniforms.base_material = {"color": (1.0, 0.0, 0.0, 1.0),  "metallic_roughness": (0.0, 0.0)}
+        outer_o.uniforms.base_material = {"color": (1.0, 0.0, 0.0, 1.0),  "metallic_roughness": (0.0, 1.0)}
 
         scene.images.extend(placeholder_i)
         scene.samplers.extend(sm)

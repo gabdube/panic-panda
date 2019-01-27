@@ -518,16 +518,12 @@ class DataScene(object):
             dynamic_states = (vk.DYNAMIC_STATE_VIEWPORT, vk.DYNAMIC_STATE_SCISSOR)
         )
 
+        # Create the pipeline from the scene shaders
         pipeline_infos = []
-        for shader_index, objects in self._group_objects_by_shaders():
-            shader = shaders[shader_index]
-
-            for obj in objects:
-                obj.pipeline = shader_index
-  
+        for data_shader in shaders:
             info = hvk.graphics_pipeline_create_info(
-                stages = shader.stage_infos,
-                vertex_input_state = shader.vertex_input_state,
+                stages = data_shader.stage_infos,
+                vertex_input_state = data_shader.vertex_input_state,
                 input_assembly_state = assembly,
                 viewport_state = viewport,
                 rasterization_state = raster,
@@ -535,11 +531,16 @@ class DataScene(object):
                 depth_stencil_state = depth_stencil,
                 color_blend_state = color_blend,
                 dynamic_state = dynamic_state,
-                layout = shader.pipeline_layout,
+                layout = data_shader.pipeline_layout,
                 render_pass = rt.render_pass
             )
 
             pipeline_infos.append(info)
+            
+        # Associate the pipelines with the objets
+        for shader_index, objects in self._group_objects_by_shaders():
+            for obj in objects:
+                obj.pipeline = shader_index
 
         self.pipeline_cache = hvk.create_pipeline_cache(api, device, hvk.pipeline_cache_create_info())
 
