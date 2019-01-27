@@ -264,7 +264,14 @@ class DataScene(object):
         for image in images:
             data_image = DataImage(engine, image, staging_image_offset)
             data_images.append(data_image)
-            staging_image_offset += image.size()
+
+            # Make sure that the image aligment is 16 bits or else the uploading of certain type of compressed image will fail
+            # This could be impoved by checking the image format aligment requirement instead
+            img_size = image.size()
+            if img_size % 16 != 0:
+                staging_image_offset += (img_size + 16) & ~15
+            else:
+                staging_image_offset += img_size
 
         if len(meshes) == 0 and len(images) == 0:
             staging_alloc = staging_buffer = meshes_alloc = meshes_buffer = images_alloc = None
@@ -398,6 +405,11 @@ class DataScene(object):
             regions = []
 
             for m in image.iter_mipmaps():
+                if (data_image.base_staging_offset + m.offset) % 16 != 0:
+                    msg1 = f"Buffer offet aligment, when copying image data, must by 16. Got {(data_image.base_staging_offset + m.offset)}"
+                    msg2 = msg1 + f", reminder {(data_image.base_staging_offset + m.offset) % 16}"
+                    raise ValueError(msg2)
+
                 r = hvk.buffer_image_copy(
                     image_subresource = hvk.image_subresource_layers( mip_level = m.level, base_array_layer = m.layer ),
                     image_extent = vk.Extent3D(m.width, m.height, 1),

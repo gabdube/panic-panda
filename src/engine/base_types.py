@@ -22,6 +22,9 @@ class Id(object):
     
     def __int__(self):
         return self.value
+
+    def __repr__(self):
+        return f"ID({self.value})"
         
 
 class UniformsMaps(object):

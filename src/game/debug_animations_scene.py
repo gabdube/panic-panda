@@ -114,6 +114,7 @@ class DebugAnimationsScene(object):
 
         # Shaders
         bunny_pbr_s = self._setup_pbr(
+            shader_name = "BunnyShaderPBR",
             constants = {
                 "use_diffuse": True,
                 "diffuse_index": 0,
@@ -129,6 +130,7 @@ class DebugAnimationsScene(object):
         )
 
         box_pbr_s = self._setup_pbr(
+            shader_name = "BoxShaderPBR",
             constants = {
                 "use_diffuse": False,
                 "use_ibl": True,
@@ -153,10 +155,10 @@ class DebugAnimationsScene(object):
 
         self.shaders = (bunny_pbr_s, box_pbr_s)
 
-    def _setup_pbr(self, constants, uniforms):
+    def _setup_pbr(self, constants, uniforms, shader_name):
         name = "pbr/pbr"
         pbr_map = {"POSITION": "pos", "NORMAL": "normal", "TEXCOORD_0": "uv"}
-        pbr_s = Shader.from_files(f"{name}.vert.spv", f"{name}.frag.spv", f"{name}.map.json", name="PBRShader")
+        pbr_s = Shader.from_files(f"{name}.vert.spv", f"{name}.frag.spv", f"{name}.map.json", name=shader_name)
 
         render = {
             "light_color": (1.0, 1.0, 1.0),
@@ -178,6 +180,8 @@ class DebugAnimationsScene(object):
         for constant_name, constant_value in constants.items():
             pbr_s.set_constant(constant_name, constant_value)
         
+        pbr_s.attributes_map = pbr_map
+
         return pbr_s
 
     def _load_bunny_mesh(self, scene, shader):
@@ -209,7 +213,40 @@ class DebugAnimationsScene(object):
         self.objects.append(bunny_o)
 
     def _load_box_animated(self, scene, shader):
-        pass
+        animated_f = GLBFile.open("BoxAnimated.glb")
+
+        # Images
+        placeholder_i = Image.empty(
+            name="PlaceholderImage",
+            extent=(1,1,1),
+            format=vk.FORMAT_R8G8B8A8_SNORM,
+            default_view_type=vk.IMAGE_VIEW_TYPE_2D
+        )
+
+        # Samplers
+        sm = Sampler.new()
+
+        # Meshes
+        inner_m = Mesh.from_gltf(animated_f, "inner_box", attributes_map=shader.attributes_map, name="InnerBox")
+        outer_m = Mesh.from_gltf(animated_f, "outer_box", attributes_map=shader.attributes_map, name="OuterBox")
+
+        # Objects
+        inner_o = GameObject.from_components(shader=shader.id, mesh=inner_m.id, name="InnerBox")
+        inner_o.model = Mat4()
+        inner_o.uniforms.texture_maps = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=sm.id)
+        inner_o.uniforms.base_material = {"color": (1.0, 1.0, 1.0, 1.0),  "metallic_roughness": (0.0, 0.0)}
+
+        outer_o = GameObject.from_components(shader=shader.id, mesh=outer_m.id, name="OuterBox")
+        outer_o.model = Mat4()
+        outer_o.uniforms.texture_maps = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=sm.id)
+        outer_o.uniforms.base_material = {"color": (1.0, 0.0, 0.0, 1.0),  "metallic_roughness": (0.0, 0.0)}
+
+        scene.images.extend(placeholder_i)
+        scene.samplers.extend(sm)
+        scene.meshes.extend(inner_m, outer_m)
+        scene.objects.extend(inner_o, outer_o)
+
+        self.objects.extend((inner_o, outer_o))
 
     def _update_debug_flag(self, data):
         # Update debug flags
