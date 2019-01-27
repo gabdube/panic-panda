@@ -18,8 +18,8 @@ class GLBFile(object):
         self.buffer = memoryview(buffer)
 
     @staticmethod
-    def open(path):
-        with (MODEL_PATH / path).open('rb') as f:
+    def open(path, base_path=MODEL_PATH):
+        with (base_path / path).open('rb') as f:
             raw_data = f.read()
 
             file_header = bytes_to_cstruct(raw_data[0:12], FileHeader)
