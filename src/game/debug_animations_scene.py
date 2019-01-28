@@ -1,4 +1,4 @@
-from engine import Scene, Image, Sampler, Shader, CombinedImageSampler, Mesh, GameObject
+from engine import Scene, Image, Sampler, Shader, CombinedImageSampler, Mesh, GameObject, Animation
 from engine.assets import KTXFile, GLBFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
@@ -22,7 +22,7 @@ class DebugAnimationsScene(object):
         # Camera
         width, height = engine.window.dimensions()
         self.camera = cam = Camera(45, width, height)
-        self.camera_view = LookAtView(cam, position = [0,0.25,-3.2], bounds_zoom=(-5.0, -1.2), mod_translate=0.0015)
+        self.camera_view = LookAtView(cam, position = [0,0.25,-3.2], bounds_zoom=(-5.0, -1.2), mod_translate=0.0035)
 
         # Assets
         self._setup_assets()
@@ -80,6 +80,7 @@ class DebugAnimationsScene(object):
     def update_perspective(self, event, data):
         width, height = data
         self.camera.update_perspective(60, width, height)
+        self.update_objects()
 
     def handle_keypress(self, event, data):
         if data.key in evt.NumKeys:
@@ -237,6 +238,10 @@ class DebugAnimationsScene(object):
         inner_m = Mesh.from_gltf(animated_f, "inner_box", attributes_map=shader.attributes_map, name="InnerBox")
         outer_m = Mesh.from_gltf(animated_f, "outer_box", attributes_map=shader.attributes_map, name="OuterBox")
 
+        # Animations
+        rotate_inner_a = Animation.from_gltf(animated_f, 0)
+        translate_inner_a = Animation.from_gltf(animated_f, 1)
+
         # Objects
         inner_o = GameObject.from_components(shader=shader.id, mesh=inner_m.id, name="InnerBox")
         inner_o.model = Mat4()
@@ -248,6 +253,7 @@ class DebugAnimationsScene(object):
         outer_o.uniforms.texture_maps = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=sm.id)
         outer_o.uniforms.base_material = {"color": (1.0, 0.0, 0.0, 1.0),  "metallic_roughness": (0.0, 1.0)}
 
+        
         scene.images.extend(placeholder_i)
         scene.samplers.extend(sm)
         scene.meshes.extend(inner_m, outer_m)

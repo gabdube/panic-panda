@@ -66,4 +66,4 @@ class TypedArray(object):
         return arr
 
     def __repr__(self):
-        return f"TypedArray(fmt={self.fmt.__qualname__}, size={self.size_bytes}, size_bytes={self.size_bytes}, source={self.source})"
+        return f"TypedArray(fmt={self.fmt.__qualname__}, size={self.size}, size_bytes={self.size_bytes}, source={self.source})"

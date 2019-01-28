@@ -3,6 +3,7 @@ from .compute import *
 from .typed_array import *
 from .device_commands import *
 from .mesh import *
+from .animation import *
 from .sampler import *
 from .image import *
 from .game_object import *

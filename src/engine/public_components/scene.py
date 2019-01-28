@@ -1,4 +1,4 @@
-from . import Shader, Mesh, GameObject, Image, Sampler, Compute
+from . import Shader, Mesh, GameObject, Image, Sampler, Compute, Animation
 from ..base_types import Id
 
 
@@ -12,6 +12,7 @@ class Scene(object):
         self.objects = ComponentArray(GameObject)
         self.samplers = ComponentArray(Sampler)
         self.images = ComponentArray(Image)
+        self.animations = ComponentArray(Animation)
         self.update_obj_set = set()
         self.update_shader_set = set()
 
