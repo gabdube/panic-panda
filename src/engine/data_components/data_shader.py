@@ -52,6 +52,10 @@ class DataShader(object):
     def global_layouts(self):
         return (l for l in self.descriptor_set_layouts if l.scope is ShaderScope.GLOBAL)
 
+    @property
+    def animations_layout(self):
+        return next((l for l in self.descriptor_set_layouts if l.scope is ShaderScope.ENGINE_ANIMATION), None)
+
     def _compile_shader(self):
         engine, api, device = self.ctx
         shader = self.shader

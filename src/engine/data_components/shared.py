@@ -114,7 +114,7 @@ def setup_descriptor_layouts(shader, engine, api, device, mappings):
                 if padding > 0:
                     args.append(("PADDING", c_uint8*padding))
 
-                struct = type(uniform_name, (Structure,), {'_pack_': 16, '_fields_': args,  '__init__': init_fn, '__repr__': repr_fn})
+                struct = type(uniform_name, (Structure,), {'_pack_': uniform_buffer_align, '_fields_': args,  '__init__': init_fn, '__repr__': repr_fn})
                 struct_size = sizeof(struct)
                 structs[uniform_name] = struct
             elif dtype in (vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vk.DESCRIPTOR_TYPE_STORAGE_IMAGE):

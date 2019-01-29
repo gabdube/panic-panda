@@ -50,7 +50,8 @@ class Scene(object):
         self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, (Shader, Compute))))
 
     def update_animations(self, *animations):
-        raise NotImplementedError()
+        pass
+        #raise NotImplementedError()
 
 
 class ComponentArray(list):

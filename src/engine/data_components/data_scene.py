@@ -26,7 +26,6 @@ class DataScene(object):
         self.shaders = None
         self.computes = None
         self.objects = None
-        self.animations = None
 
         self.pipelines = None
         self.compute_pipelines = None
@@ -41,6 +40,9 @@ class DataScene(object):
         self.meshes_buffer = None
         self.meshes = None
 
+        self.animations = None
+        self.animations_buffers = None
+
         self.samplers = None
 
         self.images_alloc = None
@@ -52,6 +54,7 @@ class DataScene(object):
         self._setup_shaders()
         self._setup_objects()
         self._setup_uniforms()
+        self._setup_animation_uniforms()
         self._setup_pipelines()
         self._setup_compute_pipelines()
         self._setup_descriptor_sets_pool()
@@ -458,6 +461,7 @@ class DataScene(object):
             uniforms_members = [f for f in dir(uniforms) if f[0] != "_" and f not in filters_names]
             
             for layout in layouts:
+
                 # Image based uniforms are specified in `images`
                 for name in layout.images:
                     default = getattr(uniforms, name, None)
@@ -502,6 +506,23 @@ class DataScene(object):
                 map_layouts(obj, data_shader.local_layouts)
 
             obj.uniforms.bound = True
+
+    def _setup_animation_uniforms(self):
+        for data_shader in self.shaders:
+            shader = data_shader.shader
+
+            if shader.animation_flags == 0:
+                continue  # Shader do not support animations
+
+            animation_name = shader.animation_name
+            animation_layout = data_shader.animations_layout
+            animation_struct = animation_layout.struct_map[animation_name]
+            
+            if getattr(shader.uniforms, animation_name, None) is not None:
+                print(f"WARNING! Default values are associated with the animation uniform buffer of shader {shader.name}. These values will be ignored.")
+            
+            animation_value = animation_struct()
+
 
     def _setup_pipelines(self):
         engine, api, device = self.ctx
@@ -584,7 +605,7 @@ class DataScene(object):
         pool_sizes, max_sets = {}, 0
 
         # Scene global descriptor for animations
-        
+
 
         # Lookup for the shader global descriptors
         for data_shader in shaders:

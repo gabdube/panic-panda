@@ -20,7 +20,9 @@ class Shader(object):
         self.disabled_attributes = set()
 
         # Animation support by the shader
-        self.animation_flags = self._check_animation_support(mapping)
+        flags, name = self._check_animation_support(mapping)
+        self.animation_flags = flags
+        self.animation_name = name
 
         # Uniform collection for the shader. Can be preinitialized with user data before loading the shader in a scene
         # Afterwards, the object will contain device data. Uniform are prepared in `DataScene._setup_uniforms` 
@@ -84,4 +86,22 @@ class Shader(object):
         elif uniforms_count == 0:
             return AnimationSupport(0)
 
-        raise NotImplementedError()
+        anim = animation_uniforms[0]
+        if anim['count'] != 1:
+            raise ValueError(f"Animation uniform count must be 1, found {anim['count']}.")
+        elif anim['type'] != 6:
+            raise ValueError(f"Animation uniform must be a simple uniform buffer. Got {anim['type']}.")
+        
+        animation_struct_name = anim['name']
+
+        fields = anim['fields']
+        animation_fields = ('time',)
+
+        find_field = lambda name: next((f for f in fields if f['name'] == name), None)
+        
+        time = find_field('time')
+        if time is None:
+            return AnimationSupport(0)
+
+        support = AnimationSupport.Time
+        return support, animation_struct_name
