@@ -178,7 +178,7 @@ class DebugComputeScene(object):
         plane_m = Mesh.from_prefab(MeshPrefab.Plane, attributes_map=debug_texture_attributes_map, name="PlaneMesh")
         
         # Game objects
-        preview_heightmap_o = GameObject.from_components(shader = debug_texture_s.id, mesh = plane_m.id, name = "ObjTexture")
+        preview_heightmap_o = GameObject.new(shader = debug_texture_s.id, mesh = plane_m.id, name = "ObjTexture")
         preview_heightmap_o.model = Mat4()
         preview_heightmap_o.uniforms.color_texture = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=heightmap_sm.id)
 

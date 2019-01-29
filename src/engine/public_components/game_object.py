@@ -8,8 +8,8 @@ class GameObject(object):
     def __init__(self, **kwargs):
         self._id = Id()
         self.name = kwargs.get('name', next(obj_name))
-        self.shader = None
-        self.mesh = None
+        self.shader = kwargs.get('shader', False)
+        self.mesh = kwargs.get('mesh', False)
         self.uniforms = UniformsMaps()
         self.hidden = kwargs.get('hidden', False)
 
@@ -22,9 +22,7 @@ class GameObject(object):
         self._id.value = value
 
     @classmethod
-    def from_components(cls, shader, mesh, **kwargs):
+    def new(cls, **kwargs):
         obj = super().__new__(cls, **kwargs)
         obj.__init__(**kwargs)
-        obj.shader = shader
-        obj.mesh = mesh
         return obj

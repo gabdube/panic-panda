@@ -5,6 +5,11 @@ from enum import Enum
 anim_name = name_generator("Animation")
 
 
+class AnimationPlayback(Enum):
+    Once = 0
+    Loop = 1
+
+
 class Interpolation(Enum):
     Linear = 0
     Step = 1
@@ -32,7 +37,11 @@ class Animation(object):
 
     def __init__(self, **kwargs):
         self._id = Id()
+        self.bound = False
         self.name = kwargs.get('name', next(anim_name))
+        self.channel_samplers = []
+        self.animation_inputs = {}
+        self.animations_outputs = {}
 
     @classmethod
     def from_gltf(cls, gltf_file, index, **kwargs):
@@ -63,19 +72,23 @@ class Animation(object):
 
             channel_samplers.append(channel_sampler)
 
-        print("\n\n")
-
-        animation_data_accessors = {}
+        animations_inputs = {}
+        animations_outputs = {}
         for cs in channel_samplers:
-            input_data = gltf_file.accessor_data(cs["input"])
-            output_data = gltf_file.accessor_data(cs["output"])
+            _input, _output = cs["input"], cs["output"]
+            input_data = gltf_file.accessor_data(_input)
+            output_data = gltf_file.accessor_data(_output)
 
-            print(input_data)
-            print(output_data)
-            
-        print(channel_samplers)
-        print()
+            animations_inputs[_input] = input_data
+            animations_outputs[_output] = output_data
 
         anim = super().__new__(cls)
         anim.__init__(**kwargs)
+        anim.channel_samplers = channel_samplers
+        anim.animations_inputs = animations_outputs
+        anim.animations_outputs = animations_outputs
         return anim
+
+    def play(self, target, playback = AnimationPlayback.Once):
+        if not self.bound:
+            raise ValueError("Impossible to play an animation that is not yet fully loaded in the engine")

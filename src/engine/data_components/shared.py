@@ -41,8 +41,14 @@ class UniformMemberType(Enum):
 
 
 class ShaderScope(Enum):
+    # Allocate a descriptor set per shader
     GLOBAL = 0
+
+    # Allocate a descriptor set per object linked to a shader
     LOCAL = 1
+
+    # Allocate one descriptor set per scene. Descriptor will be used for animations purpose.
+    ENGINE_ANIMATION = 2
 
 
 def setup_descriptor_layouts(shader, engine, api, device, mappings):

@@ -49,6 +49,9 @@ class Scene(object):
     def update_shaders(self, *shaders):
         self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, (Shader, Compute))))
 
+    def update_animations(self, *animations):
+        raise NotImplementedError()
+
 
 class ComponentArray(list):
 

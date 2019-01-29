@@ -1,4 +1,6 @@
 from collections import namedtuple
+from enum import IntFlag
+
 
 Queue = namedtuple("Queue", ("handle", "family"))
 ImageAndView = namedtuple("ImageAndView", ("image", "view"))
@@ -80,3 +82,11 @@ class UniformsMaps(object):
             sup.__getattribute__("updated_member_names").add(name)
         
         sup.__setattr__(name, value)
+
+
+class AnimationSupport(IntFlag):
+    Time = 1
+    Translation = 2
+    Rotation = 3
+    Scale = 4
+    Weigth = 5

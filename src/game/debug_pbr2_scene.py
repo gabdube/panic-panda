@@ -163,7 +163,7 @@ class DebugPBRScene(object):
         helmet_m = Mesh.from_gltf(GLTFFile.open("DamagedHelmet.gltf"), "HelmetMesh", attributes_map=shader_map, name="HelmetMesh")
 
         # Objects
-        helmet = GameObject.from_components(shader = shader.id, mesh = helmet_m.id, name = "Helmet")
+        helmet = GameObject.new(shader = shader.id, mesh = helmet_m.id, name = "Helmet")
         helmet.model = Mat4().from_rotation(radians(90), (1, 0, 0))
         helmet.uniforms.texture_maps = CombinedImageSampler(image_id=helmet_i.id, view_name="default", sampler_id=helmet_s.id)
 

@@ -11,6 +11,10 @@ layout (location = 0) out vec3 outPos;
 layout (location = 1) out vec2 outUv;
 layout (location = 2) out vec3 outNormal;
 
+layout (set=2, binding=0) uniform Animation {
+    float run_time;
+};
+
 layout (set=1, binding=0) uniform View {
     mat4 mvp;
     mat4 model;

@@ -140,19 +140,19 @@ class DebugTexturesScene(object):
         sphere_m = Mesh.from_gltf(GLBFile.open("test_sphere.glb"), "Sphere.001", attributes_map=shader_attributes_map, name="SphereMesh")
 
         # Objects
-        plane1 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
+        plane1 = GameObject.new(shader = shader_simple.id, mesh = plane_m.id, name = "ObjTexture")
         plane1.model = Mat4()
         plane1.uniforms.color_texture = CombinedImageSampler(image_id=texture.id, view_name="default", sampler_id=sampler.id)
 
-        plane2 = GameObject.from_components(shader = shader_simple.id, mesh = plane_m2.id, name = "ObjRawTexture", hidden=True)
+        plane2 = GameObject.new(shader = shader_simple.id, mesh = plane_m2.id, name = "ObjRawTexture", hidden=True)
         plane2.model = Mat4()
         plane2.uniforms.color_texture = CombinedImageSampler(image_id=raw_texture.id, view_name="default", sampler_id=sampler.id)
 
-        plane3 = GameObject.from_components(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
+        plane3 = GameObject.new(shader = shader_array.id, mesh = plane_m.id, name = "ObjArrayTexture", hidden=True)
         plane3.model = Mat4()
         plane3.uniforms.color_texture = CombinedImageSampler(image_id=array_texture.id, view_name="default", sampler_id=sampler.id)
 
-        sphere = GameObject.from_components(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTexture", hidden=True)
+        sphere = GameObject.new(shader = shader_cube.id, mesh = sphere_m.id, name = "ObjCubeTexture", hidden=True)
         sphere.model = Mat4.from_rotation(radians(180), (1, 0, 0))
         sphere.uniforms.cube_texture = CombinedImageSampler(image_id=cubemap_texture.id, view_name="default", sampler_id=sampler_lod.id)
         

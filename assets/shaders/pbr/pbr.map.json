@@ -1,7 +1,8 @@
 {
     "sets": [
         {"id": 0, "scope": 0},
-        {"id": 1, "scope": 1}
+        {"id": 1, "scope": 1},
+        {"id": 2, "scope": 2}
     ],
     "uniforms": [
         {"name": "render", "set": 0, "binding": 0, "count": 1, "stage": 16, "type": 6, "fields": [
@@ -24,6 +25,9 @@
         {"name": "base_material", "set": 1, "binding": 2, "count": 1, "stage": 16, "type": 6, "fields": [
             {"name": "color", "type": 5, "count": 1},
             {"name": "metallic_roughness", "type": 3, "count": 1}
+        ]},
+        {"name": "animation", "set": 2, "binding": 0, "count": 1, "stage": 1, "type": 6, "fields": [
+            {"name": "time", "type": 12, "count": 1}
         ]}
     ],
     "constants": [

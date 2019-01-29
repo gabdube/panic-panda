@@ -1,4 +1,4 @@
-from engine import Scene, Image, Sampler, Shader, CombinedImageSampler, Mesh, GameObject, Animation
+from engine import Scene, Image, Sampler, Shader, CombinedImageSampler, Mesh, GameObject, Animation, AnimationPlayback
 from engine.assets import KTXFile, GLBFile, IMAGE_PATH
 from system import events as evt
 from utils import Mat4
@@ -16,6 +16,7 @@ class DebugAnimationsScene(object):
 
         # Global state
         self.objects = []
+        self.animations = {}
         self.light = {"rot": -95, "pitch": 40}
         self.debug = 0
 
@@ -37,6 +38,16 @@ class DebugAnimationsScene(object):
         self.update_objects()
         self.update_light()
         self.update_view()
+        self.play_animations()
+       
+    def play_animations(self):
+        inner_box = self.objects[0]
+        rotate, translate = self.animations['rotate'], self.animations['translate']
+
+        rotate.play(inner_box, playback=AnimationPlayback.Once)
+        translate.play(inner_box, playback=AnimationPlayback.Once)
+
+        self.scene.update_animations(rotate, translate)
 
     def update_light(self):
         light = self.light
@@ -207,7 +218,7 @@ class DebugAnimationsScene(object):
         bunny_m = Mesh.from_gltf(GLBFile.open("bunny.glb"), "BunnyMesh", attributes_map=shader.attributes_map, name="BunnyMesh")
 
         # Objects
-        bunny_o = GameObject.from_components(shader = shader.id, mesh = bunny_m.id, name = "Bunny")
+        bunny_o = GameObject.new(shader = shader.id, mesh = bunny_m.id, name = "Bunny")
         bunny_o.model = Mat4().from_rotation(radians(90), (1, 0, 0))
         bunny_o.uniforms.texture_maps = CombinedImageSampler(image_id=bunny_i.id, view_name="default", sampler_id=bunny_sm.id)
         bunny_o.uniforms.base_material = {"metallic_roughness": (0.0, 0.0)}
@@ -241,25 +252,27 @@ class DebugAnimationsScene(object):
         # Animations
         rotate_inner_a = Animation.from_gltf(animated_f, 0)
         translate_inner_a = Animation.from_gltf(animated_f, 1)
+        inner_animations = {"rotate": rotate_inner_a, "translate": translate_inner_a}
 
         # Objects
-        inner_o = GameObject.from_components(shader=shader.id, mesh=inner_m.id, name="InnerBox")
+        inner_o = GameObject.new(shader=shader.id, mesh=inner_m.id, name="InnerBox")
         inner_o.model = Mat4()
         inner_o.uniforms.texture_maps = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=sm.id)
         inner_o.uniforms.base_material = {"color": (1.0, 1.0, 1.0, 1.0),  "metallic_roughness": (0.0, 1.0)}
 
-        outer_o = GameObject.from_components(shader=shader.id, mesh=outer_m.id, name="OuterBox")
+        outer_o = GameObject.new(shader=shader.id, mesh=outer_m.id, name="OuterBox")
         outer_o.model = Mat4()
         outer_o.uniforms.texture_maps = CombinedImageSampler(image_id=placeholder_i.id, view_name="default", sampler_id=sm.id)
         outer_o.uniforms.base_material = {"color": (1.0, 0.0, 0.0, 1.0),  "metallic_roughness": (0.0, 1.0)}
-
         
         scene.images.extend(placeholder_i)
         scene.samplers.extend(sm)
         scene.meshes.extend(inner_m, outer_m)
+        scene.animations.extend(rotate_inner_a, translate_inner_a)
         scene.objects.extend(inner_o, outer_o)
 
         self.objects.extend((inner_o, outer_o))
+        self.animations = inner_animations
 
     def _update_debug_flag(self, data):
         # Update debug flags

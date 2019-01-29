@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from ..base_types import name_generator, UniformsMaps, Id
+from ..base_types import name_generator, UniformsMaps, Id, AnimationSupport
 
 
 SHADER_ASSET_PATH = Path("./assets/shaders/")
@@ -19,6 +19,11 @@ class Shader(object):
         # Attributes names listed in here will be ignored by the data shader
         self.disabled_attributes = set()
 
+        # Animation support by the shader
+        self.animation_flags = self._check_animation_support(mapping)
+
+        # Uniform collection for the shader. Can be preinitialized with user data before loading the shader in a scene
+        # Afterwards, the object will contain device data. Uniform are prepared in `DataScene._setup_uniforms` 
         self.uniforms = UniformsMaps()
 
     @classmethod
@@ -62,3 +67,21 @@ class Shader(object):
             raise ValueError(f"No shader constant named \"{name}\" in shader")
 
         constant["default_value"] = value
+
+    def _check_animation_support(self, mapping):
+        animation_sets = [s for s in mapping['sets'] if s['scope'] == 2]
+        sets_count = len(animation_sets)
+        if sets_count > 1:
+            raise ValueError(f"Only one set must have the \"engine animation\" scope, found {sets_count}.")
+        elif sets_count == 0:
+            return AnimationSupport(0)
+
+        set_id = animation_sets[0]['id']
+        animation_uniforms = [u for u in mapping['uniforms'] if u['set'] == set_id]
+        uniforms_count = len(animation_uniforms)
+        if uniforms_count > 1:
+            raise ValueError(f"Only one uniform buffer value must be allocated for the animations, found {uniforms_count}")
+        elif uniforms_count == 0:
+            return AnimationSupport(0)
+
+        raise NotImplementedError()

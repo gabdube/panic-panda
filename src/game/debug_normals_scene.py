@@ -106,11 +106,11 @@ class DebugNormalsScene(object):
         helmet_m2 = Mesh.from_gltf(GLTFFile.open("DamagedHelmet.gltf"), "HelmetMesh", attributes_map=shader2_normals_map, name="HelmetMesh2")
 
         # Objects
-        helmet = GameObject.from_components(shader = shader_normals.id, mesh = helmet_m.id, name = "Helmet")
+        helmet = GameObject.new(shader = shader_normals.id, mesh = helmet_m.id, name = "Helmet")
         helmet.model = Mat4.from_rotation(radians(360), (0, 1, 0)).translate(-1, 0, 0)
         helmet.uniforms.normal_maps = CombinedImageSampler(image_id=helmet_maps.id, view_name="default", sampler_id=helmet_sampler.id)
 
-        helmet2 = GameObject.from_components(shader = shader2_normals.id, mesh = helmet_m2.id, name = "Helmet")
+        helmet2 = GameObject.new(shader = shader2_normals.id, mesh = helmet_m2.id, name = "Helmet")
         helmet2.model = Mat4().from_rotation(radians(90), (1, 0, 0)).translate(1, 0, 0)
         helmet2.uniforms.normal_maps = CombinedImageSampler(image_id=helmet_maps.id, view_name="default", sampler_id=helmet_sampler.id)
 

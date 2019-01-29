@@ -1,6 +1,7 @@
 from vulkan import vk, helpers as hvk
 from .data_shader import DataShader
 from .data_compute import DataCompute
+from .data_animation import DataAnimation
 from .data_mesh import DataMesh
 from .data_sampler import DataSampler
 from .data_image import DataImage
@@ -25,6 +26,7 @@ class DataScene(object):
         self.shaders = None
         self.computes = None
         self.objects = None
+        self.animations = None
 
         self.pipelines = None
         self.compute_pipelines = None
@@ -157,6 +159,7 @@ class DataScene(object):
                 hvk.set_viewport(api, cmd, viewports)
                 hvk.set_scissor(api, cmd, scissors)
 
+            # Bind shader global descriptor sets
             if data_obj.shader is not None and current_shader_index != data_obj.shader:
                 current_shader_index = data_obj.shader
                 current_shader = shaders[data_obj.shader]
@@ -164,6 +167,7 @@ class DataScene(object):
                 if len(current_shader.descriptor_sets) > 0:
                     hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, current_shader.descriptor_sets)
 
+            # Bind object local descriptor sets
             if data_obj.descriptor_sets is not None and len(data_obj.descriptor_sets) > 0:
                 hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, data_obj.descriptor_sets, firstSet=len(current_shader.descriptor_sets))
 
@@ -242,7 +246,11 @@ class DataScene(object):
         images = scene.images
 
         staging_mesh_offset = 0
-        data_meshes, data_objects, data_images, data_samplers = [], [], [], []
+        data_meshes, data_objects, data_images, data_samplers, data_animations = [], [], [], [], []
+
+        # Animation setup
+        for anim in scene.animations:
+            data_animations.append(DataAnimation(anim))
 
         # Objects setup
         for obj in scene.objects:
@@ -574,6 +582,9 @@ class DataScene(object):
         shaders, computes = self.shaders, self.computes
 
         pool_sizes, max_sets = {}, 0
+
+        # Scene global descriptor for animations
+        
 
         # Lookup for the shader global descriptors
         for data_shader in shaders:
