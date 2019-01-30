@@ -47,7 +47,8 @@ class ShaderScope(Enum):
     # Allocate a descriptor set per object linked to a shader
     LOCAL = 1
 
-    # Allocate one descriptor set per scene. Descriptor will be used for animations purpose.
+    # Allocate a descriptor set per object linked to the shader
+    # Data is managed by the engine
     ENGINE_ANIMATION = 2
 
 

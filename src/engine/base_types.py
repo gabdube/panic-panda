@@ -84,8 +84,7 @@ class UniformsMaps(object):
         sup.__setattr__(name, value)
 
 
-class AnimationSupport(IntFlag):
-    Time = 1
+class AnimationChannelSupport(IntFlag):
     Translation = 2
     Rotation = 3
     Scale = 4

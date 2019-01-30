@@ -511,18 +511,8 @@ class DataScene(object):
         for data_shader in self.shaders:
             shader = data_shader.shader
 
-            if shader.animation_flags == 0:
+            if not shader.has_timer:
                 continue  # Shader do not support animations
-
-            animation_name = shader.animation_name
-            animation_layout = data_shader.animations_layout
-            animation_struct = animation_layout.struct_map[animation_name]
-            
-            if getattr(shader.uniforms, animation_name, None) is not None:
-                print(f"WARNING! Default values are associated with the animation uniform buffer of shader {shader.name}. These values will be ignored.")
-            
-            animation_value = animation_struct()
-
 
     def _setup_pipelines(self):
         engine, api, device = self.ctx
