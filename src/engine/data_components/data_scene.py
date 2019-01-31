@@ -41,7 +41,6 @@ class DataScene(object):
         self.meshes = None
 
         self.animations = None
-        self.animations_buffers = None
 
         self.samplers = None
 
@@ -60,6 +59,7 @@ class DataScene(object):
         self._setup_descriptor_sets_pool()
         self._setup_descriptor_sets()
         self._setup_descriptor_write_sets()
+        self._setup_animation_descriptor_write_sets()
         self._setup_render_commands()
         self._setup_compute_commands()
         self._setup_render_cache()
@@ -508,11 +508,20 @@ class DataScene(object):
             obj.uniforms.bound = True
 
     def _setup_animation_uniforms(self):
-        for data_shader in self.shaders:
-            shader = data_shader.shader
+        scene = self.scene
+        data_shaders = self.shaders
 
-            if not shader.has_timer:
-                continue  # Shader do not support animations
+        # Allocate the channel uniform buffer for the objects that support animations
+        # The process is the same as `_setup_uniforms`. 
+
+        def map_layout(obj, layout):
+            raise NotImplementedError("The mapping of animations channels uniform is not yet implemented")
+
+        for obj in scene.objects:
+            if obj.shader is not None:
+                data_shader = data_shaders[obj.shader]
+                if data_shader.shader.channels:
+                    map_layout(obj, data_shader.animations_layout)
 
     def _setup_pipelines(self):
         engine, api, device = self.ctx
@@ -594,8 +603,18 @@ class DataScene(object):
 
         pool_sizes, max_sets = {}, 0
 
-        # Scene global descriptor for animations
+        # Allocate space for a single "timer" uniform buffer for each shader that supports it
+        for data_shader in shaders:
+            if not data_shader.shader.has_timer:
+                continue
 
+            # According to the spec, the timer binding must be DESCRIPTOR_TYPE_UNIFORM_BUFFER
+            if vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER in pool_sizes:
+                pool_sizes[vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER] += 1
+            else:
+                pool_sizes[vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER] = 1
+
+            max_sets += 1
 
         # Lookup for the shader global descriptors
         for data_shader in shaders:
@@ -661,6 +680,22 @@ class DataScene(object):
         mem = engine.memory_manager
        
         uniforms_buffer_size = 0
+
+        # Allocate the timer descriptor sets
+        for data_shader in shaders:
+            if not data_shader.shader.has_timer:
+                continue
+
+            animation_layout = data_shader.animations_layout
+            uniforms_buffer_size += animation_layout.struct_map_size_bytes
+            timer_set_layout = (animation_layout.set_layout,)
+
+            descriptor_sets = hvk.allocate_descriptor_sets(api, device, hvk.descriptor_set_allocate_info(
+                descriptor_pool = descriptor_pool,
+                set_layouts = timer_set_layout
+            ))
+
+            data_shader.timer_descriptor_set = descriptor_sets[0]
 
         # Allocate shader global descriptor sets
         for data_shader in shaders:
@@ -840,6 +875,9 @@ class DataScene(object):
                 data_obj.write_sets = map_write_sets(data_obj, data_obj.obj, data_shader.local_layouts)
 
         hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
+
+    def _setup_animation_descriptor_write_sets(self):
+        pass
 
     def _group_objects_by_shaders(self):
         if self.shader_objects_sorted:

@@ -20,6 +20,8 @@ class DataShader(object):
         self.descriptor_sets = None
         self.write_sets = None
 
+        self.timer_descriptor_set = None
+
         self._compile_shader()
         self._setup_vertex_state()
         self._setup_descriptor_layouts()

@@ -111,6 +111,6 @@ class Shader(object):
         self.has_timer = True
 
     def _parse_animation_channels(self, uniforms):
-        channel_uniform = next((u for u in uniforms if u['name'] == 'timer'), None)
+        channel_uniform = next((u for u in uniforms if u['name'] == 'channels'), None)
         if channel_uniform is None:
             return
