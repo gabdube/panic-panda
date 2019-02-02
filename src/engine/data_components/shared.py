@@ -7,8 +7,9 @@ from io import BytesIO
 
 class DescriptorSetLayout(object):
 
-    def __init__(self, set_layout, scope, struct_map, images, pool_size_counts, write_set_templates):
+    def __init__(self, set_layout, scope, index, struct_map, images, pool_size_counts, write_set_templates):
         self.set_layout = set_layout
+        self.index = index
         self.scope = ShaderScope(scope)
         self.struct_map = struct_map
         self.images = images
@@ -203,6 +204,7 @@ def setup_descriptor_layouts(shader, engine, api, device, mappings):
         dset_layout = DescriptorSetLayout(
             set_layout = hvk.create_descriptor_set_layout(api, device, info),
             scope = dset["scope"],
+            index = dset["id"],
             struct_map = structs,
             images = images,
             pool_size_counts = tuple(counts.items()),

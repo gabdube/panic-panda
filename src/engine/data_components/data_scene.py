@@ -9,7 +9,7 @@ from .data_game_object import DataGameObject
 from .shared import BufferRange
 from ..base_types import UniformsMaps
 from ..public_components import GameObject, Shader, Compute
-from ctypes import sizeof, memset
+from ctypes import sizeof, memset, c_float
 
 
 class DataScene(object):
@@ -42,6 +42,8 @@ class DataScene(object):
         self.meshes = None
 
         self.animations = None
+        self.animation_timer_offset_size = None
+        self.timer_support = False
 
         self.samplers = None
 
@@ -172,6 +174,9 @@ class DataScene(object):
                 if len(current_shader.descriptor_sets) > 0:
                     hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, current_shader.descriptor_sets)
 
+                if current_shader.timer_descriptor_set is not None:
+                     hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, (current_shader.timer_descriptor_set,)  , firstSet=current_shader.timer_set_index)
+
             # Bind object local descriptor sets
             if data_obj.descriptor_sets is not None and len(data_obj.descriptor_sets) > 0:
                 hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, data_obj.descriptor_sets, firstSet=len(current_shader.descriptor_sets))
@@ -190,6 +195,11 @@ class DataScene(object):
 
         h.end_render_pass(api, cmd)
         h.end_command_buffer(api, cmd)
+
+    def update_time(self, engine_time):
+        if not self.timer_support:
+            return
+        self._update_time(engine_time)
 
     def apply_updates(self):
         scene = self.scene
@@ -519,11 +529,23 @@ class DataScene(object):
         def map_layout(obj, layout):
             raise NotImplementedError("The mapping of animations channels uniform is not yet implemented")
 
+        timer_support = False
+
+        for shader, data_shader in zip(scene.shaders, data_shaders):
+            if not shader.has_timer:
+                continue
+
+            animation_layout = data_shader.animations_layout
+            data_shader.timer_set_index = animation_layout.index
+            timer_support = True
+
         for obj in scene.objects:
             if obj.shader is not None:
                 data_shader = data_shaders[obj.shader]
                 if data_shader.shader.channels:
                     map_layout(obj, data_shader.animations_layout)
+
+        self.timer_support = timer_support
 
     def _setup_pipelines(self):
         engine, api, device = self.ctx
@@ -877,14 +899,25 @@ class DataScene(object):
             for data_obj in objects:
                 data_obj.write_sets = map_write_sets(data_obj, data_obj.obj, data_shader.local_layouts)
 
-        hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
-        self.uniforms_buffer_range.allocate(uniform_offset)
+        if len(write_sets_to_update) > 0:
+            hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
+            self.uniforms_buffer_range.allocate(uniform_offset)
 
     def _setup_animation_descriptor_write_sets(self):
+        """
+            Create the write sets for the timer uniforms.
+            All timer descriptor share the same space in the uniform buffer so that a single write updates all shaders.
+            The offset of the time value is stored in `self.animation_timer_offset_size`
+        """
+        if not self.timer_support or self.uniforms_buffer is None:
+            # May happens if the scene is empty or no shader supports animations
+            return
+
         _, api, device = self.ctx
         shaders = self.shaders
         uniform_buffer = self.uniforms_buffer
-        uniform_offset_base = uniform_offset = self.uniforms_buffer_range.next_offset()
+        uniform_offset = self.uniforms_buffer_range.next_offset()
+        uniform_size = 0
 
         write_sets_to_update = []
 
@@ -897,12 +930,12 @@ class DataScene(object):
             animation_layout = data_shader.animations_layout
 
             wst = animation_layout.write_set_templates[0]
-            drange, binding = wst['range'], wst['binding']
+            data_range, binding = wst['range'], wst['binding']
 
             buffer_info = vk.DescriptorBufferInfo(
                 buffer = uniform_buffer,
                 offset = uniform_offset,
-                range = drange
+                range = data_range
             )
 
             write_set = hvk.write_descriptor_set(
@@ -912,17 +945,19 @@ class DataScene(object):
                 buffer_info = (buffer_info,)
             )
 
+            uniform_size = max(uniform_size, data_range)
+
             write_sets_to_update.append(write_set)
 
             data_shader.timer_write_set = {
-                "buffer_offset_range": (uniform_offset, wst["range"]),
+                "buffer_offset_range": (uniform_offset, data_range),
                 "write_set": write_set
             }
 
-            uniform_offset += drange
-
-        hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
-        self.uniforms_buffer_range.allocate(uniform_offset - uniform_offset_base)
+        if len(write_sets_to_update) > 0:
+            hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
+            self.uniforms_buffer_range.allocate(uniform_size)
+            self.animation_timer_offset_size = (uniform_offset, uniform_size)
 
     def _group_objects_by_shaders(self):
         if self.shader_objects_sorted:
@@ -1122,3 +1157,11 @@ class DataScene(object):
         with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
             for value, offset in buffer_update_list:
                 mapping.write_typed_data(value, offset-base_offset)
+
+    def _update_time(self, engine_time):
+        mem = self.engine.memory_manager
+        uniforms_alloc = self.uniforms_alloc
+        mapping_offset, mapping_size = self.animation_timer_offset_size
+
+        with mem.map_alloc(uniforms_alloc, mapping_offset, mapping_size) as mapping:
+            mapping.write_typed_data(c_float(engine_time), 0)

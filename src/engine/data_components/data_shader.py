@@ -23,6 +23,7 @@ class DataShader(object):
         # Animation related gpu resources
         self.timer_descriptor_set = None
         self.timer_write_set = None
+        self.timer_set_index = None
 
         self._compile_shader()
         self._setup_vertex_state()

@@ -1,4 +1,5 @@
 from enum import IntFlag
+from time import monotonic
 from collections import OrderedDict, namedtuple
 from system import Window, events as evt
 from vulkan import vk, helpers as hvk
@@ -45,6 +46,8 @@ class Engine(object):
 
         self.running = False
         self.debug = False
+
+        self.time_begin = monotonic()
 
         self.api = self.instance = self.device = self.physical_device = None
         self.debugger = self.debug_ui = self.surface = self.render_queue = None
@@ -162,6 +165,7 @@ class Engine(object):
 
     def render(self):
         scene_data = self.graph[self.current_scene_index]
+        scene_data.update_time(monotonic() - self.time_begin)
         self.renderer.render(scene_data)
 
     def compute(self, scene, compute, group, sync=False, before=None, after=None, callback=None):
