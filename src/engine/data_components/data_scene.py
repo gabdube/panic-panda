@@ -6,6 +6,7 @@ from .data_mesh import DataMesh
 from .data_sampler import DataSampler
 from .data_image import DataImage
 from .data_game_object import DataGameObject
+from .shared import BufferRange
 from ..base_types import UniformsMaps
 from ..public_components import GameObject, Shader, Compute
 from ctypes import sizeof, memset
@@ -49,6 +50,7 @@ class DataScene(object):
 
         self.uniforms_alloc = None
         self.uniforms_buffer = None
+        self.uniforms_buffer_range = None
 
         self._setup_shaders()
         self._setup_objects()
@@ -781,6 +783,7 @@ class DataScene(object):
 
         self.uniforms_alloc = uniforms_alloc
         self.uniforms_buffer = uniforms_buffer
+        self.uniforms_buffer_range = BufferRange(uniforms_buffer_size)
         
     def _setup_descriptor_write_sets(self):
         _, api, device = self.ctx
@@ -875,9 +878,51 @@ class DataScene(object):
                 data_obj.write_sets = map_write_sets(data_obj, data_obj.obj, data_shader.local_layouts)
 
         hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
+        self.uniforms_buffer_range.allocate(uniform_offset)
 
     def _setup_animation_descriptor_write_sets(self):
-        pass
+        _, api, device = self.ctx
+        shaders = self.shaders
+        uniform_buffer = self.uniforms_buffer
+        uniform_offset_base = uniform_offset = self.uniforms_buffer_range.next_offset()
+
+        write_sets_to_update = []
+
+        for data_shader in shaders:
+            if not data_shader.shader.has_timer:
+                continue
+
+            shader = data_shader.shader
+            descriptor_set = data_shader.timer_descriptor_set
+            animation_layout = data_shader.animations_layout
+
+            wst = animation_layout.write_set_templates[0]
+            drange, binding = wst['range'], wst['binding']
+
+            buffer_info = vk.DescriptorBufferInfo(
+                buffer = uniform_buffer,
+                offset = uniform_offset,
+                range = drange
+            )
+
+            write_set = hvk.write_descriptor_set(
+                dst_set = descriptor_set,
+                dst_binding = binding,
+                descriptor_type = vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                buffer_info = (buffer_info,)
+            )
+
+            write_sets_to_update.append(write_set)
+
+            data_shader.timer_write_set = {
+                "buffer_offset_range": (uniform_offset, wst["range"]),
+                "write_set": write_set
+            }
+
+            uniform_offset += drange
+
+        hvk.update_descriptor_sets(api, device, write_sets_to_update, ())
+        self.uniforms_buffer_range.allocate(uniform_offset - uniform_offset_base)
 
     def _group_objects_by_shaders(self):
         if self.shader_objects_sorted:

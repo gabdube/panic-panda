@@ -52,6 +52,61 @@ class ShaderScope(Enum):
     ENGINE_ANIMATION = 2
 
 
+class BufferRange(object):
+    """
+        Keep in memory what range of a buffer has been allocated to some resources and
+        what other parts are still free to use
+    """
+
+    __slots__ = ('allocated', 'free', 'total_size')
+
+    def __init__(self, inital_size):
+        self.total_size = inital_size
+        self.free = [(0, inital_size)]
+        self.allocated = []
+
+    def allocate(self, alloc_size):
+        if len(self.free) == 0:
+            raise ValueError("No free space left in buffer")
+        elif alloc_size > self.total_size:
+            raise ValueError(f"Tried to allocate more that the total buffer size. Total: {self.total_size}, Allocated: {alloc_size}")
+
+        found = None
+        for i, (i_min, i_max) in enumerate(self.free):
+            i_size = i_max - i_min
+            if i_size >= alloc_size:
+                found = i, i_min, i_max
+
+        if found is None:
+            raise ValueError(f"No free space left in buffer to accomodate an allocation size of {alloc_size}")
+
+        index, min_offset, max_offset = found
+        
+        self.allocated.append((min_offset, alloc_size))
+
+        if (min_offset+alloc_size) < max_offset:
+            self.free[index] = (min_offset+alloc_size, max_offset)
+        else:
+            del self.free[index]
+
+    def next_offset(self, min_size=None):
+        if len(self.free) == 0:
+            raise ValueError("No free space left in buffer")
+
+        off = None
+        for i_min, i_max in self.free:
+            if min_size is None:
+                off = i_min
+                break
+            elif (i_max-i_min) >= min_size:
+                off = i_min
+                break
+
+        if off is None and min_size is not None:
+            raise ValueError(f"No free space left in buffer to accomodate an allocation size of {min_size}")
+
+        return off
+
 def setup_descriptor_layouts(shader, engine, api, device, mappings):
 
     if len(mappings["uniforms"]) == 0:
