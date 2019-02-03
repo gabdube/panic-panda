@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from ..base_types import name_generator, UniformsMaps, Id, AnimationChannelSupport
+from ..base_types import name_generator, UniformsMaps, Id, AnimationChannelSupport, ShaderScope
 
 
 SHADER_ASSET_PATH = Path("./assets/shaders/")
@@ -73,7 +73,7 @@ class Shader(object):
     def _parse_animation_support(self, mapping):
 
         # Validate the sets
-        animation_sets = [s for s in mapping['sets'] if s['scope'] == 2]
+        animation_sets = [s for s in mapping['sets'] if s['scope'] == ShaderScope.ENGINE_TIMER]
         sets_count = len(animation_sets)
         if sets_count > 1:
             raise ValueError(f"Only one set must have the \"engine animation\" scope, found {sets_count}.")

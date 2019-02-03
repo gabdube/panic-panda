@@ -1,5 +1,6 @@
 from vulkan import vk, helpers as hvk
-from .shared import ShaderScope, setup_descriptor_layouts, setup_specialization_constants
+from .shared import setup_descriptor_layouts, setup_specialization_constants
+from ..base_types import ShaderScope
 
 
 class DataShader(object):
@@ -59,7 +60,7 @@ class DataShader(object):
 
     @property
     def animations_layout(self):
-        return next((l for l in self.descriptor_set_layouts if l.scope is ShaderScope.ENGINE_ANIMATION), None)
+        return next((l for l in self.descriptor_set_layouts if l.scope is ShaderScope.ENGINE_TIMER), None)
 
     def _compile_shader(self):
         engine, api, device = self.ctx

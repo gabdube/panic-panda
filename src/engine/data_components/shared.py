@@ -3,6 +3,7 @@ from vulkan import vk, helpers as hvk
 from functools import lru_cache
 from enum import Enum
 from io import BytesIO
+from ..base_types import UniformMemberType, ShaderScope
 
 
 class DescriptorSetLayout(object):
@@ -17,41 +18,6 @@ class DescriptorSetLayout(object):
         self.write_set_templates = write_set_templates
 
         self.struct_map_size_bytes = sum( sizeof(s) for s in struct_map.values() )
-
-
-class UniformMemberType(Enum):
-    FLOAT_MAT2 = 0
-    FLOAT_MAT3 = 1
-    FLOAT_MAT4 = 2
-
-    FLOAT_VEC2 = 3
-    FLOAT_VEC3 = 4
-    FLOAT_VEC4 = 5
-
-    INT_MAT2 = 6
-    INT_MAT3 = 7
-    INT_MAT4 = 8
-
-    INT_VEC2 = 9
-    INT_VEC3 = 10
-    INT_VEC4 = 11
-
-    FLOAT = 12
-    INT = 13
-    BOOL = 14
-
-
-class ShaderScope(Enum):
-    # Allocate a descriptor set per shader
-    GLOBAL = 0
-
-    # Allocate a descriptor set per object linked to a shader
-    LOCAL = 1
-
-    # Allocate a descriptor set per object linked to the shader
-    # Data is managed by the engine
-    ENGINE_ANIMATION = 2
-
 
 class BufferRange(object):
     """

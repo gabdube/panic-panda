@@ -24,12 +24,6 @@ layout (set=1, binding=0) uniform View {
 
 void main(void) 
 {
-    float x = 0.4 + (abs(sin(runtime)) / 2);
-    mat4 scale = mat4(vec4(x, 0.0, 0.0, 0.0),
-                      vec4(0.0, x, 0.0, 0.0),
-                      vec4(0.0, 0.0, x, 0.0),
-                      vec4(0.0, 0.0, 0.0, 1.0));
-
     vec4 pos = view.model * vec4(inPos, 1.0);
     outPos = pos.xyz;
 
@@ -37,5 +31,5 @@ void main(void)
 
     outUv = inUv;
 
-    gl_Position = view.mvp * scale * vec4(inPos, 1.0);
+    gl_Position = view.mvp * vec4(inPos, 1.0);
 }

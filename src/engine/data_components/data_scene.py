@@ -175,7 +175,7 @@ class DataScene(object):
                     hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, current_shader.descriptor_sets)
 
                 if current_shader.timer_descriptor_set is not None:
-                     hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, (current_shader.timer_descriptor_set,)  , firstSet=current_shader.timer_set_index)
+                     hvk.bind_descriptor_sets(api, cmd, vk.PIPELINE_BIND_POINT_GRAPHICS, current_shader.pipeline_layout, (current_shader.timer_descriptor_set,), firstSet=current_shader.timer_set_index)
 
             # Bind object local descriptor sets
             if data_obj.descriptor_sets is not None and len(data_obj.descriptor_sets) > 0:
@@ -921,6 +921,7 @@ class DataScene(object):
 
         write_sets_to_update = []
 
+        # Write the timer binding
         for data_shader in shaders:
             if not data_shader.shader.has_timer:
                 continue
@@ -948,11 +949,7 @@ class DataScene(object):
             uniform_size = max(uniform_size, data_range)
 
             write_sets_to_update.append(write_set)
-
-            data_shader.timer_write_set = {
-                "buffer_offset_range": (uniform_offset, data_range),
-                "write_set": write_set
-            }
+            data_shader.timer_write_set = write_set
 
         if len(write_sets_to_update) > 0:
             hvk.update_descriptor_sets(api, device, write_sets_to_update, ())

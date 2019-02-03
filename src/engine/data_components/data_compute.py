@@ -1,5 +1,6 @@
 from vulkan import vk, helpers as hvk
-from .shared import ShaderScope, setup_descriptor_layouts, setup_specialization_constants
+from .shared import setup_descriptor_layouts, setup_specialization_constants
+from ..base_types import ShaderScope
 
 
 class DataCompute(object):
