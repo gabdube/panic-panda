@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from ..base_types import name_generator, UniformsMaps, Id, AnimationChannelSupport, ShaderScope
+from ..base_types import name_generator, UniformsMaps, Id, AnimationChannelSupport, ShaderScope, AnimationNames
 
 
 SHADER_ASSET_PATH = Path("./assets/shaders/")
@@ -72,36 +72,43 @@ class Shader(object):
 
     def _parse_animation_support(self, mapping):
 
-        # Validate the sets
-        animation_sets = [s for s in mapping['sets'] if s['scope'] == ShaderScope.ENGINE_TIMER]
-        sets_count = len(animation_sets)
-        if sets_count > 1:
-            raise ValueError(f"Only one set must have the \"engine animation\" scope, found {sets_count}.")
-        elif sets_count == 0:
+        # Validate the timer set
+        timer_sets = [s for s in mapping['sets'] if s['scope'] == ShaderScope.ENGINE_TIMER.value]
+        timer_sets_count = len(timer_sets)
+       
+        # Validate the channels set
+        channel_sets = [s for s in mapping['sets'] if s['scope'] == ShaderScope.ENGINE_ANIMATIONS.value]
+        channel_sets_count = len(channel_sets)
+
+        if timer_sets_count > 1:
+            raise ValueError(f"Only one set must have the \"ENGINE_TIMER\" scope, found {timer_sets_count}.")
+        elif timer_sets_count == 0:
             return
+        elif channel_sets_count > 1:
+            raise ValueError(f"Only one set must have the \"ENGINE_ANIMATIONS\" scope, found {channel_sets_count}.")
+
 
         # Validate the uniforms
-        set_id = animation_sets[0]['id']
-        animation_uniforms = [u for u in mapping['uniforms'] if u['set'] == set_id]
-        uniforms_count = len(animation_uniforms)
-        if uniforms_count > 2:
-            raise ValueError(f"A maximum of 2 binding can be allocated for the animations uniforms, found {uniforms_count}")
-        elif uniforms_count == 0:
-            return
+        timer_set_id = timer_sets[0]['id']
+        timer_uniforms = [u for u in mapping['uniforms'] if u['set'] == timer_set_id]
 
-        # Check the uniform names
-        uniform_names = [u['name'] for u in animation_uniforms]
-        for name in ('timer', 'channels'):
-            if name in uniform_names:
-                uniform_names.remove(name)
+        channel_set_id = None if channel_sets_count == 0 else channel_sets[0]['id']
+        channel_uniforms = [u for u in mapping['uniforms'] if u['set'] == channel_set_id]
+        
+        if len(timer_uniforms) != 1:
+            raise ValueError(f"The timer descriptor set must only have one binding named `{AnimationNames.TIMER_NAME}`")
+        elif len(channel_uniforms) > 1:
+            raise ValueError(f"The channels descriptor set must only have one binding named `{AnimationNames.CHANNELS_NAME}`")
 
-        if len(uniform_names) != 0:
-            print(f"Warning! Some uniform binding for the animations are not recognized ({uniform_names}). Make sure they are named 'timer' and 'channels'")
 
-        # Parse the uniform bindings
-        self._parse_animation_timer(animation_uniforms)
+        # Check the names
+        timer_uniform_name = timer_uniforms[0]['name']
+        if timer_uniform_name != AnimationNames.TIMER_NAME:
+            raise ValueError(f"The timer uniform name must be \"{AnimationNames.TIMER_NAME}\", got \"{timer_uniform_name}\" ")
+
+        self._parse_animation_timer(timer_uniforms)
         if self.has_timer:
-            self._parse_animation_channels(animation_uniforms)
+            self._parse_animation_channels(timer_uniforms)
 
     def _parse_animation_timer(self, uniforms):
         timer_uniform = next((u for u in uniforms if u['name'] == 'timer'), None)

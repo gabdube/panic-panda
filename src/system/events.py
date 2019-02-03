@@ -7,8 +7,9 @@ class EventsMap(dict):
     def __iter__(self):
         events = tuple(self.keys())
         for e in events:
-            data = self.get(e)
-            yield e, data
+            data = self.get(e, CORRUPTED)
+            if data is not CORRUPTED:
+                yield e, data
 
         self.clear()
 
@@ -18,6 +19,10 @@ class EventsMap(dict):
         else:
             raise KeyError(f"Invalid event type: {key}")
 
+
+# Might be returned if an event was not processed corrrectly. Things like that might happens if the process
+# is locked by IO and some events that are called many times (ex: MouseMove) are executed at the same time
+CORRUPTED = namedtuple("Corrupted", ())
 
 Events = Enum("Events", "WindowResized RenderEnable RenderDisable MouseClick MouseMove MouseScroll KeyPress")
 

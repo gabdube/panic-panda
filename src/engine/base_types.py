@@ -127,3 +127,20 @@ class ShaderScope(Enum):
     # Allocate a descriptor set per object.
     # Data is managed b the engine
     ENGINE_ANIMATIONS = 3
+
+
+class AnimationNames(object):
+    TIMER_NAME = "timer"
+
+    CHANNELS_NAME = "channels"
+    TRANSLATION_NAME = "translation"
+    ROTATION_NAME = "rotation"
+    SCALE_NAME = "scale"
+
+    INTERPOLATION_SUFFIX = "_interpolation"
+
+
+class AnimationInterpolation(Enum):
+    Linear = 1
+    Step = 2
+    CubicSpline = 3

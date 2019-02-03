@@ -15,6 +15,12 @@ layout (set=2, binding=0) uniform Timer {
     float runtime;
 };
 
+layout (set=3, binding=0) uniform AnimationChannels {
+    int translationInterpolation;
+    int rotationInterpolation;
+    int scaleInterpolation;
+} ch;
+
 layout (set=1, binding=0) uniform View {
     mat4 mvp;
     mat4 model;
