@@ -41,11 +41,11 @@ class DebugAnimationsScene(object):
         self.play_animations()
        
     def play_animations(self):
-        inner_box = self.objects[0]
+        inner_box_obj = self.objects[0]
         rotate, translate = self.animations['rotate'], self.animations['translate']
 
-        rotate.play(inner_box, playback=AnimationPlayback.Once)
-        translate.play(inner_box, playback=AnimationPlayback.Once)
+        rotate.play(inner_box_obj.id, playback=AnimationPlayback.Once)
+        translate.play(inner_box_obj.id, playback=AnimationPlayback.Once)
 
         self.scene.update_animations(rotate, translate)
 

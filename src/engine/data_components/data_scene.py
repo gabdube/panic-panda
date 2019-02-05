@@ -8,7 +8,7 @@ from .data_image import DataImage
 from .data_game_object import DataGameObject
 from .shared import BufferRange
 from ..base_types import UniformsMaps
-from ..public_components import GameObject, Shader, Compute
+from ..public_components import GameObject, Shader, Compute, Animation
 from ctypes import sizeof, memset, c_float
 
 
@@ -203,7 +203,7 @@ class DataScene(object):
 
     def apply_updates(self):
         scene = self.scene
-        obj_update, shader_update = [], []
+        obj_update, shader_update, anim_update = [], [], []
 
         for obj in scene.update_obj_set:
             t, data_objs = type(obj), None
@@ -229,10 +229,21 @@ class DataScene(object):
                 dshader = data_objs[shader.id]
                 shader_update.append((shader, dshader))
 
+        for animation in scene.update_animation_set:
+            t = type(animation)
+            if t is Animation:
+                anim_update.append(animation)
+            else:
+                raise RuntimeError(f"Unkown object type {t.__qualname__} in animation update list")
+
         if len(obj_update) > 0 or len(shader_update) > 0:
             self._update_uniforms(obj_update, shader_update)
             scene.update_obj_set.clear()
             scene.update_shader_set.clear()
+
+        if len(anim_update) > 0:
+            self._update_animations(anim_update)
+            scene.update_animation_set.clear()
 
     #
     # Setup things
@@ -1154,6 +1165,21 @@ class DataScene(object):
         with mem.map_alloc(uniforms_alloc, base_offset, map_size) as mapping:
             for value, offset in buffer_update_list:
                 mapping.write_typed_data(value, offset-base_offset)
+
+    def _update_animations(self, animations):
+        data_objects, data_shaders = self.objects, self.shaders
+
+        def iter_animation_targets():
+            for anim in animations:
+                for target_id, playback in anim.target_ids:
+                    obj = data_objects[target_id]
+                    yield anim, playback, obj
+                
+                anim.target_ids.clear()
+
+        for animation, playback, obj, in iter_animation_targets():
+            shader = data_shaders[obj.shader]
+            
 
     def _update_time(self, engine_time):
         mem = self.engine.memory_manager

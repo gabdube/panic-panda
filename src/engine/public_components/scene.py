@@ -13,8 +13,10 @@ class Scene(object):
         self.samplers = ComponentArray(Sampler)
         self.images = ComponentArray(Image)
         self.animations = ComponentArray(Animation)
+
         self.update_obj_set = set()
         self.update_shader_set = set()
+        self.update_animation_set = set()
 
         empty = lambda: None
         empty_w_events = lambda x, y: None
@@ -50,8 +52,7 @@ class Scene(object):
         self.update_shader_set.update(set(shader for shader in shaders if isinstance(shader, (Shader, Compute))))
 
     def update_animations(self, *animations):
-        pass
-        #raise NotImplementedError()
+        self.update_animation_set.update(set(anim for anim in animations if isinstance(anim, Animation)))
 
 
 class ComponentArray(list):

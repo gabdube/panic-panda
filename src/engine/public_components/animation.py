@@ -43,6 +43,10 @@ class Animation(object):
         self.animation_inputs = {}
         self.animations_outputs = {}
 
+        # Collection of object IDS that will play the animation as soon as the Animation object
+        # is sent in a `Scene.update_animations` call
+        self.target_ids = set()  
+
     @classmethod
     def from_gltf(cls, gltf_file, index, **kwargs):
         
@@ -92,3 +96,8 @@ class Animation(object):
     def play(self, target, playback = AnimationPlayback.Once):
         if not self.bound:
             raise ValueError("Impossible to play an animation that is not yet fully loaded in the engine")
+
+        if not isinstance(target, Id):
+            raise TypeError(f"Argument `target` must the ID of an object. Got {type(target).__qualname__}")
+
+        self.target_ids.add((target, playback))

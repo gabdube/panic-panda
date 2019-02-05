@@ -12,13 +12,13 @@ layout (location = 1) out vec2 outUv;
 layout (location = 2) out vec3 outNormal;
 
 layout (set=2, binding=0) uniform Timer {
-    float runtime;
+    float currentTime;
 };
 
 layout (set=3, binding=0) uniform AnimationChannels {
+    float startTime;
+    float endTime;
     int translationInterpolation;
-    int rotationInterpolation;
-    int scaleInterpolation;
 } ch;
 
 layout (set=1, binding=0) uniform View {

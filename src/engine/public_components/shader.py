@@ -71,13 +71,15 @@ class Shader(object):
         constant["default_value"] = value
 
     def _parse_animation_support(self, mapping):
+        names = AnimationNames
+        scope = ShaderScope
 
         # Validate the timer set
-        timer_sets = [s for s in mapping['sets'] if s['scope'] == ShaderScope.ENGINE_TIMER.value]
+        timer_sets = [s for s in mapping['sets'] if s['scope'] == scope.ENGINE_TIMER.value]
         timer_sets_count = len(timer_sets)
        
         # Validate the channels set
-        channel_sets = [s for s in mapping['sets'] if s['scope'] == ShaderScope.ENGINE_ANIMATIONS.value]
+        channel_sets = [s for s in mapping['sets'] if s['scope'] == scope.ENGINE_ANIMATIONS.value]
         channel_sets_count = len(channel_sets)
 
         if timer_sets_count > 1:
@@ -96,19 +98,31 @@ class Shader(object):
         channel_uniforms = [u for u in mapping['uniforms'] if u['set'] == channel_set_id]
         
         if len(timer_uniforms) != 1:
-            raise ValueError(f"The timer descriptor set must only have one binding named `{AnimationNames.TIMER_NAME}`")
+            raise ValueError(f"The timer descriptor set must only have one binding named `{names.TIMER_NAME}`")
         elif len(channel_uniforms) > 1:
-            raise ValueError(f"The channels descriptor set must only have one binding named `{AnimationNames.CHANNELS_NAME}`")
-
+            raise ValueError(f"The channels descriptor set must only have one binding named `{names.CHANNELS_NAME}`")
 
         # Check the names
         timer_uniform_name = timer_uniforms[0]['name']
-        if timer_uniform_name != AnimationNames.TIMER_NAME:
-            raise ValueError(f"The timer uniform name must be \"{AnimationNames.TIMER_NAME}\", got \"{timer_uniform_name}\" ")
+        if timer_uniform_name != names.TIMER_NAME:
+            raise ValueError(f"The timer uniform name must be \"{names.TIMER_NAME}\", got \"{timer_uniform_name}\" ")
+
+        if channel_set_id is not None:
+            channel_uniform = channel_uniforms[0]
+            if channel_uniform['name'] != names.TIMER_NAME:
+                raise ValueError(f"The channel uniform name must be \"{names.CHANNELS_NAME}\", got \"{channel_uniform['name']}\" ")
+
+            valid_member_names = names.CHANNEL_MEMBERS
+            bad_member_names = [f["name"] for f in channel_uniform['fields'] if f not in valid_member_names] 
+            if len(bad_member_names) > 0:
+                msg = f"Some member names of the animation channel uniform are not valid: {bad_member_names}. Valid values: {valid_member_names}"
+                raise ValueError(msg)
+        else:
+            channel_uniform = None
 
         self._parse_animation_timer(timer_uniforms)
-        if self.has_timer:
-            self._parse_animation_channels(timer_uniforms)
+        if self.has_timer and channel_uniform is not None:
+            self._parse_animation_channels(channel_uniform)
 
     def _parse_animation_timer(self, uniforms):
         timer_uniform = next((u for u in uniforms if u['name'] == 'timer'), None)
@@ -117,7 +131,9 @@ class Shader(object):
 
         self.has_timer = True
 
-    def _parse_animation_channels(self, uniforms):
-        channel_uniform = next((u for u in uniforms if u['name'] == 'channels'), None)
-        if channel_uniform is None:
-            return
+    def _parse_animation_channels(self, channel_uniform):
+        fields_name = [f["name"] for f in channel_uniform['fields']]
+        print(fields_name)
+        raise NotImplementedError()
+        
+
