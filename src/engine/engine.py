@@ -371,7 +371,7 @@ class Engine(object):
 
         # Default image transformation
         transform = caps.current_transform
-        if vk.SURFACE_TRANSFORM_IDENTITY_BIT_KHR in IntFlag(caps.supported_transforms):
+        if IntFlag(vk.SURFACE_TRANSFORM_IDENTITY_BIT_KHR) in IntFlag(caps.supported_transforms):
             transform = vk.SURFACE_TRANSFORM_IDENTITY_BIT_KHR
 
         # Swapchain creation
